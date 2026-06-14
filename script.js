@@ -1513,12 +1513,12 @@ const checkAndDispatchFlights = () => {
             const arrAbs = dispatch.arrivalDay * 24 * 60 + dispatch.arrivalHour * 60 + dispatch.arrivalMinute;
             if (nowAbs >= arrAbs) {
                 const plane = gameState.fleet.find(p => p.id === dispatch.planeId);
-                if (plane) plane.status = 'idle';
 
                 if (!gameState.flightHistory) gameState.flightHistory = [];
                 gameState.flightHistory.unshift({
                     id: dispatch.id,
                     destName: dispatch.destName,
+                    isReturn: dispatch.isReturn,
                     planeReg: plane ? plane.registration : 'Desconocido',
                     planeModel: plane ? plane.name : 'Desconocido',
                     profit: dispatch.profit || 0,
@@ -1532,11 +1532,64 @@ const checkAndDispatchFlights = () => {
                 });
                 if (gameState.flightHistory.length > 50) gameState.flightHistory.pop();
 
-                if (!isCatchingUp) {
-                    logMsg(`Aterrizaje completado: ${plane ? plane.registration : 'Desconocido'} en ${dispatch.destName}.`);
-                    showToast('Vuelo Completado', `Aterrizaje exitoso en ${dispatch.destName}`, 'info');
+                if (!dispatch.isReturn) {
+                    if (!isCatchingUp) {
+                        logMsg(`Aterrizaje completado: ${plane ? plane.registration : 'Desconocido'} en ${dispatch.destName}.`);
+                        showToast('Vuelo Completado', `Aterrizaje exitoso en ${dispatch.destName}`, 'info');
+                    }
+                    
+                    let turnaroundMins = 45;
+                    const model = plane ? AIRCRAFT_MODELS.find(m => m.id === plane.modelId || m.name === plane.name) : null;
+                    if (model && model.capacity > 200) turnaroundMins = 60;
+                    else if (model && model.capacity < 100) turnaroundMins = 30;
+
+                    const returnSchedAbs = nowAbs + turnaroundMins;
+                    const returnScheduledHour = Math.floor((returnSchedAbs % (24 * 60)) / 60);
+
+                    const r = gameState.routes.find(ro => ro.id === dispatch.routeId);
+                    const destId = r ? r.destinationId : dispatch.destName;
+
+                    let delayMins = calculateFlightDelay(destId, returnScheduledHour);
+                    
+                    let returnStatus = 'boarding';
+                    let reason = 'plane';
+
+                    if (gameState.fuelReserves >= dispatch.fuelNeeded) {
+                        gameState.fuelReserves -= dispatch.fuelNeeded;
+                    } else {
+                        returnStatus = 'delayed';
+                        reason = 'fuel';
+                        if (!isCatchingUp) {
+                            logMsg(`[ALERTA] Vuelo de regreso desde ${destId} retrasado por falta de combustible.`);
+                            showToast('Falta Combustible', `El vuelo de regreso requiere repostaje en Base.`, 'error');
+                        }
+                    }
+
+                    gameState.activeDispatches.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        routeId: dispatch.routeId,
+                        freqId: dispatch.freqId,
+                        destName: dispatch.destName,
+                        planeId: dispatch.planeId,
+                        modelId: dispatch.modelId,
+                        status: returnStatus,
+                        reason: reason,
+                        isReturn: true,
+                        delayMins: delayMins,
+                        schedAbs: returnSchedAbs,
+                        actualDepartureAbs: returnSchedAbs + delayMins,
+                        fuelNeeded: dispatch.fuelNeeded,
+                        reqTime: formatTime(returnScheduledHour, returnSchedAbs % 60)
+                    });
+                } else {
+                    if (plane) plane.status = 'idle';
+                    if (!isCatchingUp) {
+                        const baseName = gameState.base ? gameState.base.name : 'Buenos Aires';
+                        logMsg(`Aterrizaje completado: ${plane ? plane.registration : 'Desconocido'} en ${baseName}.`);
+                        showToast('Regreso Completado', `Aterrizaje exitoso en ${baseName}`, 'info');
+                    }
                 }
-                
+
                 if(!isCatchingUp && gameState.currentTab === 'flights') renderFlights();
                 return false;
             }
@@ -1628,15 +1681,18 @@ const processFlightDeparture = (dispatch) => {
     if (!r) return false;
 
     // Verificar Clima Extremo
-    const originWeather = getWeatherInfo(gameState.base.id);
-    const destWeather = getWeatherInfo(r.destinationId);
+    const originId = dispatch.isReturn ? r.destinationId : gameState.base.id;
+    const destIdWeather = dispatch.isReturn ? gameState.base.id : r.destinationId;
+    const originWeather = getWeatherInfo(originId);
+    const destWeather = getWeatherInfo(destIdWeather);
     
     if (originWeather.isExtreme || destWeather.isExtreme) {
         dispatch.actualDepartureAbs += 60; // Retrasar una hora
         dispatch.status = 'delayed_weather';
         
         if (!isCatchingUp) {
-            logMsg(`[CLIMA] Vuelo a ${dispatch.destName} demorado en tierra. Condiciones extremas.`);
+            const destToLog = dispatch.isReturn ? gameState.base.name : dispatch.destName;
+            logMsg(`[CLIMA] Vuelo a ${destToLog} demorado en tierra. Condiciones extremas.`);
             if(gameState.currentTab === 'flights') renderFlights();
         }
         return true; // Mantener en activeDispatches
@@ -1662,15 +1718,19 @@ const processFlightDeparture = (dispatch) => {
     
     const model = AIRCRAFT_MODELS.find(m => m.name === dispatch.modelId || m.id === dispatch.modelId);
     if(model) {
-        const destId = r.destinationId;
+        const destId = dispatch.isReturn ? gameState.base.id : r.destinationId;
         const profit = calculateFlightProfit(model, r.distance, destId);
         dispatch.profit = profit;
         gameState.money += profit;
-        if (!isCatchingUp) showToast('Vuelo Despegó', `+${formatMoney(profit)} (Ingresos de vuelo a ${dispatch.destName})`, 'success');
+        if (!isCatchingUp) {
+            const logDest = dispatch.isReturn ? gameState.base.name : dispatch.destName;
+            showToast('Vuelo Despegó', `+${formatMoney(profit)} (Ingresos de vuelo a ${logDest})`, 'success');
+        }
     }
 
     if (!isCatchingUp) {
-        logMsg(`Despegue: ${plane ? plane.registration : ''} cubriendo vuelo a ${r.destinationId}. Llegada est: Día ${dispatch.arrivalDay} ${formatTime(dispatch.arrivalHour, dispatch.arrivalMinute)}.`);
+        const logDest = dispatch.isReturn ? gameState.base.id : r.destinationId;
+        logMsg(`Despegue: ${plane ? plane.registration : ''} cubriendo vuelo a ${logDest}. Llegada est: Día ${dispatch.arrivalDay} ${formatTime(dispatch.arrivalHour, dispatch.arrivalMinute)}.`);
         if(gameState.currentTab === 'flights') renderFlights();
     }
     return true;
@@ -1933,6 +1993,7 @@ const finalizeRouteCreation = () => {
     const dest = AIRPORTS.find(a => a.id === routeCreationState.destinationId);
     const dist = calculateDistance(gameState.base.lat, gameState.base.lng, dest.lat, dest.lng);
     
+    const finalFrequencies = [];
     for (let i = 0; i < routeCreationState.frequencies.length; i++) {
         const f = routeCreationState.frequencies[i];
         if (f.days.length === 0) {
@@ -1943,13 +2004,52 @@ const finalizeRouteCreation = () => {
             showToast('Error de Validación', `Debes asignar al menos una aeronave a la Frecuencia ${i+1}.`, 'error');
             return;
         }
+
+        f.id = f.id || Math.random().toString(36).substr(2, 9);
+        f.isReturn = false;
+        finalFrequencies.push(f);
+
+        // Calculate return flight
+        const durationHours = dist / 800;
+        const durationMinutes = Math.round(durationHours * 60);
+
+        const model = AIRCRAFT_MODELS.find(m => m.id === f.modelId || m.name === f.modelId);
+        let turnaroundMins = 45;
+        if (model && model.capacity > 200) turnaroundMins = 60;
+        else if (model && model.capacity < 100) turnaroundMins = 30;
+
+        const parts = f.time.split(':');
+        const fH = parseInt(parts[0], 10);
+        const fM = parseInt(parts[1], 10);
+        const outboundMins = fH * 60 + fM;
+
+        const returnMinsTotal = outboundMins + durationMinutes + turnaroundMins;
+        const returnDayOffset = Math.floor(returnMinsTotal / (24 * 60));
+        const returnH = Math.floor((returnMinsTotal % (24 * 60)) / 60);
+        const returnM = returnMinsTotal % 60;
+
+        const DAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+        const returnDays = f.days.map(d => {
+            const idx = DAYS.indexOf(d);
+            return DAYS[(idx + returnDayOffset) % 7];
+        });
+
+        finalFrequencies.push({
+            id: Math.random().toString(36).substr(2, 9),
+            days: returnDays,
+            time: formatTime(returnH, returnM),
+            modelId: f.modelId,
+            assignedPlanes: [...f.assignedPlanes],
+            isReturn: true,
+            pairedWith: f.id
+        });
     }
     
     gameState.routes.push({
         id: Math.random().toString(36).substr(2, 9),
         destinationId: dest.id,
         distance: dist,
-        frequencies: routeCreationState.frequencies
+        frequencies: finalFrequencies
     });
     
     logMsg(`Nueva ruta establecida a ${dest.id} con ${routeCreationState.frequencies.length} frecuencias.`);
@@ -2391,7 +2491,7 @@ const renderFlights = () => {
 
                         <div class="fc-body">
                             <div class="fc-route-top">
-                                <span class="fc-loc-code">BUE</span>
+                                <span class="fc-loc-code">${f.obj && f.obj.isReturn ? f.destId : 'BUE'}</span>
                                 <div class="fc-route-graphic">
                                     <div class="fc-route-line"></div>
                                     ${f.type === 'in_flight' ? `
@@ -2402,7 +2502,7 @@ const renderFlights = () => {
                                     </div>
                                     ` : ''}
                                 </div>
-                                <span class="fc-loc-code">${f.destId}</span>
+                                <span class="fc-loc-code">${f.obj && f.obj.isReturn ? 'BUE' : f.destId}</span>
                             </div>
                             <div class="fc-route-bottom">
                                 <span class="fc-loc-time" style="text-align: left;"><strong>${timePrefix}</strong>${f.depTimeStr}${delayHtml}</span>
@@ -2470,11 +2570,11 @@ const renderHistory = () => {
 
                 <div class="fc-body">
                     <div class="fc-route-top">
-                        <span class="fc-loc-code">BUE</span>
+                        <span class="fc-loc-code">${f.isReturn ? f.destName.substring(0,3).toUpperCase() : 'BUE'}</span>
                         <div class="fc-route-graphic">
                             <div class="fc-route-line" style="opacity: 0.3;"></div>
                         </div>
-                        <span class="fc-loc-code">${f.destName.substring(0,3).toUpperCase()}</span>
+                        <span class="fc-loc-code">${f.isReturn ? 'BUE' : f.destName.substring(0,3).toUpperCase()}</span>
                     </div>
                     <div class="fc-route-bottom" style="margin-bottom: 12px;">
                         <span class="fc-loc-time" style="text-align: left;">Día ${f.departureDay} ${depStr}</span>
@@ -2506,7 +2606,9 @@ window.openFlightModal = (flightId, type) => {
     const modal = document.getElementById('flight-detail-modal');
     if (!modal) return;
 
-    document.getElementById('fd-route-title').innerHTML = `<i class="ph ph-airplane-tilt" style="color:var(--accent);"></i> BUE <i class="ph ph-arrow-right" style="opacity:0.5; margin:0 8px; font-size:1rem;"></i> ${flight.destId}`;
+    const originTxt = flight.obj && flight.obj.isReturn ? flight.destId : 'BUE';
+    const destTxt = flight.obj && flight.obj.isReturn ? 'BUE' : flight.destId;
+    document.getElementById('fd-route-title').innerHTML = `<i class="ph ph-airplane-tilt" style="color:var(--accent);"></i> ${originTxt} <i class="ph ph-arrow-right" style="opacity:0.5; margin:0 8px; font-size:1rem;"></i> ${destTxt}`;
     document.getElementById('fd-plane-info').innerText = `${flight.planeReg} • ${flight.planeModel}`;
     
     // Status badge

@@ -16,8 +16,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet" href="style.css?v=2.0">
+    <script>
+        // Sistema automático para evitar caché (Cache-Busting)
+        // Agrega el tiempo exacto en milisegundos para forzar al navegador a obtener siempre la última versión.
+        document.write('<link rel="stylesheet" href="style.css?v=' + new Date().getTime() + '">');
+    </script>
 </head>
 <body>
 
@@ -377,7 +380,8 @@
             </div>
         </div>
     </div>
-
-    <script src="script.js?v=2.0"></script>
+    <script>
+        document.write('<script src="script.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
 </body>
 </html>
