@@ -2266,6 +2266,7 @@ const renderFlights = () => {
     }
 
     // Agrupar por día
+    window.currentDisplayedFlights = allFlights;
     const groups = {};
     allFlights.forEach(f => {
         if (!groups[f.dayGroup]) groups[f.dayGroup] = [];
@@ -2352,7 +2353,7 @@ const renderFlights = () => {
                 } else if (f.type === 'scheduled') { actionsHtml = ''; }
 
                 boardHtml += `
-                    <div class="flight-card modern-flight-card ${f.type === 'in_flight' ? 'active-flight' : ''}">
+                    <div class="flight-card modern-flight-card ${f.type === 'in_flight' ? 'active-flight' : ''}" onclick="openFlightModal('${f.id}', '${f.type}')">
                         <div class="fc-header">
                             <div class="fc-plane-info">
                                 <i class="ph-fill ph-airplane-in-flight"></i>
@@ -2474,6 +2475,105 @@ const renderHistory = () => {
         </div>
         ${historyHtml}
     `;
+};
+
+window.openFlightModal = (flightId, type) => {
+    const flight = window.currentDisplayedFlights.find(f => f.id === flightId && f.type === type);
+    if (!flight) return;
+
+    const modal = document.getElementById('flight-detail-modal');
+    if (!modal) return;
+
+    document.getElementById('fd-route-title').innerHTML = `<i class="ph ph-airplane-tilt" style="color:var(--accent);"></i> BUE <i class="ph ph-arrow-right" style="opacity:0.5; margin:0 8px; font-size:1rem;"></i> ${flight.destId}`;
+    document.getElementById('fd-plane-info').innerText = `${flight.planeReg} • ${flight.planeModel}`;
+    
+    // Status badge
+    const badge = document.getElementById('fd-status-badge');
+    let statusColor = '#22c55e';
+    if (flight.type === 'delayed') statusColor = '#ef4444';
+    else if (flight.type === 'delayed_weather') statusColor = '#f59e0b';
+    else if (flight.type === 'in_flight') statusColor = '#3b82f6';
+    else if (flight.type === 'boarding') statusColor = (flight.delayMins && flight.delayMins > 3) ? '#f97316' : '#22c55e';
+
+    badge.innerHTML = `<div class="status-dot" style="background-color: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></div> ${flight.status}`;
+    badge.style.border = `1px solid ${statusColor}`;
+    badge.style.color = statusColor;
+    badge.style.background = `${statusColor}1A`; // 10% opacity
+
+    // Tiempos
+    let schedOut = flight.type === 'scheduled' ? flight.depTimeStr : '--:--';
+    if (flight.obj && flight.obj.reqTime) schedOut = flight.obj.reqTime;
+    else if (flight.type === 'in_flight') {
+        const route = gameState.routes.find(r => r.id === flight.obj.routeId);
+        const freq = route ? route.frequencies.find(f => f.id === flight.obj.freqId) : null;
+        if (freq) schedOut = freq.time;
+    }
+
+    document.getElementById('fd-time-sched-out').innerText = schedOut;
+    document.getElementById('fd-time-act-out').innerText = flight.depTimeStr || '--:--';
+    document.getElementById('fd-time-est-in').innerText = flight.arrTimeStr || '--:--';
+
+    // Progreso
+    const progCont = document.getElementById('fd-progress-container');
+    if (flight.type === 'in_flight') {
+        progCont.classList.remove('hidden');
+        document.getElementById('fd-progress-fill').style.width = `${flight.progress}%`;
+        document.getElementById('fd-progress-text').innerText = `${Math.floor(flight.progress)}%`;
+    } else {
+        progCont.classList.add('hidden');
+    }
+
+    // Clima
+    document.getElementById('fd-dest-ap').innerText = flight.destName;
+    const weather = getWeatherInfo(flight.destId);
+    document.getElementById('fd-weather-icon').innerText = weather.icon;
+    document.getElementById('fd-weather-text').innerText = weather.text;
+    document.getElementById('fd-weather-text').style.color = weather.color;
+    
+    let wDesc = "Condiciones óptimas para operaciones.";
+    if (weather.id === 'Lluvia') wDesc = "Pista mojada, precaución en aproximación.";
+    else if (weather.id === 'Tormenta') wDesc = "Posibilidad de fuertes turbulencias y demoras.";
+    else if (weather.id === 'Niebla') wDesc = "Baja visibilidad. Procedimientos LVP en curso.";
+    if (weather.isExtreme) wDesc += " ⚠️ OPERACIONES SUSPENDIDAS TEMPORALMENTE.";
+    document.getElementById('fd-weather-desc').innerText = wDesc;
+
+    // Reason
+    const delaySec = document.getElementById('fd-delay-section');
+    if (flight.type === 'delayed' || flight.type === 'delayed_weather') {
+        delaySec.classList.remove('hidden');
+        const rBox = document.getElementById('fd-delay-reason-box');
+        if (flight.type === 'delayed_weather') {
+            rBox.innerHTML = `<strong>Condiciones Meteorológicas Extremas:</strong><br>El aeropuerto de ${flight.destName} ha suspendido operaciones temporalmente debido a ${weather.text}. El vuelo está a la espera de que mejoren las condiciones.`;
+        } else {
+            const reason = flight.obj && flight.obj.reason ? flight.obj.reason : 'plane';
+            if (reason === 'fuel') {
+                rBox.innerHTML = `<strong>Falta de Combustible:</strong><br>No hay suficiente combustible en el Hub para abastecer el vuelo. Ve a la pestaña 'Mercado > Combustible' y compra JP-1.`;
+            } else {
+                rBox.innerHTML = `<strong>Aeronave No Disponible:</strong><br>La flota asignada a esta frecuencia se encuentra en otro vuelo o no está disponible en el Hub. Se despachará apenas llegue.`;
+            }
+        }
+    } else {
+        delaySec.classList.add('hidden');
+    }
+
+    // Actions
+    const acts = document.getElementById('fd-actions');
+    if (flight.type === 'delayed') {
+        acts.classList.remove('hidden');
+        acts.innerHTML = `
+            <button class="btn btn-primary" style="flex:1;" onclick="closeFlightModal(); retryDelayedFlight('${flight.id}')"><i class="ph ph-arrows-clockwise"></i> Reintentar Despacho</button>
+            <button class="btn btn-danger-subtle" onclick="closeFlightModal(); resolveDelayedFlight('${flight.id}', 'cancel')"><i class="ph ph-x"></i> Cancelar Vuelo</button>
+        `;
+    } else {
+        acts.classList.add('hidden');
+    }
+
+    modal.classList.remove('hidden');
+};
+
+window.closeFlightModal = () => {
+    const modal = document.getElementById('flight-detail-modal');
+    if (modal) modal.classList.add('hidden');
 };
 
 window.onload = () => {
