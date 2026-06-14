@@ -48,26 +48,20 @@
         <header class="app-header">
             <div class="header-brand">
                 <i class="ph-fill ph-airplane-tilt header-brand-icon"></i>
-                <div>
+                <div class="header-brand-text">
                     <div class="header-brand-name" style="cursor:pointer;" onclick="gameState.money += 100000; updateUI();">Mi Aerolínea</div>
-                    <div class="header-brand-sub" id="header-base">Base: ---</div>
+                    <div class="header-brand-sub" id="header-base">—</div>
                 </div>
             </div>
-            <div class="header-stats">
-                <div class="header-stat">
-                    <div class="header-stat-label">Caja Fuerte</div>
-                    <div class="header-stat-value money" id="header-money">$0</div>
+            <div class="header-right">
+                <div class="header-money-pill" id="header-money-pill">
+                    <i class="ph-fill ph-vault header-money-icon"></i>
+                    <span id="header-money">$0</span>
                 </div>
-                <div class="header-stat">
-                    <div class="header-stat-label">Beneficio Diario</div>
-                    <div class="header-stat-value profit" id="header-profit">+$0</div>
-                </div>
-                <div class="header-stat">
-                    <div class="header-stat-label">Día Operativo</div>
-                    <div class="header-stat-value" id="header-day">1</div>
-                </div>
+                <div class="header-day-badge" id="header-day"></div>
             </div>
         </header>
+
 
         <!-- Navegación Superior (Sólo para Mercado) -->
         <nav class="app-nav hidden-nav" id="top-nav-market">
@@ -83,6 +77,7 @@
             <ul class="nav-list">
                 <li><button onclick="switchTab('flights')" id="tab-flights" class="nav-tab nav-tab-active"><i class="ph ph-paper-plane-tilt"></i> Mis Vuelos</button></li>
                 <li><button onclick="switchTab('new-route')" id="tab-new-route" class="nav-tab"><i class="ph ph-map-trifold"></i> Nueva Ruta</button></li>
+                <li><button onclick="switchTab('history')" id="tab-history" class="nav-tab"><i class="ph ph-clock-counter-clockwise"></i> Historial</button></li>
             </ul>
         </nav>
 
@@ -198,6 +193,10 @@
 
             <!-- NUEVA RUTA -->
             <div id="view-new-route" class="view">
+            </div>
+
+            <!-- HISTORIAL -->
+            <div id="view-history" class="view">
             </div>
 
         </main>

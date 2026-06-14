@@ -1,12 +1,12 @@
 // --- DATOS GLOBALES ---
 const AIRPORTS = [
-    { id: 'EZE', name: 'Buenos Aires (Ezeiza)', lat: -34.8222, lng: -58.5358 },
-    { id: 'GRU', name: 'São Paulo (Guarulhos)', lat: -23.4356, lng: -46.4731 },
-    { id: 'JFK', name: 'New York (JFK)', lat: 40.6413, lng: -73.7781 },
-    { id: 'LAX', name: 'Los Angeles (LAX)', lat: 33.9416, lng: -118.4085 },
-    { id: 'LHR', name: 'London (Heathrow)', lat: 51.4700, lng: -0.4543 },
-    { id: 'DXB', name: 'Dubai (DXB)', lat: 25.2532, lng: 55.3657 },
-    { id: 'HND', name: 'Tokyo (Haneda)', lat: 35.5494, lng: 139.7798 }
+    { id: 'EZE', name: 'Buenos Aires (Ezeiza)', lat: -34.8222, lng: -58.5358, congestion: 'low' },
+    { id: 'GRU', name: 'São Paulo (Guarulhos)', lat: -23.4356, lng: -46.4731, congestion: 'medium' },
+    { id: 'JFK', name: 'New York (JFK)', lat: 40.6413, lng: -73.7781, congestion: 'high' },
+    { id: 'LAX', name: 'Los Angeles (LAX)', lat: 33.9416, lng: -118.4085, congestion: 'high' },
+    { id: 'LHR', name: 'London (Heathrow)', lat: 51.4700, lng: -0.4543, congestion: 'high' },
+    { id: 'DXB', name: 'Dubai (DXB)', lat: 25.2532, lng: 55.3657, congestion: 'high' },
+    { id: 'HND', name: 'Tokyo (Haneda)', lat: 35.5494, lng: 139.7798, congestion: 'high' }
 ];
 
 /* MODELOS VECTORIALES ALTAMENTE DETALLADOS.
@@ -484,6 +484,15 @@ const resetGame = () => {
 };
 
 const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+// Formato corto garantizado — máximo ~7 caracteres, nunca desborda el header
+const formatMoneyShort = (amount) => {
+    const abs = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+    if (abs >= 1_000_000)     return `${sign}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (abs >= 1_000)         return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+    return `${sign}$${abs}`;
+};
 const formatTime = (h, m) => `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 const getDayName = (dayIndex) => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][(dayIndex - 1) % 7];
 const generateRegistration = () => { const l = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; const c = () => l[Math.floor(Math.random() * l.length)]; return `LV-${c()}${c()}${c()}`; };
@@ -513,15 +522,7 @@ const logMsg = (msg) => {
 };
 
 const showToast = (title, message, type = 'success') => {
-    const c = document.getElementById('toast-container');
-    if (!c) return;
-    const t = document.createElement('div');
-    const colorClass = type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : 'toast-info';
-    const icon = type === 'success' ? 'ph-check-circle' : type === 'error' ? 'ph-warning-circle' : 'ph-info';
-    t.className = `toast ${colorClass}`;
-    t.innerHTML = `<i class="ph-fill ${icon}"></i><div><div class="toast-title">${title}</div><div class="toast-msg">${message}</div></div>`;
-    c.appendChild(t);
-    setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 300); }, 3000);
+    // Notifications disabled per user request
 };
 
 // --- LEAFLET MAP ---
@@ -579,7 +580,7 @@ const startGame = () => {
 
 const switchTab = (tab) => {
     // Hide all views
-    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'new-route'].forEach(t => {
+    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'new-route', 'history'].forEach(t => {
         const view = document.getElementById(`view-${t}`);
         if(view) {
             view.classList.remove('view-active');
@@ -599,11 +600,11 @@ const switchTab = (tab) => {
         if(topNavMarket) topNavMarket.classList.add('hidden-nav');
     }
 
-    // Update Top Nav (Flights / New Route)
+    // Update Top Nav (Flights / New Route / History)
     const topNavFlights = document.getElementById('top-nav-flights');
-    if (tab === 'flights' || tab === 'new-route') {
+    if (tab === 'flights' || tab === 'new-route' || tab === 'history') {
         if(topNavFlights) topNavFlights.classList.remove('hidden-nav');
-        ['flights', 'new-route'].forEach(t => {
+        ['flights', 'new-route', 'history'].forEach(t => {
             const btn = document.getElementById(`tab-${t}`);
             if(btn) btn.className = t === tab ? 'nav-tab nav-tab-active' : 'nav-tab';
         });
@@ -620,7 +621,7 @@ const switchTab = (tab) => {
     // Bottom nav mapping
     let bottomTabId = tab;
     if (tab === 'fleet' || tab === 'fuel') bottomTabId = 'market';
-    if (tab === 'new-route') bottomTabId = 'flights';
+    if (tab === 'new-route' || tab === 'history') bottomTabId = 'flights';
     const activeBottomBtn = document.getElementById(`bottom-tab-${bottomTabId}`);
     if(activeBottomBtn) activeBottomBtn.className = 'bottom-nav-btn active';
 
@@ -636,6 +637,7 @@ const switchTab = (tab) => {
     if(tab === 'fleet') renderFleet();
     if(tab === 'fuel') renderFuelMarket();
     if(tab === 'flights') renderFlights();
+    if(tab === 'history') renderHistory();
     if(tab === 'new-route') {
         if (!routeCreationState) startRouteCreation();
         else renderNewRoute();
@@ -1307,49 +1309,133 @@ const getActiveProfit = () => {
     return Math.round(total);
 };
 
-const checkAndDispatchFlights = () => {
-    // Revisar si algún vuelo debe salir a esta hora y minuto (y día)
-    const currentDayName = getDayName(gameState.time.day);
+const calculateFlightDelay = (originId, scheduledHour) => {
+    const airport = AIRPORTS.find(a => a.id === originId);
+    let delayMins = 0;
+    const rand = Math.random();
     
+    let congestionFactor = 1.0;
+    if (airport) {
+        if (airport.congestion === 'high') congestionFactor = 2.0;
+        else if (airport.congestion === 'medium') congestionFactor = 1.3;
+    }
+    
+    let peakFactor = 1.0;
+    if ((scheduledHour >= 7 && scheduledHour < 10) || (scheduledHour >= 17 && scheduledHour < 20)) {
+        peakFactor = 1.5;
+    }
+
+    const overallStress = congestionFactor * peakFactor;
+    const severeProb = 0.02 * overallStress;
+    const modProb = 0.08 * overallStress;
+    const minorProb = 0.20 * overallStress;
+    const earlyProb = Math.max(0.05, 0.15 / overallStress);
+    
+    if (rand < severeProb) {
+        delayMins = Math.floor(Math.random() * 76) + 45; // 45 a 120 mins
+    } else if (rand < severeProb + modProb) {
+        delayMins = Math.floor(Math.random() * 31) + 15; // 15 a 45 mins
+    } else if (rand < severeProb + modProb + minorProb) {
+        delayMins = Math.floor(Math.random() * 11) + 4;  // 4 a 14 mins
+    } else if (rand > 1 - earlyProb) {
+        delayMins = -Math.floor(Math.random() * 5) - 1;  // -1 a -5 mins
+    } else {
+        delayMins = Math.floor(Math.random() * 5) - 1;   // -1 a 3 mins
+    }
+    
+    return delayMins;
+};
+
+const checkAndDispatchFlights = () => {
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    
+    // 1. Iniciar Embarque (Boarding phase)
     gameState.routes.forEach(route => {
+        const dest = AIRPORTS.find(a => a.id === route.destinationId);
         route.frequencies.forEach(freq => {
-            if (freq.days.includes(currentDayName) && freq.time === formatTime(gameState.time.hour, gameState.time.minute)) {
-                // Es hora de salida!
-                dispatchFlight(route, freq);
+            const model = AIRCRAFT_MODELS.find(m => m.name === freq.modelId || m.id === freq.modelId);
+            let boardingMins = 30;
+            if (model) {
+                if (model.capacity > 200) boardingMins = 45;
+                else if (model.capacity < 100) boardingMins = 20;
+            }
+            
+            let checkHour = gameState.time.hour;
+            let checkMinute = gameState.time.minute + boardingMins;
+            let checkDay = gameState.time.day;
+            
+            if (checkMinute >= 60) {
+                checkHour += Math.floor(checkMinute / 60);
+                checkMinute %= 60;
+            }
+            if (checkHour >= 24) {
+                checkHour %= 24;
+                checkDay += 1;
+            }
+            
+            const checkDayName = getDayName(checkDay);
+            
+            if (freq.days.includes(checkDayName) && freq.time === formatTime(checkHour, checkMinute)) {
+                // Check if not already active for this specific scheduled time
+                const schedAbs = checkDay * 24 * 60 + checkHour * 60 + checkMinute;
+                const alreadyActive = gameState.activeDispatches.some(d => d.freqId === freq.id && d.schedAbs === schedAbs);
+                
+                if (!alreadyActive) {
+                    startBoarding(route, freq, model, dest, schedAbs);
+                }
             }
         });
     });
     
-    // Procesar llegadas
-    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    // 2. Procesar despachos activos
     gameState.activeDispatches = gameState.activeDispatches.filter(dispatch => {
-        const arrAbs = dispatch.arrivalDay * 24 * 60 + dispatch.arrivalHour * 60 + dispatch.arrivalMinute;
-        if (nowAbs >= arrAbs && dispatch.status === 'in_flight') {
-            // Aterrizó!
-            const plane = gameState.fleet.find(p => p.id === dispatch.planeId);
-            if (plane) plane.status = 'idle';
-            if (!isCatchingUp) {
-                logMsg(`Aterrizaje completado: ${plane ? plane.registration : 'Desconocido'} en ${dispatch.destName}.`);
-                showToast('Vuelo Completado', `Aterrizaje exitoso en ${dispatch.destName}`, 'info');
+        if (dispatch.status === 'boarding') {
+            if (nowAbs >= dispatch.actualDepartureAbs) {
+                return processFlightDeparture(dispatch);
             }
-            
-            if(!isCatchingUp && gameState.currentTab === 'flights') renderFlights();
-            return false; // Remover de activos
+            return true;
+        } else if (dispatch.status === 'in_flight') {
+            const arrAbs = dispatch.arrivalDay * 24 * 60 + dispatch.arrivalHour * 60 + dispatch.arrivalMinute;
+            if (nowAbs >= arrAbs) {
+                const plane = gameState.fleet.find(p => p.id === dispatch.planeId);
+                if (plane) plane.status = 'idle';
+
+                if (!gameState.flightHistory) gameState.flightHistory = [];
+                gameState.flightHistory.unshift({
+                    id: dispatch.id,
+                    destName: dispatch.destName,
+                    planeReg: plane ? plane.registration : 'Desconocido',
+                    planeModel: plane ? plane.name : 'Desconocido',
+                    profit: dispatch.profit || 0,
+                    departureDay: dispatch.departureDay,
+                    departureHour: dispatch.departureHour,
+                    departureMinute: dispatch.departureMinute,
+                    arrivalDay: dispatch.arrivalDay,
+                    arrivalHour: dispatch.arrivalHour,
+                    arrivalMinute: dispatch.arrivalMinute,
+                    timestamp: nowAbs
+                });
+                if (gameState.flightHistory.length > 50) gameState.flightHistory.pop();
+
+                if (!isCatchingUp) {
+                    logMsg(`Aterrizaje completado: ${plane ? plane.registration : 'Desconocido'} en ${dispatch.destName}.`);
+                    showToast('Vuelo Completado', `Aterrizaje exitoso en ${dispatch.destName}`, 'info');
+                }
+                
+                if(!isCatchingUp && gameState.currentTab === 'flights') renderFlights();
+                return false;
+            }
+            return true;
         }
-        return true; // Mantener
+        return true;
     });
 };
 
-const dispatchFlight = (route, freq) => {
-    const dest = AIRPORTS.find(a => a.id === route.destinationId);
-    
-    // Buscar aeronave disponible de las asignadas
+const startBoarding = (route, freq, model, dest, schedAbs) => {
     const availablePlaneId = freq.assignedPlanes.find(pid => {
         const p = gameState.fleet.find(fl => fl.id === pid);
         return p && p.status === 'idle';
     });
-    
-    const model = AIRCRAFT_MODELS.find(m => m.name === freq.modelId || m.id === freq.modelId);
     
     let fuelNeeded = 0;
     if (model) {
@@ -1360,50 +1446,38 @@ const dispatchFlight = (route, freq) => {
     
     if (availablePlaneId && gameState.fuelReserves >= fuelNeeded) {
         gameState.fuelReserves -= fuelNeeded;
-        
-        // Enviar vuelo
         const plane = gameState.fleet.find(p => p.id === availablePlaneId);
-        plane.status = 'in_flight';
+        plane.status = 'boarding';
         
-        // Calcular llegada (Aproximando 800km/h)
-        const durationHours = route.distance / 800;
-        const durationMinutes = Math.round(durationHours * 60);
-        
-        let arrMin = gameState.time.minute + durationMinutes;
-        let arrHour = gameState.time.hour + Math.floor(arrMin / 60);
-        arrMin = arrMin % 60;
-        let arrDay = gameState.time.day + Math.floor(arrHour / 24);
-        arrHour = arrHour % 24;
+        const scheduledHour = Math.floor((schedAbs % (24 * 60)) / 60);
+        const delayMins = calculateFlightDelay(dest.id, scheduledHour);
+        const actualDepartureAbs = schedAbs + delayMins;
         
         gameState.activeDispatches.push({
             id: Math.random().toString(36).substr(2, 9),
             routeId: route.id,
+            freqId: freq.id,
             destName: dest.name,
             planeId: availablePlaneId,
             modelId: freq.modelId,
-            status: 'in_flight',
-            departureDay: gameState.time.day,
-            departureHour: gameState.time.hour,
-            departureMinute: gameState.time.minute,
-            arrivalDay: arrDay,
-            arrivalHour: arrHour,
-            arrivalMinute: arrMin
+            status: 'boarding',
+            delayMins: delayMins,
+            schedAbs: schedAbs,
+            actualDepartureAbs: actualDepartureAbs,
+            fuelNeeded: fuelNeeded,
+            reqTime: formatTime(scheduledHour, schedAbs % 60)
         });
         
-        // Cobrar el vuelo en el momento del despegue usando el sistema inteligente
-        const model = AIRCRAFT_MODELS.find(m => m.name === freq.modelId || m.id === freq.modelId);
-        if(model) {
-            const profit = calculateFlightProfit(model, route.distance, dest.id);
-            gameState.money += profit;
-            if (!isCatchingUp) showToast('Vuelo Despachado', `+${formatMoney(profit)} (Ingresos de vuelo a ${dest.name})`, 'success');
-        }
-
         if (!isCatchingUp) {
-            logMsg(`Despegue: ${plane.registration} cubriendo vuelo a ${dest.id}. Llegada est: Día ${arrDay} ${formatTime(arrHour, arrMin)}.`);
-            if(gameState.currentTab === 'flights') renderFlights(); // Update UI if watching
+            let timingMsg = 'En horario.';
+            if (delayMins > 3) timingMsg = `(Demora est: +${delayMins}m)`;
+            else if (delayMins < -1) timingMsg = `(Adelanto est: ${delayMins}m)`;
+            else if (delayMins !== 0) timingMsg = `(Desvío: ${delayMins > 0 ? '+' : ''}${delayMins}m)`;
+            
+            logMsg(`Embarque: ${plane.registration} hacia ${dest.id}. ${timingMsg}`);
+            if(gameState.currentTab === 'flights') renderFlights();
         }
     } else {
-        // RETRASADO - Inteligencia
         let delayReason = 'plane';
         if (availablePlaneId && gameState.fuelReserves < fuelNeeded) {
             delayReason = 'fuel';
@@ -1416,6 +1490,7 @@ const dispatchFlight = (route, freq) => {
             showToast('Demora Operativa', `El vuelo a ${dest.name} no tiene aeronave disponible.`, 'error');
         }
         
+        const scheduledHour = Math.floor((schedAbs % (24 * 60)) / 60);
         gameState.activeDispatches.push({
             id: Math.random().toString(36).substr(2, 9),
             routeId: route.id,
@@ -1425,11 +1500,50 @@ const dispatchFlight = (route, freq) => {
             modelId: freq.modelId,
             status: 'delayed',
             reason: delayReason,
+            schedAbs: schedAbs,
             fuelNeeded: fuelNeeded,
-            reqTime: formatTime(gameState.time.hour, gameState.time.minute)
+            reqTime: formatTime(scheduledHour, schedAbs % 60)
         });
         if(!isCatchingUp && gameState.currentTab === 'flights') renderFlights();
     }
+};
+
+const processFlightDeparture = (dispatch) => {
+    const plane = gameState.fleet.find(p => p.id === dispatch.planeId);
+    if(plane) plane.status = 'in_flight';
+    
+    dispatch.status = 'in_flight';
+    
+    const r = gameState.routes.find(ro => ro.id === dispatch.routeId);
+    if (!r) return false;
+    
+    const durationHours = r.distance / 800;
+    const durationMinutes = Math.round(durationHours * 60);
+    
+    const arrAbs = dispatch.actualDepartureAbs + durationMinutes;
+    
+    dispatch.departureDay = Math.floor(dispatch.actualDepartureAbs / (24 * 60));
+    dispatch.departureHour = Math.floor((dispatch.actualDepartureAbs % (24 * 60)) / 60);
+    dispatch.departureMinute = dispatch.actualDepartureAbs % 60;
+    
+    dispatch.arrivalDay = Math.floor(arrAbs / (24 * 60));
+    dispatch.arrivalHour = Math.floor((arrAbs % (24 * 60)) / 60);
+    dispatch.arrivalMinute = arrAbs % 60;
+    
+    const model = AIRCRAFT_MODELS.find(m => m.name === dispatch.modelId || m.id === dispatch.modelId);
+    if(model) {
+        const destId = r.destinationId;
+        const profit = calculateFlightProfit(model, r.distance, destId);
+        dispatch.profit = profit;
+        gameState.money += profit;
+        if (!isCatchingUp) showToast('Vuelo Despegó', `+${formatMoney(profit)} (Ingresos de vuelo a ${dispatch.destName})`, 'success');
+    }
+
+    if (!isCatchingUp) {
+        logMsg(`Despegue: ${plane ? plane.registration : ''} cubriendo vuelo a ${r.destinationId}. Llegada est: Día ${dispatch.arrivalDay} ${formatTime(dispatch.arrivalHour, dispatch.arrivalMinute)}.`);
+        if(gameState.currentTab === 'flights') renderFlights();
+    }
+    return true;
 };
 
 let lastRealTime = Date.now();
@@ -1485,20 +1599,19 @@ const gameTick = () => {
 };
 
 const updateUI = () => {
-    document.getElementById('header-money').innerText = formatMoney(gameState.money);
-    
-    const d = new Date(2026, 0, 1);
-    d.setDate(d.getDate() + (gameState.time.day - 1));
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    const dateStr = d.toLocaleDateString('es-AR', options);
+    // Usar formato abreviado en header — nunca desborda
+    document.getElementById('header-money').innerText = formatMoneyShort(gameState.money);
     
     const timeStr = formatTime(gameState.time.hour, gameState.time.minute);
     
-    document.getElementById('header-day').innerHTML = `${dateStr} <span style="color:var(--accent); font-weight:700; margin-left:8px; font-family:var(--font-mono);">${timeStr}</span>`;
+    // Badge compacto: solo día de juego + hora
+    const dayBadge = document.getElementById('header-day');
+    if (dayBadge) {
+        dayBadge.innerHTML = `Día ${gameState.time.day} <span class="header-day-time">${timeStr}</span>`;
+    }
     
-    if(gameState.base) document.getElementById('header-base').innerText = `Base: ${gameState.base.id}`;
+    if(gameState.base) document.getElementById('header-base').innerText = gameState.base.id;
     let profit = getActiveProfit();
-    document.getElementById('header-profit').innerText = `+${formatMoney(profit)}/d (est)`;
     
     document.getElementById('nav-fleet-count').innerText = gameState.fleet.length;
     if(gameState.base) document.getElementById('dash-base').innerText = gameState.base.name;
@@ -1747,8 +1860,12 @@ window.retryDelayedFlight = (dispatchId) => {
     // Remover el despacho retrasado
     gameState.activeDispatches = gameState.activeDispatches.filter(d => d.id !== dispatchId);
     
-    // Intentar despachar nuevamente
-    dispatchFlight(route, freq);
+    // Intentar embarcar nuevamente
+    const model = AIRCRAFT_MODELS.find(m => m.id === freq.modelId || m.name === freq.modelId);
+    const dest = AIRPORTS.find(a => a.id === route.destinationId);
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    
+    startBoarding(route, freq, model, dest, nowAbs);
     if(gameState.currentTab === 'flights') renderFlights();
 };
 
@@ -1769,7 +1886,7 @@ const renderNewRoute = () => {
         return;
     }
 
-    let destOptions = '<option value="">Seleccioná destino...</option>';
+    let destOptions = '<option value="">Seleccionar...</option>';
     AIRPORTS.forEach(ap => {
         if (gameState.base && ap.id !== gameState.base.id) {
             destOptions += `<option value="${ap.id}" ${routeCreationState.destinationId === ap.id ? 'selected' : ''}>${ap.name}</option>`;
@@ -1840,8 +1957,8 @@ const renderNewRoute = () => {
                     <div style="font-size: 0.8rem; color: var(--text-secondary);">${dist !== '---' ? dist + ' km' : ''}</div>
                 </div>
                 <div style="width: 45%; text-align:right;">
-                    <label class="text-xs text-secondary" style="display:block; margin-bottom:4px;">Destino</label>
-                    <select id="route-destination-new" class="flight-select" onchange="routeCreationState.destinationId = this.value; renderNewRoute()" style="font-size: 1.2rem; font-weight: 700; padding: 4px; text-align:right; background:transparent; border:none; color:#fff; border-bottom:1px solid var(--border-hover);">
+                    <label class="text-xs text-secondary" style="display:block; margin-bottom:4px; text-align:left;">Destino</label>
+                    <select id="route-destination-new" class="flight-select" onchange="routeCreationState.destinationId = this.value; renderNewRoute()" style="width: 100%; font-size: 1.2rem; font-weight: 700; padding: 4px; text-align:left; background:transparent; border:none; color:#fff; border-bottom:1px solid var(--border-hover);">
                         ${destOptions}
                     </select>
                 </div>
@@ -1868,137 +1985,346 @@ const renderFlights = () => {
     const flightsView = document.getElementById('view-flights');
     if (!flightsView) return;
 
-    let delayedHtml = '';
-    const delayedDispatches = gameState.activeDispatches.filter(d => d.status === 'delayed');
-    if(delayedDispatches.length > 0) {
-        delayedHtml = `<h3 style="color:var(--danger); margin-bottom:12px; display:flex; align-items:center; gap:8px;"><i class="ph ph-warning-circle"></i> Vuelos Retrasados Requieren Atención</h3>`;
-        delayedDispatches.forEach(d => {
-            const reasonText = d.reason === 'fuel' ? `Sin combustible (Req: ${d.fuelNeeded} L)` : `Sin aeronave asignada libre`;
-            delayedHtml += `
-                <div style="background: rgba(255, 69, 58, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div style="color:#fff; font-weight:600;">Destino: ${d.destName}</div>
-                        <div style="color:var(--danger); font-size:0.85rem;">Hora Prog: ${d.reqTime} - ${reasonText}</div>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="retryDelayedFlight('${d.id}')"><i class="ph ph-arrows-clockwise"></i> Reintentar</button>
-                        <button class="btn-danger-subtle" style="padding: 4px 10px; font-size: 0.8rem;" onclick="resolveDelayedFlight('${d.id}', 'cancel')">Cancelar</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
+    let allFlights = [];
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
 
-    let dispatchesHtml = '';
+    const getDestId = (routeId) => {
+        const r = gameState.routes.find(r => r.id === routeId);
+        return r ? r.destinationId : '---';
+    };
+
+    const delayedFlights = gameState.activeDispatches.filter(d => d.status === 'delayed');
     const activeFl = gameState.activeDispatches.filter(d => d.status === 'in_flight');
-    if(activeFl.length > 0) {
-        dispatchesHtml = `<h3 class="market-section-title" style="margin-top:24px; margin-bottom:16px;">Vuelos en Curso (${activeFl.length})</h3>
-        <div style="display:flex; flex-direction:column; gap:16px;">`;
-        
-        activeFl.forEach(d => {
-            const plane = gameState.fleet.find(p => p.id === d.planeId);
-            
-            // Calculate Progress
-            const depAbs = d.departureDay * 24 * 60 + d.departureHour * 60 + d.departureMinute;
-            const arrAbs = d.arrivalDay * 24 * 60 + d.arrivalHour * 60 + d.arrivalMinute;
-            const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
-            const total = arrAbs - depAbs;
-            const elapsed = nowAbs - depAbs;
-            const progress = total <= 0 ? 100 : Math.min(100, Math.max(0, (elapsed / total) * 100));
-            const remaining = total - elapsed;
-            const remainingStr = remaining > 0 ? `${Math.floor(remaining/60)}h ${remaining%60}m restantes` : 'Aterrizando...';
+    const boardingFl = gameState.activeDispatches.filter(d => d.status === 'boarding');
 
-            dispatchesHtml += `
-                <div class="card" style="padding:20px; border-left:4px solid var(--accent);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                        <div style="display:flex; align-items:center; gap:16px;">
-                            <div style="font-size:2rem; color:var(--accent);"><i class="ph ph-airplane-in-flight"></i></div>
-                            <div>
-                                <div style="font-weight:700; color:#fff; font-size:1.1rem;">Destino: ${d.destName}</div>
-                                <div style="font-size:0.9rem; color:var(--text-secondary); font-family:var(--font-mono);">${plane ? plane.registration : '---'} (${plane ? plane.name : 'Desc'})</div>
-                            </div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:0.85rem; color:var(--text-muted);">Tiempo estimado</div>
-                            <div style="font-weight:600; color:#fff; font-size:1.1rem;">${remainingStr}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="height:8px; background:var(--bg-elevated); border-radius:4px; overflow:hidden; margin-bottom:16px;">
-                        <div style="height:100%; width:${progress}%; background:linear-gradient(90deg, var(--accent), #60a5fa); border-radius:4px; transition:width 0.5s ease;"></div>
-                    </div>
-                    
-                    <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
-                        <div style="color:var(--text-secondary);">Salida: <span style="color:#fff; font-weight:500;">Día ${d.departureDay} - ${formatTime(d.departureHour, d.departureMinute)}</span></div>
-                        <div style="color:var(--text-secondary);">Llegada: <span style="color:#fff; font-weight:500;">Día ${d.arrivalDay} - ${formatTime(d.arrivalHour, d.arrivalMinute)}</span></div>
-                    </div>
-                </div>
-            `;
+    // 1. Vuelos Atrasados
+    delayedFlights.forEach(d => {
+        const plane = gameState.fleet.find(p => p.id === d.planeId);
+        allFlights.push({
+            type: 'delayed',
+            id: d.id,
+            destId: getDestId(d.routeId),
+            destName: d.destName,
+            planeReg: plane ? plane.registration : '---',
+            planeModel: plane ? plane.name : 'Sin Asignar',
+            depTimeStr: d.reqTime, 
+            arrTimeStr: '--:--',
+            status: 'Atrasado',
+            dayGroup: -1, // -1 para atrasados
+            sortKey: 0,
+            absTime: 0,
+            progress: 0,
+            delayMins: d.delayMins || 0,
+            obj: d
         });
-        dispatchesHtml += `</div>`;
-    } else {
-        dispatchesHtml = `
-            <h3 class="market-section-title" style="margin-top:24px; margin-bottom:16px;">Vuelos en Curso (0)</h3>
-            <div class="card card-padded" style="text-align: center; padding: 40px 24px; color: var(--text-muted);">
-                <i class="ph ph-airplane-tilt" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
-                <p>No tienes aeronaves volando actualmente.</p>
-            </div>
-        `;
+    });
+
+    // 2. Vuelos en Curso
+    activeFl.forEach(d => {
+        const plane = gameState.fleet.find(p => p.id === d.planeId);
+        
+        const depAbs = d.departureDay * 24 * 60 + d.departureHour * 60 + d.departureMinute;
+        const arrAbs = d.arrivalDay * 24 * 60 + d.arrivalHour * 60 + d.arrivalMinute;
+        const total = arrAbs - depAbs;
+        const elapsed = nowAbs - depAbs;
+        const progress = total <= 0 ? 100 : Math.min(100, Math.max(0, (elapsed / total) * 100));
+        
+        allFlights.push({
+            type: 'in_flight',
+            id: d.id,
+            destId: getDestId(d.routeId),
+            destName: d.destName,
+            planeReg: plane ? plane.registration : '---',
+            planeModel: plane ? plane.name : '---',
+            depTimeStr: formatTime(d.departureHour, d.departureMinute),
+            arrTimeStr: formatTime(d.arrivalHour, d.arrivalMinute),
+            status: 'En vuelo',
+            dayGroup: d.departureDay,
+            sortKey: 1,
+            absTime: depAbs,
+            progress: progress,
+            delayMins: d.delayMins || 0,
+            obj: d
+        });
+    });
+
+    // 2.5 Vuelos Embarcando
+    boardingFl.forEach(d => {
+        const plane = gameState.fleet.find(p => p.id === d.planeId);
+        allFlights.push({
+            type: 'boarding',
+            id: d.id,
+            destId: getDestId(d.routeId),
+            destName: d.destName,
+            planeReg: plane ? plane.registration : '---',
+            planeModel: plane ? plane.name : '---',
+            depTimeStr: d.reqTime || '--:--',
+            arrTimeStr: '--:--',
+            status: 'Embarcando',
+            dayGroup: d.schedAbs ? Math.floor(d.schedAbs / (24 * 60)) : gameState.time.day,
+            sortKey: 0.5,
+            absTime: d.schedAbs || 0,
+            progress: 0,
+            delayMins: d.delayMins || 0,
+            obj: d
+        });
+    });
+
+    // 3. Vuelos Programados
+    if (gameState.routes) {
+        gameState.routes.forEach(route => {
+            const dest = AIRPORTS.find(a => a.id === route.destinationId);
+            route.frequencies.forEach(freq => {
+                let nextD = -1;
+                let nextHour = 0;
+                let nextMinute = 0;
+                let minAbs = Infinity;
+                
+                const parts = freq.time.split(':');
+                const fH = parseInt(parts[0], 10);
+                const fM = parseInt(parts[1], 10);
+                
+                for (let i = 0; i < 7; i++) {
+                    const checkDay = gameState.time.day + i;
+                    const dayName = getDayName(checkDay);
+                    if (freq.days.includes(dayName)) {
+                        const checkAbs = checkDay * 24 * 60 + fH * 60 + fM;
+                        if (checkAbs >= nowAbs && checkAbs < minAbs) {
+                            const isActive = gameState.activeDispatches.some(d => d.freqId === freq.id && (d.schedAbs === checkAbs || (!d.schedAbs && d.status === 'in_flight' && (d.departureDay * 24 * 60 + d.departureHour * 60 + d.departureMinute) === checkAbs)));
+                            const isDelayed = delayedFlights.some(f => f.freqId === freq.id);
+                            
+                            if (!isActive && !isDelayed) {
+                                minAbs = checkAbs;
+                                nextD = checkDay;
+                                nextHour = fH;
+                                nextMinute = fM;
+                            }
+                        }
+                    }
+                }
+                
+                if (minAbs !== Infinity) {
+                    const model = AIRCRAFT_MODELS.find(m => m.id === freq.modelId);
+                    allFlights.push({
+                        type: 'scheduled',
+                        id: freq.id,
+                        destId: dest.id,
+                        destName: dest.name,
+                        planeReg: 'A Asignar',
+                        planeModel: model ? model.name : '---',
+                        depTimeStr: formatTime(nextHour, nextMinute),
+                        arrTimeStr: '--:--', // Lógica simplificada para scheduled
+                        status: 'Programado',
+                        dayGroup: nextD,
+                        sortKey: 2,
+                        absTime: minAbs,
+                        progress: 0,
+                        obj: { routeId: route.id, freqId: freq.id }
+                    });
+                }
+            });
+        });
     }
-    
-    let routesHtml = '';
-    if(gameState.routes.length === 0) {
-        routesHtml = `
-            <h3 class="market-section-title" style="margin-top:32px; margin-bottom:16px;">Rutas Comerciales</h3>
-            <div class="card card-padded" style="text-align: center; padding: 40px 24px; color: var(--text-muted);">
-                <i class="ph ph-map-trifold" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
-                <p>No tienes rutas comerciales operativas.</p>
+
+    // Agrupar por día
+    const groups = {};
+    allFlights.forEach(f => {
+        if (!groups[f.dayGroup]) groups[f.dayGroup] = [];
+        groups[f.dayGroup].push(f);
+    });
+
+    // Ordenar los días
+    const sortedDays = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+    let boardHtml = '';
+    if (allFlights.length === 0) {
+        boardHtml = `
+            <div class="card card-padded" style="text-align: center; padding: 40px 24px; color: var(--text-muted); margin-top:24px;">
+                <i class="ph ph-airplane-tilt" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+                <p>No tienes vuelos activos ni programados.</p>
                 <button class="btn btn-primary" style="margin-top:16px;" onclick="switchTab('new-route')">Programar Nueva Ruta</button>
             </div>
         `;
     } else {
-        routesHtml = `<h3 class="market-section-title" style="margin-top:32px; margin-bottom:16px;">Rutas Comerciales Programadas</h3>`;
-        gameState.routes.forEach(route => {
-            const dest = AIRPORTS.find(a => a.id === route.destinationId);
-            routesHtml += `
-                <div class="card" style="margin-bottom: 16px;">
-                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                        <div style="display:flex; align-items:center; gap:16px;">
-                            <div style="font-size:1.5rem; font-family:var(--font-mono); font-weight:800; color:#fff;">${dest.id}</div>
-                            <div>
-                                <div style="color:#fff; font-weight:600;">${dest.name}</div>
-                                <div style="color:var(--text-secondary); font-size:0.8rem;">Distancia: ${route.distance} km | Frecuencias: ${route.frequencies.length}</div>
+        sortedDays.forEach(day => {
+            const flightsInDay = groups[day];
+            
+            // Sort flights within the day by time
+            flightsInDay.sort((a, b) => a.absTime - b.absTime);
+
+            let dayTitle = `Día ${day}`;
+            if (day === -1) dayTitle = `<span style="color:#ef4444;"><i class="ph ph-warning"></i> Requieren Atención</span>`;
+            else if (day === gameState.time.day) dayTitle = "Hoy";
+            else if (day === gameState.time.day + 1) dayTitle = "Mañana";
+
+            boardHtml += `<div class="day-section-title">${dayTitle}</div>`;
+            
+            boardHtml += `<div style="display:flex; flex-direction:column; gap:10px;">`;
+            flightsInDay.forEach(f => {
+                let statusClass = 'status-scheduled';
+                let statusColor = '#22c55e'; // Green for Programado
+                let timePrefix = 'Prog: ';
+
+                if (f.type === 'delayed') { 
+                    statusClass = 'status-delayed'; 
+                    statusColor = '#ef4444'; // Red for delayed
+                    timePrefix = 'Est: ';
+                } else if (f.type === 'boarding') { 
+                    statusClass = 'status-scheduled'; 
+                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#22c55e'; // Orange if delay, green if on time
+                    timePrefix = 'Prog: ';
+                } else if (f.type === 'in_flight') { 
+                    statusClass = 'status-inflight'; 
+                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#3b82f6'; // Orange if departed late, Blue if on time
+                    timePrefix = 'Despegó: ';
+                }
+
+                let statusIcon = `<div class="status-dot" style="background-color: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></div>`;
+                let arrTimePrefix = f.type === 'in_flight' ? 'Est: ' : '';
+
+                let delayHtml = '';
+                if (f.delayMins !== undefined && f.delayMins !== null) {
+                    if (f.delayMins > 3) {
+                        delayHtml = `<span style="color: #ef4444; font-size: 0.75rem; margin-left: 6px;">(+${f.delayMins}m)</span>`;
+                    } else if (f.delayMins < -1) {
+                        delayHtml = `<span style="color: #22c55e; font-size: 0.75rem; margin-left: 6px;">(${f.delayMins}m)</span>`;
+                    } else if (f.delayMins !== 0) {
+                        delayHtml = `<span style="color: #9ca3af; font-size: 0.75rem; margin-left: 6px;">(${f.delayMins > 0 ? '+' : ''}${f.delayMins}m)</span>`;
+                    }
+                }
+
+                let actionsHtml = '';
+                if (f.type === 'delayed') {
+                    actionsHtml = `
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.7rem;" onclick="retryDelayedFlight('${f.id}')"><i class="ph ph-arrows-clockwise"></i> Reintentar</button>
+                            <button class="btn-danger-subtle" style="padding: 4px 8px; font-size: 0.7rem;" onclick="resolveDelayedFlight('${f.id}', 'cancel')"><i class="ph ph-x"></i> Cancelar</button>
+                        </div>
+                    `;
+                } else if (f.type === 'scheduled') { actionsHtml = ''; }
+
+                boardHtml += `
+                    <div class="flight-card modern-flight-card ${f.type === 'in_flight' ? 'active-flight' : ''}">
+                        <div class="fc-header">
+                            <div class="fc-plane-info">
+                                <i class="ph-fill ph-airplane-in-flight"></i>
+                                <span><strong>${f.planeReg}</strong> <span style="opacity:0.5; margin: 0 4px;">•</span> ${f.planeModel}</span>
+                            </div>
+                            <div class="fc-status-container">
+                                <div class="flight-status-badge ${statusClass}" style="display:flex; align-items:center;">
+                                    ${statusIcon} ${f.status}
+                                </div>
+                                ${actionsHtml}
                             </div>
                         </div>
-                        <button class="btn-danger-subtle" onclick="if(confirm('¿Eliminar ruta a ${dest.id}?')) { gameState.routes = gameState.routes.filter(r => r.id !== '${route.id}'); renderFlights(); }"><i class="ph ph-trash"></i></button>
-                    </div>
-                    <div style="padding: 16px 20px; display:flex; gap:12px; overflow-x:auto;">
-                        ${route.frequencies.map(f => {
-                            const model = AIRCRAFT_MODELS.find(m => m.id === f.modelId);
-                            return `
-                                <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:10px; min-width:180px;">
-                                    <div style="font-weight:600; color:var(--accent); font-family:var(--font-mono); margin-bottom:4px;">${f.time}</div>
-                                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">${f.days.join(', ')}</div>
-                                    <div style="font-size:0.75rem; color:#fff;">${model ? model.name : '---'}</div>
-                                    <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Flota asig: ${f.assignedPlanes.length}</div>
+
+                        <div class="fc-body">
+                            <div class="fc-route-top">
+                                <span class="fc-loc-code">BUE</span>
+                                <div class="fc-route-graphic">
+                                    <div class="fc-route-line"></div>
+                                    ${f.type === 'in_flight' ? `
+                                    <div class="fc-progress-track">
+                                        <div class="fc-progress-fill" style="width: ${f.progress}%;">
+                                            <div class="fc-progress-glow"></div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                 </div>
-                            `;
-                        }).join('')}
+                                <span class="fc-loc-code">${f.destId}</span>
+                            </div>
+                            <div class="fc-route-bottom">
+                                <span class="fc-loc-time" style="text-align: left;"><strong>${timePrefix}</strong>${f.depTimeStr}${delayHtml}</span>
+                                <span class="fc-loc-time" style="text-align: right;"><strong>${arrTimePrefix}</strong>${f.arrTimeStr}</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            });
+            boardHtml += `</div>`;
         });
     }
 
     flightsView.innerHTML = `
-        <div class="market-header">
-            <h2>Panel de Vuelos Activos</h2>
-            <p>Monitorea tu flota en tiempo real y gestiona tus rutas.</p>
+        <div class="market-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>Tablero de Vuelos</h2>
+                <p>Monitorea tu flota agrupada por días.</p>
+            </div>
+            <button class="btn btn-secondary" style="border-radius: 9999px; padding: 8px 16px; display: flex; align-items: center; gap: 8px;" onclick="switchTab('history')">
+                <i class="ph ph-clock-counter-clockwise"></i> Historial
+            </button>
         </div>
+        ${boardHtml}
+    `;
+};
+
+const renderHistory = () => {
+    const historyView = document.getElementById('view-history');
+    if (!historyView) return;
+
+    if (!gameState.flightHistory || gameState.flightHistory.length === 0) {
+        historyView.innerHTML = `
+            <div class="market-header" style="margin-bottom: 24px;">
+                <h2>Historial de Vuelos</h2>
+                <p>Registros de los últimos vuelos completados.</p>
+            </div>
+            <div class="card card-padded" style="text-align: center; padding: 40px 24px; color: var(--text-muted); margin-top:24px;">
+                <i class="ph ph-clock-counter-clockwise" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+                <p>Aún no has completado ningún vuelo.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let historyHtml = `<div style="display:flex; flex-direction:column; gap:10px;">`;
+    
+    gameState.flightHistory.forEach(f => {
+        const depStr = formatTime(f.departureHour, f.departureMinute);
+        const arrStr = formatTime(f.arrivalHour, f.arrivalMinute);
         
-        ${delayedHtml}
-        ${dispatchesHtml}
-        ${routesHtml}
+        historyHtml += `
+            <div class="flight-card modern-flight-card" style="opacity: 0.85;">
+                <div class="fc-header">
+                    <div class="fc-plane-info">
+                        <i class="ph-fill ph-airplane-landing"></i>
+                        <span><strong>${f.planeReg}</strong> <span style="opacity:0.5; margin: 0 4px;">•</span> ${f.planeModel}</span>
+                    </div>
+                    <div class="fc-status-container">
+                        <div class="flight-status-badge" style="display:flex; align-items:center; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2);">
+                            <i class="ph-fill ph-check-circle" style="margin-right: 4px;"></i> Completado
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fc-body">
+                    <div class="fc-route-top">
+                        <span class="fc-loc-code">BUE</span>
+                        <div class="fc-route-graphic">
+                            <div class="fc-route-line" style="opacity: 0.3;"></div>
+                        </div>
+                        <span class="fc-loc-code">${f.destName.substring(0,3).toUpperCase()}</span>
+                    </div>
+                    <div class="fc-route-bottom" style="margin-bottom: 12px;">
+                        <span class="fc-loc-time" style="text-align: left;">Día ${f.departureDay} ${depStr}</span>
+                        <span class="fc-loc-time" style="text-align: right;">Día ${f.arrivalDay} ${arrStr}</span>
+                    </div>
+                    <div style="border-top: 1px solid var(--border-subtle); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="text-sm text-muted">Destino: <strong>${f.destName}</strong></span>
+                        <span class="text-sm" style="color: #22c55e; font-weight: 600;">+${formatMoney(f.profit)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    historyHtml += `</div>`;
+
+    historyView.innerHTML = `
+        <div class="market-header" style="margin-bottom: 24px;">
+            <h2>Historial de Vuelos</h2>
+            <p>Registros de los últimos vuelos completados.</p>
+        </div>
+        ${historyHtml}
     `;
 };
 
