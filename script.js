@@ -775,6 +775,23 @@ window.updatePlaneColor = (id, color) => {
     }
 };
 
+const toggle3DControl = (modelId, btn) => {
+    const mv = document.getElementById(`model-${modelId}`);
+    if (!mv) return;
+    
+    if (mv.hasAttribute('camera-controls')) {
+        mv.removeAttribute('camera-controls');
+        mv.style.pointerEvents = 'none';
+        btn.classList.remove('active');
+        btn.innerHTML = '<i class="ph ph-cube"></i> Activar 3D';
+    } else {
+        mv.setAttribute('camera-controls', '');
+        mv.style.pointerEvents = 'auto';
+        btn.classList.add('active');
+        btn.innerHTML = '<i class="ph ph-hand-grabbing"></i> Desactivar 3D';
+    }
+};
+
 const renderMarket = () => {
     const gridCom = document.getElementById('market-grid-commercial');
     const gridMil = document.getElementById('market-grid-military');
@@ -791,8 +808,12 @@ const renderMarket = () => {
         card.className = 'aircraft-card';
         
         const visualHtml = model.modelUrl
-            ? `<model-viewer id="model-${model.id}" src="${model.modelUrl}" loading="lazy" auto-rotate camera-controls shadow-intensity="1" class="aircraft-preview-visual" style="width:100%;height:100%;background-color:transparent;" exposure="1.2" environment-image="neutral" interaction-prompt="none"></model-viewer>`
+            ? `<model-viewer id="model-${model.id}" src="${model.modelUrl}" loading="lazy" auto-rotate shadow-intensity="1" class="aircraft-preview-visual" style="width:100%;height:100%;background-color:transparent; pointer-events: none;" exposure="1.2" environment-image="neutral" interaction-prompt="none"></model-viewer>`
             : `<div id="svg-container-${model.id}" class="svg-wrap" style="--plane-color: ${model.defaultColor};">${model.svg}</div>`;
+
+        const control3dHtml = model.modelUrl
+            ? `<button class="control-3d-btn" onclick="toggle3DControl('${model.id}', this)" title="Activar/Desactivar rotación 3D"><i class="ph ph-cube"></i> Activar 3D</button>`
+            : '';
 
         card.innerHTML = `
             <div class="aircraft-preview">
@@ -803,6 +824,7 @@ const renderMarket = () => {
                 </div>
 
                 <span class="type-badge">${model.type}</span>
+                ${control3dHtml}
             </div>
             <div class="aircraft-body">
                 <h3 class="aircraft-name">${model.name}</h3>
