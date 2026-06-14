@@ -427,6 +427,89 @@ let leafletMap = null;
 
 let isCatchingUp = false;
 
+// --- SISTEMA DE METEOROLOGÍA (MARKOV CHAIN) ---
+const WEATHER_STATES = {
+    CLEAR: { id: 'Despejado', icon: '☀️', color: '#fbbf24' },
+    CLOUDY: { id: 'Nublado', icon: '☁️', color: '#9ca3af' },
+    RAIN: { id: 'Lluvia', icon: '🌧️', color: '#60a5fa' },
+    STORM: { id: 'Tormenta', icon: '⛈️', color: '#818cf8' },
+    FOG: { id: 'Niebla', icon: '🌫️', color: '#cbd5e1' }
+};
+
+const WEATHER_TRANSITIONS = {
+    'Despejado': [ { state: 'Despejado', prob: 0.60 }, { state: 'Nublado', prob: 0.90 }, { state: 'Niebla', prob: 1.00 } ],
+    'Nublado':   [ { state: 'Nublado', prob: 0.45 }, { state: 'Despejado', prob: 0.75 }, { state: 'Lluvia', prob: 0.95 }, { state: 'Niebla', prob: 0.98 }, { state: 'Tormenta', prob: 1.00 } ],
+    'Lluvia':    [ { state: 'Lluvia', prob: 0.50 }, { state: 'Nublado', prob: 0.70 }, { state: 'Tormenta', prob: 0.90 }, { state: 'Despejado', prob: 1.00 } ],
+    'Tormenta':  [ { state: 'Tormenta', prob: 0.40 }, { state: 'Lluvia', prob: 0.70 }, { state: 'Nublado', prob: 1.00 } ],
+    'Niebla':    [ { state: 'Niebla', prob: 0.30 }, { state: 'Nublado', prob: 0.60 }, { state: 'Despejado', prob: 1.00 } ]
+};
+
+const getNextWeather = (currentState) => {
+    const r = Math.random();
+    const transitions = WEATHER_TRANSITIONS[currentState] || WEATHER_TRANSITIONS['Despejado'];
+    for (let t of transitions) {
+        if (r <= t.prob) return t.state;
+    }
+    return 'Despejado';
+};
+
+const getRandomSeverity = (state) => {
+    if (state === 'Despejado' || state === 'Nublado') return 0;
+    const r = Math.random();
+    if (r < 0.6) return 1; // Ligera
+    if (r < 0.9) return 2; // Moderada
+    return 3; // Extrema
+};
+
+const initWeatherSystem = () => {
+    if (!gameState.weather) gameState.weather = {};
+    AIRPORTS.forEach(ap => {
+        if (!gameState.weather[ap.id]) {
+            const initialStates = ['Despejado', 'Despejado', 'Nublado', 'Nublado', 'Lluvia', 'Niebla'];
+            const state = initialStates[Math.floor(Math.random() * initialStates.length)];
+            gameState.weather[ap.id] = {
+                state: state,
+                severity: getRandomSeverity(state),
+                hoursRemaining: 3
+            };
+        }
+    });
+};
+
+const updateWeatherSystem = () => {
+    if (!gameState.weather) return;
+    Object.keys(gameState.weather).forEach(apId => {
+        let w = gameState.weather[apId];
+        w.hoursRemaining--;
+        if (w.hoursRemaining <= 0) {
+            w.state = getNextWeather(w.state);
+            w.severity = getRandomSeverity(w.state);
+            w.hoursRemaining = 3;
+        }
+    });
+};
+
+const getWeatherInfo = (apId) => {
+    if (!gameState.weather || !gameState.weather[apId]) return { ...WEATHER_STATES.CLEAR, text: 'Despejado', isExtreme: false };
+    const w = gameState.weather[apId];
+    const baseInfo = Object.values(WEATHER_STATES).find(x => x.id === w.state) || WEATHER_STATES.CLEAR;
+    
+    let severityText = '';
+    if (w.severity > 0) {
+        if (w.state === 'Niebla') severityText = w.severity === 1 ? ' (Ligera)' : w.severity === 2 ? ' (Densa)' : ' (Extrema)';
+        else if (w.state === 'Tormenta') severityText = w.severity === 1 ? ' (Eléctrica)' : w.severity === 2 ? ' (Fuerte)' : ' (Extrema)';
+        else if (w.state === 'Lluvia') severityText = w.severity === 1 ? ' (Ligera)' : w.severity === 2 ? ' (Moderada)' : ' (Torrencial)';
+    }
+    
+    return {
+        id: baseInfo.id,
+        icon: baseInfo.icon,
+        color: w.severity === 3 ? '#ef4444' : baseInfo.color,
+        text: `${baseInfo.id}${severityText}`,
+        isExtreme: w.severity === 3
+    };
+};
+
 const saveGame = () => {
     gameState.lastSavedRealTime = lastRealTime;
     gameState.unprocessedSimMs = unprocessedSimMs;
@@ -536,6 +619,14 @@ const initMap = () => {
         marker.on('click', () => {
             selectedAirportTemp = ap;
             document.getElementById('selected-airport-name').innerText = ap.name;
+            
+            // Actualizar clima en info del mapa
+            const weatherSpan = document.getElementById('airport-weather-info');
+            if (weatherSpan) {
+                const wInfo = getWeatherInfo(ap.id);
+                weatherSpan.innerHTML = `<span style="color:${wInfo.color};" title="${wInfo.id}">${wInfo.icon} ${wInfo.id}</span>`;
+            }
+
             document.getElementById('airport-info').classList.remove('hidden');
             leafletMap.flyTo([ap.lat, ap.lng], 5, { duration: 1 });
         });
@@ -547,6 +638,8 @@ const startGame = () => {
     if (!selectedAirportTemp && !gameState.base) return;
     if (selectedAirportTemp) gameState.base = selectedAirportTemp;
     
+    initWeatherSystem();
+
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('game-screen').classList.remove('hidden');
     
@@ -1389,7 +1482,7 @@ const checkAndDispatchFlights = () => {
     
     // 2. Procesar despachos activos
     gameState.activeDispatches = gameState.activeDispatches.filter(dispatch => {
-        if (dispatch.status === 'boarding') {
+        if (dispatch.status === 'boarding' || dispatch.status === 'delayed_weather') {
             if (nowAbs >= dispatch.actualDepartureAbs) {
                 return processFlightDeparture(dispatch);
             }
@@ -1509,13 +1602,28 @@ const startBoarding = (route, freq, model, dest, schedAbs) => {
 };
 
 const processFlightDeparture = (dispatch) => {
+    const r = gameState.routes.find(ro => ro.id === dispatch.routeId);
+    if (!r) return false;
+
+    // Verificar Clima Extremo
+    const originWeather = getWeatherInfo(gameState.base.id);
+    const destWeather = getWeatherInfo(r.destinationId);
+    
+    if (originWeather.isExtreme || destWeather.isExtreme) {
+        dispatch.actualDepartureAbs += 60; // Retrasar una hora
+        dispatch.status = 'delayed_weather';
+        
+        if (!isCatchingUp) {
+            logMsg(`[CLIMA] Vuelo a ${dispatch.destName} demorado en tierra. Condiciones extremas.`);
+            if(gameState.currentTab === 'flights') renderFlights();
+        }
+        return true; // Mantener en activeDispatches
+    }
+
     const plane = gameState.fleet.find(p => p.id === dispatch.planeId);
     if(plane) plane.status = 'in_flight';
     
     dispatch.status = 'in_flight';
-    
-    const r = gameState.routes.find(ro => ro.id === dispatch.routeId);
-    if (!r) return false;
     
     const durationHours = r.distance / 800;
     const durationMinutes = Math.round(durationHours * 60);
@@ -1583,6 +1691,7 @@ const gameTick = () => {
                     gameState.time.day++;
                     updateFuelMarket();
                 }
+                updateWeatherSystem();
             }
             checkAndDispatchFlights();
         }
@@ -1892,6 +2001,12 @@ const renderNewRoute = () => {
             destOptions += `<option value="${ap.id}" ${routeCreationState.destinationId === ap.id ? 'selected' : ''}>${ap.name}</option>`;
         }
     });
+    
+    let destWeatherHtml = '';
+    if (routeCreationState.destinationId) {
+        const wInfo = getWeatherInfo(routeCreationState.destinationId);
+        destWeatherHtml = `<div style="margin-top:8px; font-size:0.9rem; color:var(--text-muted);">Clima actual: <span style="color:${wInfo.color}; font-weight:bold;">${wInfo.icon} ${wInfo.id}</span></div>`;
+    }
 
     const dest = AIRPORTS.find(a => a.id === routeCreationState.destinationId);
     const dist = dest ? calculateDistance(gameState.base.lat, gameState.base.lng, dest.lat, dest.lng) : '---';
@@ -1961,6 +2076,7 @@ const renderNewRoute = () => {
                     <select id="route-destination-new" class="flight-select" onchange="routeCreationState.destinationId = this.value; renderNewRoute()" style="width: 100%; font-size: 1.2rem; font-weight: 700; padding: 4px; text-align:left; background:transparent; border:none; color:#fff; border-bottom:1px solid var(--border-hover);">
                         ${destOptions}
                     </select>
+                    ${destWeatherHtml}
                 </div>
             </div>
             
@@ -1996,6 +2112,7 @@ const renderFlights = () => {
     const delayedFlights = gameState.activeDispatches.filter(d => d.status === 'delayed');
     const activeFl = gameState.activeDispatches.filter(d => d.status === 'in_flight');
     const boardingFl = gameState.activeDispatches.filter(d => d.status === 'boarding');
+    const weatherDelayedFl = gameState.activeDispatches.filter(d => d.status === 'delayed_weather');
 
     // 1. Vuelos Atrasados
     delayedFlights.forEach(d => {
@@ -2010,8 +2127,30 @@ const renderFlights = () => {
             depTimeStr: d.reqTime, 
             arrTimeStr: '--:--',
             status: 'Atrasado',
-            dayGroup: -1, // -1 para atrasados
+            dayGroup: -1,
             sortKey: 0,
+            absTime: 0,
+            progress: 0,
+            delayMins: d.delayMins || 0,
+            obj: d
+        });
+    });
+
+    // 1.5 Vuelos Demorados por Clima
+    weatherDelayedFl.forEach(d => {
+        const plane = gameState.fleet.find(p => p.id === d.planeId);
+        allFlights.push({
+            type: 'delayed_weather',
+            id: d.id,
+            destId: getDestId(d.routeId),
+            destName: d.destName,
+            planeReg: plane ? plane.registration : '---',
+            planeModel: plane ? plane.name : 'Sin Asignar',
+            depTimeStr: d.reqTime, 
+            arrTimeStr: '--:--',
+            status: 'Demorado (Clima)',
+            dayGroup: -1,
+            sortKey: 1,
             absTime: 0,
             progress: 0,
             delayMins: d.delayMins || 0,
@@ -2113,7 +2252,7 @@ const renderFlights = () => {
                         planeReg: 'A Asignar',
                         planeModel: model ? model.name : '---',
                         depTimeStr: formatTime(nextHour, nextMinute),
-                        arrTimeStr: '--:--', // Lógica simplificada para scheduled
+                        arrTimeStr: '--:--', 
                         status: 'Programado',
                         dayGroup: nextD,
                         sortKey: 2,
@@ -2162,24 +2301,31 @@ const renderFlights = () => {
             boardHtml += `<div style="display:flex; flex-direction:column; gap:10px;">`;
             flightsInDay.forEach(f => {
                 let statusClass = 'status-scheduled';
-                let statusColor = '#22c55e'; // Green for Programado
+                let statusColor = '#22c55e';
                 let timePrefix = 'Prog: ';
 
                 if (f.type === 'delayed') { 
                     statusClass = 'status-delayed'; 
-                    statusColor = '#ef4444'; // Red for delayed
+                    statusColor = '#ef4444';
+                    timePrefix = 'Est: ';
+                } else if (f.type === 'delayed_weather') {
+                    statusClass = 'status-delayed'; 
+                    statusColor = '#f59e0b';
                     timePrefix = 'Est: ';
                 } else if (f.type === 'boarding') { 
                     statusClass = 'status-scheduled'; 
-                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#22c55e'; // Orange if delay, green if on time
+                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#22c55e';
                     timePrefix = 'Prog: ';
                 } else if (f.type === 'in_flight') { 
                     statusClass = 'status-inflight'; 
-                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#3b82f6'; // Orange if departed late, Blue if on time
+                    statusColor = (f.delayMins && f.delayMins > 3) ? '#f97316' : '#3b82f6';
                     timePrefix = 'Despegó: ';
                 }
 
                 let statusIcon = `<div class="status-dot" style="background-color: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></div>`;
+                let statusLabel = f.status;
+                if (f.type === 'delayed_weather') statusLabel = 'Demorado (Clima)';
+                
                 let arrTimePrefix = f.type === 'in_flight' ? 'Est: ' : '';
 
                 let delayHtml = '';
@@ -2201,6 +2347,8 @@ const renderFlights = () => {
                             <button class="btn-danger-subtle" style="padding: 4px 8px; font-size: 0.7rem;" onclick="resolveDelayedFlight('${f.id}', 'cancel')"><i class="ph ph-x"></i> Cancelar</button>
                         </div>
                     `;
+                } else if (f.type === 'delayed_weather') {
+                    actionsHtml = `<span style="font-size:0.8rem; color:var(--text-muted); display:block; margin-top:8px;">Esperando mejora...</span>`;
                 } else if (f.type === 'scheduled') { actionsHtml = ''; }
 
                 boardHtml += `

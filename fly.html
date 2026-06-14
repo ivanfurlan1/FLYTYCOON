@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Airline Simulator Tycoon — Pro Edition</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="style.css?v=2.0">
+</head>
+<body>
+
+    <!-- Notificaciones -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="start-screen" class="start-screen">
+        <div class="start-title-area fade-in">
+            <h1 class="start-title"><span>Airline Simulator</span> Pro</h1>
+            <p class="start-subtitle">Seleccioná tu aeropuerto base en el mapa global.</p>
+        </div>
+        <div class="map-container fade-in" style="animation-delay: 0.15s;">
+            <div id="map"></div>
+            <div id="airport-info" class="airport-info-panel hidden">
+                <div>
+                    <h3 id="selected-airport-name">---</h3>
+                    <div id="airport-weather-info" style="margin-top: 4px; margin-bottom: 8px; font-size: 0.95rem; font-weight: bold;"></div>
+                    <p class="budget-text">Presupuesto inicial: <strong>$50,000,000</strong></p>
+                </div>
+                <button onclick="startGame()" class="btn btn-primary">Establecer Base</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL -->
+    <div id="game-screen" class="app-layout hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-brand">
+                <i class="ph-fill ph-airplane-tilt header-brand-icon"></i>
+                <div class="header-brand-text">
+                    <div class="header-brand-name" style="cursor:pointer;" onclick="gameState.money += 100000; updateUI();">Mi Aerolínea</div>
+                    <div class="header-brand-sub" id="header-base">—</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-money-pill" id="header-money-pill">
+                    <i class="ph-fill ph-vault header-money-icon"></i>
+                    <span id="header-money">$0</span>
+                </div>
+                <div class="header-day-badge" id="header-day"></div>
+            </div>
+        </header>
+
+
+        <!-- Navegación Superior (Sólo para Mercado) -->
+        <nav class="app-nav hidden-nav" id="top-nav-market">
+            <ul class="nav-list">
+                <li><button onclick="switchTab('market')" id="tab-market" class="nav-tab nav-tab-active"><i class="ph ph-storefront"></i> Catálogo</button></li>
+                <li><button onclick="switchTab('fleet')" id="tab-fleet" class="nav-tab"><i class="ph ph-airplane-in-flight"></i> Mi Flota <span class="nav-badge">(<span id="nav-fleet-count">0</span>)</span></button></li>
+                <li><button onclick="switchTab('fuel')" id="tab-fuel" class="nav-tab"><i class="ph ph-gas-pump"></i> Combustible</button></li>
+            </ul>
+        </nav>
+
+        <!-- Navegación Superior (Sólo para Vuelos) -->
+        <nav class="app-nav hidden-nav" id="top-nav-flights">
+            <ul class="nav-list">
+                <li><button onclick="switchTab('flights')" id="tab-flights" class="nav-tab nav-tab-active"><i class="ph ph-paper-plane-tilt"></i> Mis Vuelos</button></li>
+                <li><button onclick="switchTab('new-route')" id="tab-new-route" class="nav-tab"><i class="ph ph-map-trifold"></i> Nueva Ruta</button></li>
+                <li><button onclick="switchTab('history')" id="tab-history" class="nav-tab"><i class="ph ph-clock-counter-clockwise"></i> Historial</button></li>
+            </ul>
+        </nav>
+
+        <!-- Contenido -->
+        <main class="app-main">
+
+            <!-- SVG DEFINITIONS GLOBALES PARA REALISMO -->
+            <svg width="0" height="0" style="position:absolute;">
+                <defs>
+                    <linearGradient id="fuseBase" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="50%" stop-color="#f8fafc"/>
+                        <stop offset="85%" stop-color="#cbd5e1"/>
+                        <stop offset="100%" stop-color="#64748b"/>
+                    </linearGradient>
+                    <linearGradient id="engineBase" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#e2e8f0"/>
+                        <stop offset="50%" stop-color="#94a3b8"/>
+                        <stop offset="100%" stop-color="#334155"/>
+                    </linearGradient>
+                    <linearGradient id="glass" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#0f172a"/>
+                        <stop offset="100%" stop-color="#334155"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+
+            <!-- DASHBOARD -->
+            <div id="view-dashboard" class="view view-active">
+                <div class="dash-top-bar">
+                    <button onclick="resetGame()" class="btn-danger-subtle"><i class="ph ph-trash"></i> Reiniciar Partida</button>
+                </div>
+                <div class="dash-stats-grid">
+                    <div class="card card-padded">
+                        <div class="stat-card">
+                            <div class="stat-icon stat-icon-blue"><i class="ph ph-buildings"></i></div>
+                            <div>
+                                <div class="stat-label">Hub Principal</div>
+                                <div class="stat-value" id="dash-base">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card card-padded">
+                        <div class="stat-card">
+                            <div class="stat-icon stat-icon-green"><i class="ph ph-chart-line-up"></i></div>
+                            <div>
+                                <div class="stat-label">Ingresos Proyectados</div>
+                                <div class="stat-value mono" id="dash-profit">+$0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card card-padded">
+                        <div class="stat-card">
+                            <div class="stat-icon stat-icon-purple"><i class="ph ph-airplane"></i></div>
+                            <div>
+                                <div class="stat-label">Flota Activa</div>
+                                <div class="stat-value" id="dash-fleet-count">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-padded">
+                    <h3 class="log-title"><i class="ph ph-clock-counter-clockwise"></i> Registro de Operaciones</h3>
+                    <div id="log-container" class="log-body"><p style="color: var(--text-muted);">Esperando operaciones...</p></div>
+                </div>
+            </div>
+
+            <!-- MERCADO -->
+            <div id="view-market" class="view">
+                <div class="market-header">
+                    <h2>Catálogo de Fabricantes</h2>
+                    <p>Modelos técnicos precisos. Seleccioná el color de la aerolínea antes de la compra.</p>
+                </div>
+                
+                <h3 class="market-section-title">Aviones Comerciales</h3>
+                <div class="market-grid" id="market-grid-commercial"></div>
+                
+                <h3 class="market-section-title" style="margin-top: 2rem;">Aviones Militares</h3>
+                <div class="market-grid" id="market-grid-military"></div>
+            </div>
+
+            <!-- FLOTA -->
+            <div id="view-fleet" class="view">
+                <div class="fleet-header"><h2>Flota Activa</h2></div>
+                <div class="card">
+                    <div class="fleet-table-wrap">
+                        <table class="fleet-table">
+                            <thead>
+                                <tr>
+                                    <th>Aeronave / Matrícula</th>
+                                    <th>Capacidad</th>
+                                    <th>Alcance</th>
+                                    <th style="text-align:right">Beneficio/Día</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fleet-list"></tbody>
+                        </table>
+                        <div id="empty-fleet-msg" class="fleet-empty">
+                            <i class="ph ph-airplane-slash"></i>
+                            <p>No tenés aviones.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMBUSTIBLE -->
+            <div id="view-fuel" class="view">
+            </div>
+
+            <!-- VUELOS (Nueva pestaña) -->
+            <div id="view-flights" class="view">
+            </div>
+
+            <!-- NUEVA RUTA -->
+            <div id="view-new-route" class="view">
+            </div>
+
+            <!-- HISTORIAL -->
+            <div id="view-history" class="view">
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+            <button onclick="switchTab('dashboard')" id="bottom-tab-dashboard" class="bottom-nav-btn active">
+                <i class="ph ph-squares-four"></i>
+                <span>Inicio</span>
+            </button>
+            <button onclick="switchTab('market')" id="bottom-tab-market" class="bottom-nav-btn">
+                <i class="ph ph-storefront"></i>
+                <span>Mercado</span>
+            </button>
+            <button onclick="switchTab('flights')" id="bottom-tab-flights" class="bottom-nav-btn">
+                <i class="ph ph-paper-plane-tilt"></i>
+                <span>Vuelos</span>
+            </button>
+            <button onclick="alert('Menú próximamente')" id="bottom-tab-menu" class="bottom-nav-btn">
+                <i class="ph ph-list"></i>
+                <span>Menú</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- LIVERY EDITOR MODAL -->
+    <div id="livery-editor" class="livery-editor hidden">
+        <div class="livery-editor-content">
+            <div class="livery-viewer-container" id="livery-viewer-container">
+                <!-- Injected via JS -->
+            </div>
+            
+            <div class="livery-sidebar">
+                <div class="livery-sidebar-header">
+                    <h2><i class="ph ph-paint-brush"></i> Editor 3D</h2>
+                    <p class="text-sm text-muted">Personalizá tu aeronave.</p>
+                </div>
+                
+                <div class="livery-mode-toggle">
+                    <button id="btn-mode-camera" class="livery-mode-btn active" onclick="liveryEditor.setMode('camera')"><i class="ph ph-camera"></i> Cámara</button>
+                    <button id="btn-mode-paint" class="livery-mode-btn" onclick="liveryEditor.setMode('paint')"><i class="ph ph-paint-brush"></i> Pintar</button>
+                </div>
+                
+                <div class="livery-tool-section">
+                    <h3 class="livery-tool-title">Color Base</h3>
+                    <div class="livery-tool-row">
+                        <input type="color" id="livery-base-color" class="livery-color-input" value="#ffffff">
+                        <button class="btn btn-secondary btn-sm" onclick="liveryEditor.fillBaseColor()">Aplicar Fondo</button>
+                    </div>
+                </div>
+
+                <div class="livery-tool-section">
+                    <h3 class="livery-tool-title">Pincel 3D</h3>
+                    <div class="livery-tool-row">
+                        <div class="livery-tool-group">
+                            <label class="text-xs text-muted">Color</label>
+                            <input type="color" id="livery-brush-color" class="livery-color-input" value="#ef4444">
+                        </div>
+                        <div class="livery-tool-group" style="flex:1;">
+                            <label class="text-xs text-muted">Tamaño (<span id="livery-brush-size-val">10</span>px)</label>
+                            <input type="range" id="livery-brush-size" min="2" max="100" value="10" oninput="document.getElementById('livery-brush-size-val').innerText = this.value">
+                        </div>
+                    </div>
+                    <p class="text-xs text-muted" style="margin-top:0.5rem;"><i class="ph ph-info"></i> Mantené presionado y arrastrá sobre el modelo para pintar.</p>
+                </div>
+
+                <div class="livery-tool-section">
+                    <h3 class="livery-tool-title">Texto</h3>
+                    <div class="livery-tool-group" style="margin-bottom:0.5rem;">
+                        <input type="text" id="livery-text-input" placeholder="Ej: Aerolíneas Argentinas" class="livery-text-field">
+                    </div>
+                    <div class="livery-tool-row">
+                        <div class="livery-tool-group">
+                            <label class="text-xs text-muted">Color</label>
+                            <input type="color" id="livery-text-color" class="livery-color-input" value="#ffffff">
+                        </div>
+                        <div class="livery-tool-group">
+                            <label class="text-xs text-muted">Tamaño</label>
+                            <input type="number" id="livery-text-size" value="60" class="livery-text-field" style="width: 60px;">
+                        </div>
+                    </div>
+                    <p class="text-xs text-muted" style="margin-top:0.5rem;"><i class="ph ph-info"></i> Escribí el texto, elegí el color y hacé <b>click sobre el modelo</b> donde querés estamparlo.</p>
+                </div>
+
+                <div class="livery-actions">
+                    <button class="btn btn-danger-subtle" onclick="liveryEditor.close()"><i class="ph ph-x"></i> Cancelar</button>
+                    <button class="btn btn-primary" onclick="liveryEditor.save()"><i class="ph ph-check"></i> Guardar y Comprar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLANE SELECTOR MODAL -->
+    <div id="plane-selector-modal" class="livery-editor hidden" style="z-index: 100;">
+        <div class="plane-selector-content" style="width: 90%; max-width: 1000px; height: 85vh; background: var(--bg-grouped); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg);">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5);">
+                <div>
+                    <h2 style="font-size: 1.4rem; color: #fff; margin-bottom: 4px;"><i class="ph ph-airplane-in-flight" style="color: var(--accent);"></i> Seleccionar Aeronaves</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Elegí los aviones de tu flota para asignarlos a esta frecuencia.</p>
+                </div>
+                <button class="btn btn-danger-subtle" onclick="closePlaneSelector()"><i class="ph ph-x"></i> Cerrar</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding: 24px;">
+                <div class="market-grid" id="plane-selector-grid">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=2.0"></script>
+</body>
+</html>
