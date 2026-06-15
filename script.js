@@ -2375,8 +2375,9 @@ const renderRoutes = () => {
         return;
     }
 
-    if (!routeCreationState) {
-        let routesHtml = '';
+    try {
+        if (!routeCreationState) {
+            let routesHtml = '';
         if (!gameState.routes || gameState.routes.length === 0) {
             routesHtml = `
                 <div class="fleet-empty" style="margin-top: 30px;">
@@ -2453,7 +2454,12 @@ const renderRoutes = () => {
             </div>
         `;
         return;
+    } catch (err) {
+        alert("ERROR RENDERIZANDO RUTAS: " + err.message + "\n" + err.stack);
+        view.innerHTML = `<div style="color:red; padding: 20px;">Error fatal cargando rutas: ${err.message}</div>`;
+        return;
     }
+}
 
     let destOptions = '<option value="">Seleccionar...</option>';
     AIRPORTS.forEach(ap => {
@@ -3715,6 +3721,22 @@ window.cancelFlightFromModal = (flightId, type) => {
 };
 
 window.onload = () => {
+    // Setup global error handling for debugging production issues
+    window.addEventListener('error', function(e) {
+        alert("ERROR GLOBAL: " + e.message + "\n\nEn archivo: " + e.filename + ":" + e.lineno);
+    });
+
+    window.addEventListener('unhandledrejection', function(e) {
+        alert("ERROR PROMESA: " + e.reason);
+    });
+
+    // Version badge to verify deployment
+    const badge = document.createElement('div');
+    badge.style = "position: fixed; top: 0; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 2px 10px; font-weight: bold; font-size: 10px; border-radius: 0 0 8px 8px; z-index: 9999; text-transform: uppercase;";
+    badge.innerText = "VERSIÓN 3.0";
+    document.body.appendChild(badge);
+
+    // Initial game loading
     if (loadGame() && gameState.base) {
         startGame();
     } else {
