@@ -1427,7 +1427,8 @@ const getActiveProfit = () => {
     if (!gameState.routes) return 0;
     let total = 0;
     gameState.routes.forEach(r => {
-        r.frequencies.forEach(f => {
+        if (!r) return;
+        (r.frequencies || []).forEach(f => {
             const model = AIRCRAFT_MODELS.find(m => m.name === f.modelId || m.id === f.modelId);
             if(model) {
                 // Estimación prorrateada diaria de esta frecuencia
@@ -1530,8 +1531,9 @@ const checkAndDispatchFlights = () => {
     
     // 1. Iniciar Embarque (Boarding phase)
     gameState.routes.forEach(route => {
-        const dest = AIRPORTS.find(a => a.id === route.destinationId);
-        route.frequencies.forEach(freq => {
+        if (!route) return;
+        const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: '?' };
+        (route.frequencies || []).forEach(freq => {
             const model = AIRCRAFT_MODELS.find(m => m.name === freq.modelId || m.id === freq.modelId);
             let boardingMins = 30;
             if (model) {
@@ -2385,6 +2387,7 @@ const renderRoutes = () => {
             `;
         } else {
             gameState.routes.forEach(route => {
+                if (!route) return;
                 const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: 'Desconocido, ??' };
                 const freqs = route.frequencies || [];
                 const returnFrequencies = freqs.filter(f => f.isReturn).length;
@@ -2772,8 +2775,9 @@ const renderFlights = () => {
     // 3. Vuelos Programados
     if (gameState.routes) {
         gameState.routes.forEach(route => {
-            const dest = AIRPORTS.find(a => a.id === route.destinationId);
-            route.frequencies.forEach(freq => {
+            if (!route) return;
+            const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: '?' };
+            (route.frequencies || []).forEach(freq => {
                 let nextD = -1;
                 let nextHour = 0;
                 let nextMinute = 0;
@@ -3570,10 +3574,44 @@ window.openFlightModal = (flightId, type) => {
         const freq = route ? route.frequencies.find(f => f.id === flight.obj.freqId) : null;
         if (freq) schedOut = freq.time;
     }
+    
+    if (schedOut === '--:--' && flight.depTimeStr) {
+        if (flight.obj && flight.obj.originalSchedAbs) {
+            schedOut = formatTime(Math.floor(flight.obj.originalSchedAbs / 60) % 24, flight.obj.originalSchedAbs % 60);
+        } else {
+            schedOut = flight.depTimeStr;
+        }
+    }
+
+    let confOut = '--:--';
+    let actOut = '--:--';
+    let estIn = flight.arrTimeStr || '--:--';
+    let actIn = '--:--';
+
+    const rowConfOut = document.getElementById('fd-row-conf-out');
+    rowConfOut.classList.add('hidden');
+
+    if (flight.type === 'delayed' || flight.type === 'delayed_weather') {
+        confOut = flight.depTimeStr;
+        rowConfOut.classList.remove('hidden');
+    } else if (flight.type === 'in_flight') {
+        actOut = flight.depTimeStr;
+    } else if (flight.type === 'completed') {
+        actOut = flight.depTimeStr;
+        actIn = flight.arrTimeStr;
+        estIn = '--:--';
+    } else if (flight.type === 'boarding' || flight.type === 'stub') {
+        if (flight.delayMins && flight.delayMins > 0) {
+            confOut = flight.depTimeStr;
+            rowConfOut.classList.remove('hidden');
+        }
+    }
 
     document.getElementById('fd-time-sched-out').innerText = schedOut;
-    document.getElementById('fd-time-act-out').innerText = flight.depTimeStr || '--:--';
-    document.getElementById('fd-time-est-in').innerText = flight.arrTimeStr || '--:--';
+    document.getElementById('fd-time-conf-out').innerText = confOut;
+    document.getElementById('fd-time-act-out').innerText = actOut;
+    document.getElementById('fd-time-est-in').innerText = estIn;
+    document.getElementById('fd-time-act-in').innerText = actIn;
 
     // Progreso
     const progCont = document.getElementById('fd-progress-container');
@@ -3623,16 +3661,16 @@ window.openFlightModal = (flightId, type) => {
     let actContent = '';
 
     if (flight.type === 'delayed') {
-        actContent += `<button class="btn btn-primary" style="flex:1; border-radius: 8px; justify-content: center; align-items: center; display: flex; gap: 8px;" onclick="closeFlightModal(); retryDelayedFlight('${flight.id}')"><i class="ph ph-arrows-clockwise" style="font-size: 1.1rem;"></i> Reintentar</button>`;
+        actContent += `<button class="btn btn-primary" onclick="closeFlightModal(); retryDelayedFlight('${flight.id}')"><i class="ph ph-arrows-clockwise"></i> Reintentar</button>`;
     }
 
     if (flight.type !== 'completed' && flight.type !== 'stub' && flight.type !== 'in_flight') {
-        actContent += `<button class="btn btn-danger-subtle" style="flex:1; border-radius: 8px; justify-content: center; align-items: center; display: flex; gap: 8px;" onclick="cancelFlightFromModal('${flight.id}', '${flight.type}')"><i class="ph ph-x-circle" style="font-size: 1.1rem;"></i> Cancelar Vuelo</button>`;
+        actContent += `<button class="btn btn-danger-subtle" onclick="cancelFlightFromModal('${flight.id}', '${flight.type}')"><i class="ph ph-x-circle"></i> Cancelar Vuelo</button>`;
     }
 
     if (actContent !== '') {
         acts.classList.remove('hidden');
-        acts.innerHTML = `<div style="display: flex; gap: 10px; width: 100%; margin-top: 8px;">${actContent}</div>`;
+        acts.innerHTML = actContent;
     } else {
         acts.classList.add('hidden');
     }
