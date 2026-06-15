@@ -81,6 +81,7 @@
             <ul class="nav-list">
                 <li><button onclick="switchTab('flights')" id="tab-flights" class="nav-tab nav-tab-active"><i class="ph ph-paper-plane-tilt"></i> Mis Vuelos</button></li>
                 <li><button onclick="switchTab('routes')" id="tab-routes" class="nav-tab"><i class="ph ph-map-trifold"></i> Rutas</button></li>
+                <li><button onclick="switchTab('planner')" id="tab-planner" class="nav-tab nav-tab-icon-only" title="Planificador de Vuelos"><i class="ph ph-calendar"></i></button></li>
                 <li><button onclick="switchTab('history')" id="tab-history" class="nav-tab"><i class="ph ph-clock-counter-clockwise"></i> Historial</button></li>
             </ul>
         </nav>
@@ -111,41 +112,89 @@
 
             <!-- DASHBOARD -->
             <div id="view-dashboard" class="view view-active">
-                <div class="dash-top-bar">
-                    <button onclick="resetGame()" class="btn-danger-subtle"><i class="ph ph-trash"></i> Reiniciar Partida</button>
-                </div>
-                <div class="dash-stats-grid">
-                    <div class="card card-padded">
-                        <div class="stat-card">
-                            <div class="stat-icon stat-icon-blue"><i class="ph ph-buildings"></i></div>
-                            <div>
-                                <div class="stat-label">Hub Principal</div>
-                                <div class="stat-value" id="dash-base">---</div>
-                            </div>
-                        </div>
+                <div class="dash-hero fade-in">
+                    <div class="dash-hero-info">
+                        <h1 class="dash-hero-title">¡Hola, <span id="dash-hero-name" style="color: var(--accent);">CEO</span>!</h1>
+                        <p class="dash-hero-subtitle">Resumen de operaciones en tu base principal: <strong id="dash-hero-base" style="color: #fff; font-weight: 500;">---</strong></p>
                     </div>
-                    <div class="card card-padded">
-                        <div class="stat-card">
-                            <div class="stat-icon stat-icon-green"><i class="ph ph-chart-line-up"></i></div>
-                            <div>
-                                <div class="stat-label">Ingresos Proyectados</div>
-                                <div class="stat-value mono" id="dash-profit">+$0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card card-padded">
-                        <div class="stat-card">
-                            <div class="stat-icon stat-icon-purple"><i class="ph ph-airplane"></i></div>
-                            <div>
-                                <div class="stat-label">Flota Activa</div>
-                                <div class="stat-value" id="dash-fleet-count">0</div>
-                            </div>
+                    <div class="dash-hero-weather" id="dash-hero-weather">
+                        <i class="ph-light ph-cloud-sun"></i>
+                        <div>
+                            <div class="weather-temp" id="dash-weather-temp">--°C</div>
+                            <div class="weather-desc" id="dash-weather-desc">Cargando...</div>
                         </div>
                     </div>
                 </div>
-                <div class="card card-padded">
-                    <h3 class="log-title"><i class="ph ph-clock-counter-clockwise"></i> Registro de Operaciones</h3>
-                    <div id="log-container" class="log-body"><p style="color: var(--text-muted);">Esperando operaciones...</p></div>
+
+                <div class="bento-grid slide-up">
+                    <!-- KPIs -->
+                    <div class="bento-box bento-kpi kpi-balance">
+                        <div class="kpi-icon"><i class="ph-light ph-vault"></i></div>
+                        <div class="kpi-data">
+                            <div class="kpi-label">Saldo Total</div>
+                            <div class="kpi-value mono" id="dash-balance">$0</div>
+                        </div>
+                    </div>
+                    <div class="bento-box bento-kpi kpi-profit">
+                        <div class="kpi-icon"><i class="ph-light ph-trend-up"></i></div>
+                        <div class="kpi-data">
+                            <div class="kpi-label">Beneficio Proyectado / Día</div>
+                            <div class="kpi-value mono" id="dash-profit">+$0</div>
+                        </div>
+                    </div>
+                    <div class="bento-box bento-kpi kpi-fleet">
+                        <div class="kpi-icon"><i class="ph-light ph-airplane-tilt"></i></div>
+                        <div class="kpi-data">
+                            <div class="kpi-label">Flota / Rutas</div>
+                            <div class="kpi-value"><span id="dash-fleet-count">0</span> <span style="font-size:0.55em;color:var(--text-muted);font-weight:500;text-transform:uppercase;">aviones</span> <span style="margin:0 6px;color:var(--border-subtle)">|</span> <span id="dash-routes-count">0</span> <span style="font-size:0.55em;color:var(--text-muted);font-weight:500;text-transform:uppercase;">rutas</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Próximo Vuelo Widget -->
+                    <div class="bento-box bento-live-flight" id="dash-live-flight">
+                        <div class="live-flight-header">
+                            <h3 class="bento-title"><i class="ph-light ph-radar"></i> Vuelo en Curso</h3>
+                            <div class="live-status-pulse" id="dash-live-pulse" style="display: none;"></div>
+                        </div>
+                        <div class="live-flight-content" id="dash-live-content">
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:120px; opacity:0.6;">
+                                <i class="ph-light ph-airplane-slash" style="font-size:2rem; margin-bottom:8px; color:var(--text-muted);"></i>
+                                <p class="text-muted text-sm" style="font-weight: 400;">No hay vuelos activos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bento-box bento-actions">
+                        <h3 class="bento-title"><i class="ph-light ph-lightning"></i> Acciones Rápidas</h3>
+                        <div class="action-grid">
+                            <button onclick="switchTab('market')" class="action-btn">
+                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-shopping-cart"></i></div>
+                                <span>Mercado</span>
+                            </button>
+                            <button onclick="switchTab('routes')" class="action-btn">
+                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-map-trifold"></i></div>
+                                <span>Rutas</span>
+                            </button>
+                            <button onclick="resetGame()" class="action-btn action-danger">
+                                <div class="action-icon"><i class="ph-light ph-trash"></i></div>
+                                <span>Reiniciar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Activity Feed -->
+                    <div class="bento-box bento-activity">
+                        <div class="activity-header">
+                            <h3 class="bento-title"><i class="ph-light ph-clock-counter-clockwise"></i> Actividad Reciente</h3>
+                        </div>
+                        <div class="activity-feed" id="log-container">
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:200px; opacity:0.6;">
+                                <i class="ph-light ph-list-dashes" style="font-size:2rem; margin-bottom:8px; color:var(--text-muted);"></i>
+                                <p class="text-muted text-sm" style="font-weight: 400;">Esperando operaciones...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -201,6 +250,31 @@
 
             <!-- HISTORIAL -->
             <div id="view-history" class="view">
+            </div>
+
+            <!-- PLANIFICADOR -->
+            <div id="view-planner" class="view">
+                <div class="planner-header">
+                    <div class="planner-title-area">
+                        <h2><i class="ph ph-calendar" style="color:var(--accent);"></i> Planificador de Operaciones</h2>
+                        <p>Deslizá los vuelos horizontalmente para reajustar los horarios.</p>
+                    </div>
+                    <div class="planner-day-selector" id="planner-day-selector">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+                <div class="planner-container">
+                    <div class="planner-scroll-x">
+                        <div class="planner-inner-wrap">
+                            <div class="planner-timeline-header" id="planner-timeline-header">
+                                <!-- Hours 00:00 to 23:00 injected via JS -->
+                            </div>
+                            <div class="planner-grid" id="planner-grid">
+                                <!-- Routes and flights injected via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </main>
