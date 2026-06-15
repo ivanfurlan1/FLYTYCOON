@@ -17,10 +17,26 @@
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Sistema automático para evitar caché (Cache-Busting)
-        // Agrega el tiempo exacto en milisegundos para forzar al navegador a obtener siempre la última versión.
-        document.write('<link rel="stylesheet" href="style.css?v=' + new Date().getTime() + '">');
+        // ELIMINADOR DE CACHÉ (Service Worker Killer)
+        // Destruye cualquier Service Worker viejo que esté bloqueando las actualizaciones.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log("Service Worker eliminado forzosamente.");
+                }
+            });
+            
+            // También vaciar cachés del navegador
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+        }
     </script>
+    <link rel="stylesheet" href="style_v3.css">
+    <script src="script_v3.js"></script>
 </head>
 <body>
 
@@ -379,8 +395,6 @@
             </div>
         </div>
     </div>
-    <script>
-        document.write('<script src="script.js?v=' + new Date().getTime() + '"><\/script>');
-    </script>
+    <!-- Scripts have been moved to the <head> to ensure they load in order -->
 </body>
 </html>
