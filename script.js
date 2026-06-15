@@ -2299,10 +2299,11 @@ const renderRoutes = () => {
             currentRouteDetailId = null;
             return renderRoutes();
         }
-        const dest = AIRPORTS.find(a => a.id === route.destinationId);
+        const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: 'Desconocido, ??' };
         
         let freqHtml = '';
-        const outboundFreqs = route.frequencies.filter(f => !f.isReturn);
+        const freqs = route.frequencies || [];
+        const outboundFreqs = freqs.filter(f => !f.isReturn);
         
         outboundFreqs.forEach((freq, idx) => {
             let planesHtml = '';
@@ -2384,9 +2385,10 @@ const renderRoutes = () => {
             `;
         } else {
             gameState.routes.forEach(route => {
-                const dest = AIRPORTS.find(a => a.id === route.destinationId);
-                const returnFrequencies = route.frequencies.filter(f => f.isReturn).length;
-                const outboundFrequencies = route.frequencies.length - returnFrequencies;
+                const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: 'Desconocido, ??' };
+                const freqs = route.frequencies || [];
+                const returnFrequencies = freqs.filter(f => f.isReturn).length;
+                const outboundFrequencies = freqs.length - returnFrequencies;
                 
                 routesHtml += `
                     <div class="route-card" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: transform 0.2s ease; position: relative;">
