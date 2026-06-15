@@ -16,8 +16,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet" href="style.css?v=2.0">
+    <script>
+        // Sistema automático para evitar caché (Cache-Busting)
+        // Agrega el tiempo exacto en milisegundos para forzar al navegador a obtener siempre la última versión.
+        document.write('<link rel="stylesheet" href="style.css?v=' + new Date().getTime() + '">');
+    </script>
 </head>
 <body>
 
@@ -35,6 +38,7 @@
             <div id="airport-info" class="airport-info-panel hidden">
                 <div>
                     <h3 id="selected-airport-name">---</h3>
+                    <div id="airport-weather-info" style="margin-top: 4px; margin-bottom: 8px; font-size: 0.95rem; font-weight: bold;"></div>
                     <p class="budget-text">Presupuesto inicial: <strong>$50,000,000</strong></p>
                 </div>
                 <button onclick="startGame()" class="btn btn-primary">Establecer Base</button>
@@ -49,7 +53,7 @@
             <div class="header-brand">
                 <i class="ph-fill ph-airplane-tilt header-brand-icon"></i>
                 <div class="header-brand-text">
-                    <div class="header-brand-name" style="cursor:pointer;" onclick="gameState.money += 100000; updateUI();">Mi Aerolínea</div>
+                    <div class="header-brand-name" style="cursor:pointer;" onclick="gameState.money += 2000000; updateUI();">Mi Aerolínea</div>
                     <div class="header-brand-sub" id="header-base">—</div>
                 </div>
             </div>
@@ -76,7 +80,7 @@
         <nav class="app-nav hidden-nav" id="top-nav-flights">
             <ul class="nav-list">
                 <li><button onclick="switchTab('flights')" id="tab-flights" class="nav-tab nav-tab-active"><i class="ph ph-paper-plane-tilt"></i> Mis Vuelos</button></li>
-                <li><button onclick="switchTab('new-route')" id="tab-new-route" class="nav-tab"><i class="ph ph-map-trifold"></i> Nueva Ruta</button></li>
+                <li><button onclick="switchTab('routes')" id="tab-routes" class="nav-tab"><i class="ph ph-map-trifold"></i> Rutas</button></li>
                 <li><button onclick="switchTab('history')" id="tab-history" class="nav-tab"><i class="ph ph-clock-counter-clockwise"></i> Historial</button></li>
             </ul>
         </nav>
@@ -191,8 +195,8 @@
             <div id="view-flights" class="view">
             </div>
 
-            <!-- NUEVA RUTA -->
-            <div id="view-new-route" class="view">
+            <!-- RUTAS -->
+            <div id="view-routes" class="view">
             </div>
 
             <!-- HISTORIAL -->
@@ -307,6 +311,76 @@
         </div>
     </div>
 
-    <script src="script.js?v=2.0"></script>
+    <!-- FLIGHT DETAIL MODAL -->
+    <div id="flight-detail-modal" class="flight-detail-modal hidden">
+        <div class="flight-ticket-content">
+            <button class="ticket-close-btn" onclick="closeFlightModal()"><i class="ph ph-x"></i></button>
+            
+            <div class="ticket-header">
+                <div id="fd-status-badge" class="ticket-status-badge">---</div>
+                <div class="ticket-route-wrap">
+                    <h2 id="fd-route-title" class="ticket-route-title">---</h2>
+                    <p id="fd-plane-info" class="ticket-plane-info">---</p>
+                </div>
+            </div>
+            
+            <div class="ticket-body">
+                <div class="ticket-times-wrap">
+                    <div class="ticket-time-col">
+                        <div class="ticket-time-label">Salida Prevista</div>
+                        <div id="fd-time-sched-out" class="ticket-time-value">--:--</div>
+                        
+                        <div id="fd-row-conf-out" class="ticket-time-delayed hidden">
+                            <span>Confirmada</span>
+                            <span id="fd-time-conf-out" style="color:#f59e0b;">--:--</span>
+                        </div>
+                        
+                        <div class="ticket-time-label" style="margin-top:12px;">Salida Real</div>
+                        <div id="fd-time-act-out" class="ticket-time-value" style="color:var(--text-primary);">--:--</div>
+                    </div>
+                    
+                    <div class="ticket-time-divider"><i class="ph-fill ph-airplane-tilt"></i></div>
+                    
+                    <div class="ticket-time-col" style="text-align:right;">
+                        <div class="ticket-time-label">Llegada Est.</div>
+                        <div id="fd-time-est-in" class="ticket-time-value">--:--</div>
+                        
+                        <div class="ticket-time-label" style="margin-top:12px;">Llegada Real</div>
+                        <div id="fd-time-act-in" class="ticket-time-value" style="color:var(--text-primary);">--:--</div>
+                    </div>
+                </div>
+                
+                <div id="fd-progress-container" class="ticket-progress-wrap hidden">
+                    <div class="ticket-progress-header">
+                        <span>Progreso de Vuelo</span>
+                        <span id="fd-progress-text" style="color:var(--accent);">0%</span>
+                    </div>
+                    <div class="ticket-progress-track">
+                        <div id="fd-progress-fill" class="ticket-progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="ticket-weather-wrap" id="fd-weather-box">
+                    <span id="fd-weather-icon" style="font-size:1.6rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">☀️</span>
+                    <div style="flex:1;">
+                        <div class="ticket-weather-title"><span id="fd-weather-text">Despejado</span> en <span id="fd-dest-ap"></span></div>
+                        <div id="fd-weather-desc" class="ticket-weather-desc">Condiciones óptimas</div>
+                    </div>
+                </div>
+
+                <div id="fd-delay-section" class="ticket-delay-wrap hidden">
+                    <div class="ticket-delay-title"><i class="ph-fill ph-warning-circle"></i> Motivo de Demora</div>
+                    <div id="fd-delay-reason-box" class="ticket-delay-desc">---</div>
+                </div>
+            </div>
+            
+            <div id="fd-actions" class="ticket-actions hidden">
+                <!-- Actions injected dynamically -->
+            </div>
+        </div>
+    </div>
+    <script>
+        document.write('<script src="script.js?v=' + new Date().getTime() + '"><\/script>');
+    </script>
 </body>
 </html>
