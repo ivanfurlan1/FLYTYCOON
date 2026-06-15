@@ -227,6 +227,40 @@ body {
     transition: all var(--transition);
     line-height: 1;
 }
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+}
+.btn-md {
+    padding: 10px 22px;
+    font-size: 0.875rem;
+}
+.btn-lg {
+    padding: 14px 24px;
+    font-size: 1rem;
+}
+.btn-icon {
+    padding: 8px;
+    font-size: 1.2rem;
+    border-radius: 50%;
+}
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--transition);
+}
+.btn-back:hover {
+    color: #fff;
+}
 .btn-primary {
     background: var(--accent);
     color: #fff;
@@ -1671,4 +1705,89 @@ input[type=range]::-webkit-slider-runnable-track {
     background: var(--accent);
     color: #ffffff;
     border-color: var(--accent);
+}
+
+.route-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md) !important; border-color: var(--border-hover) !important; }
+
+/* --- Round Trip Cards --- */
+.modern-roundtrip-card {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, rgba(30,35,45,0.7), rgba(20,25,35,0.9));
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+}
+
+.modern-roundtrip-card:hover {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    border-color: rgba(255,255,255,0.1);
+}
+
+.rt-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    gap: 8px;
+}
+
+.rt-badge {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.rt-legs-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.rt-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    width: 100%;
+}
+
+.rt-leg {
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+}
+
+.rt-leg-expanded {
+    background: rgba(255,255,255,0.02);
+}
+
+.rt-leg-expanded:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.rt-leg-collapsed {
+    padding: 10px 20px;
+    margin: 4px 0 8px 0;
+    cursor: pointer;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.rt-leg-collapsed:hover {
+    background: rgba(255,255,255,0.08);
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.rt-leg-collapsed .fc-plane-info {
+    display: none;
 }
