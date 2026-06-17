@@ -442,10 +442,700 @@ const AIRCRAFT_MODELS = [
                 <path d="M 410 135 L 560 210 L 650 210 L 610 135 Z" fill="currentColor" opacity="0.8"/>
             </g>
         </svg>`
+    },
+
+    { 
+        id: 'a318', name: 'Airbus A318', type: 'Corto Alcance', category: 'commercial', price: 77000000, capacity: 107, maxSeats: 132, range: 5750, dailyProfit: 250000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a319', name: 'Airbus A319', type: 'Corto Alcance', category: 'commercial', price: 90000000, capacity: 124, maxSeats: 156, range: 6950, dailyProfit: 320000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a321', name: 'Airbus A321neo', type: 'Medio Alcance', category: 'commercial', price: 129000000, capacity: 206, maxSeats: 240, range: 7400, dailyProfit: 500000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a332', name: 'Airbus A330-200', type: 'Largo Alcance', category: 'commercial', price: 238000000, capacity: 246, maxSeats: 406, range: 13450, dailyProfit: 800000, defaultColor: '#3b82f6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a333', name: 'Airbus A330-300', type: 'Largo Alcance', category: 'commercial', price: 264000000, capacity: 277, maxSeats: 440, range: 11750, dailyProfit: 850000, defaultColor: '#3b82f6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a338', name: 'Airbus A330-800neo', type: 'Largo Alcance', category: 'commercial', price: 260000000, capacity: 257, maxSeats: 406, range: 15090, dailyProfit: 900000, defaultColor: '#3b82f6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a339', name: 'Airbus A330-900neo', type: 'Largo Alcance', category: 'commercial', price: 296000000, capacity: 287, maxSeats: 440, range: 13330, dailyProfit: 950000, defaultColor: '#3b82f6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a343', name: 'Airbus A340-300', type: 'Largo Alcance', category: 'commercial', price: 238000000, capacity: 277, maxSeats: 440, range: 13500, dailyProfit: 750000, defaultColor: '#8b5cf6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a346', name: 'Airbus A340-600', type: 'Largo Alcance Pesado', category: 'commercial', price: 275000000, capacity: 326, maxSeats: 475, range: 14450, dailyProfit: 900000, defaultColor: '#8b5cf6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a351', name: 'Airbus A350-1000', type: 'Largo Alcance Pesado', category: 'commercial', price: 366000000, capacity: 369, maxSeats: 480, range: 16100, dailyProfit: 1300000, defaultColor: '#6366f1',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+
+    { 
+        id: 'b717', name: 'Boeing 717-200', type: 'Regional Jet', category: 'commercial', price: 25000000, capacity: 106, maxSeats: 134, range: 3820, dailyProfit: 120000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b734', name: 'Boeing 737-400', type: 'Corto Alcance', category: 'commercial', price: 40000000, capacity: 146, maxSeats: 188, range: 3800, dailyProfit: 250000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b738', name: 'Boeing 737-800', type: 'Medio Alcance', category: 'commercial', price: 106000000, capacity: 162, maxSeats: 189, range: 5436, dailyProfit: 350000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b744', name: 'Boeing 747-400', type: 'Largo Alcance Pesado', category: 'commercial', price: 240000000, capacity: 416, maxSeats: 660, range: 13450, dailyProfit: 800000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b748', name: 'Boeing 747-8 Intercontinental', type: 'Largo Alcance Pesado', category: 'commercial', price: 418000000, capacity: 467, maxSeats: 605, range: 14320, dailyProfit: 1200000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b752', name: 'Boeing 757-200', type: 'Medio Alcance', category: 'commercial', price: 65000000, capacity: 200, maxSeats: 239, range: 7222, dailyProfit: 350000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b763', name: 'Boeing 767-300ER', type: 'Largo Alcance', category: 'commercial', price: 197000000, capacity: 218, maxSeats: 350, range: 11090, dailyProfit: 550000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b772', name: 'Boeing 777-200ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 306000000, capacity: 313, maxSeats: 440, range: 13080, dailyProfit: 950000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b773', name: 'Boeing 777-300ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 375000000, capacity: 396, maxSeats: 550, range: 13649, dailyProfit: 1300000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b779', name: 'Boeing 777-9', type: 'Largo Alcance Pesado', category: 'commercial', price: 442000000, capacity: 426, maxSeats: 550, range: 13500, dailyProfit: 1500000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'e170', name: 'Embraer E170', type: 'Regional Jet', category: 'commercial', price: 35000000, capacity: 66, maxSeats: 78, range: 3982, dailyProfit: 95000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'e175', name: 'Embraer E175', type: 'Regional Jet', category: 'commercial', price: 40000000, capacity: 76, maxSeats: 88, range: 4074, dailyProfit: 105000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'e195', name: 'Embraer E195', type: 'Regional Jet', category: 'commercial', price: 55000000, capacity: 118, maxSeats: 124, range: 4260, dailyProfit: 145000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'e190e2', name: 'Embraer E190-E2', type: 'Regional Jet', category: 'commercial', price: 60000000, capacity: 106, maxSeats: 114, range: 5278, dailyProfit: 165000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'erj145', name: 'Embraer ERJ-145', type: 'Regional Jet', category: 'commercial', price: 15000000, capacity: 50, maxSeats: 50, range: 2870, dailyProfit: 75000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'crj2', name: 'Bombardier CRJ-200', type: 'Regional Jet', category: 'commercial', price: 12000000, capacity: 50, maxSeats: 50, range: 3148, dailyProfit: 70000, defaultColor: '#64748b',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'crj7', name: 'Bombardier CRJ-700', type: 'Regional Jet', category: 'commercial', price: 24000000, capacity: 78, maxSeats: 78, range: 2553, dailyProfit: 90000, defaultColor: '#64748b',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'crj9', name: 'Bombardier CRJ-900', type: 'Regional Jet', category: 'commercial', price: 46000000, capacity: 90, maxSeats: 90, range: 2871, dailyProfit: 110000, defaultColor: '#64748b',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a221', name: 'Airbus A220-100', type: 'Regional Jet', category: 'commercial', price: 81000000, capacity: 116, maxSeats: 135, range: 6390, dailyProfit: 180000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a223', name: 'Airbus A220-300', type: 'Medio Alcance', category: 'commercial', price: 91000000, capacity: 140, maxSeats: 160, range: 6297, dailyProfit: 220000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'atr42', name: 'ATR 42-600', type: 'Turbohélice Regional', category: 'commercial', price: 20000000, capacity: 48, maxSeats: 50, range: 1326, dailyProfit: 50000, defaultColor: '#f59e0b',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'atr72', name: 'ATR 72-600', type: 'Turbohélice Regional', category: 'commercial', price: 26000000, capacity: 72, maxSeats: 78, range: 1528, dailyProfit: 70000, defaultColor: '#f59e0b',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'md80', name: 'McDonnell Douglas MD-80', type: 'Corto Alcance', category: 'commercial', price: 15000000, capacity: 155, maxSeats: 172, range: 2897, dailyProfit: 180000, defaultColor: '#ef4444',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'md11', name: 'McDonnell Douglas MD-11', type: 'Largo Alcance Pesado', category: 'commercial', price: 85000000, capacity: 298, maxSeats: 410, range: 12633, dailyProfit: 450000, defaultColor: '#ef4444',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+
+    { 
+        id: 'a300', name: 'Airbus A300-600', type: 'Medio Alcance Pesado', category: 'commercial', price: 75000000, capacity: 266, maxSeats: 345, range: 7500, dailyProfit: 450000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'a321xlr', name: 'Airbus A321XLR', type: 'Largo Alcance Estrecho', category: 'commercial', price: 142000000, capacity: 200, maxSeats: 244, range: 8700, dailyProfit: 550000, defaultColor: '#10b981',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b707', name: 'Boeing 707-320B', type: 'Clásico Largo Alcance', category: 'commercial', price: 15000000, capacity: 141, maxSeats: 189, range: 9300, dailyProfit: 150000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b727', name: 'Boeing 727-200', type: 'Clásico Medio Alcance', category: 'commercial', price: 10000000, capacity: 145, maxSeats: 189, range: 3500, dailyProfit: 120000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b737_700', name: 'Boeing 737-700', type: 'Corto Alcance', category: 'commercial', price: 89000000, capacity: 126, maxSeats: 149, range: 6230, dailyProfit: 280000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b737_900er', name: 'Boeing 737-900ER', type: 'Medio Alcance', category: 'commercial', price: 112000000, capacity: 177, maxSeats: 215, range: 5460, dailyProfit: 380000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b737_max9', name: 'Boeing 737 MAX 9', type: 'Medio Alcance', category: 'commercial', price: 128000000, capacity: 193, maxSeats: 220, range: 6500, dailyProfit: 460000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b737_max10', name: 'Boeing 737 MAX 10', type: 'Medio Alcance', category: 'commercial', price: 134000000, capacity: 204, maxSeats: 230, range: 6110, dailyProfit: 500000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b767_400er', name: 'Boeing 767-400ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 220000000, capacity: 245, maxSeats: 375, range: 10415, dailyProfit: 600000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b777_200lr', name: 'Boeing 777-200LR', type: 'Ultra Largo Alcance', category: 'commercial', price: 346000000, capacity: 317, maxSeats: 440, range: 15843, dailyProfit: 1000000, defaultColor: '#0ea5e9',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b787_8', name: 'Boeing 787-8 Dreamliner', type: 'Largo Alcance', category: 'commercial', price: 248000000, capacity: 242, maxSeats: 359, range: 13620, dailyProfit: 950000, defaultColor: '#8b5cf6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'b787_10', name: 'Boeing 787-10 Dreamliner', type: 'Largo Alcance Pesado', category: 'commercial', price: 338000000, capacity: 330, maxSeats: 440, range: 11910, dailyProfit: 1150000, defaultColor: '#8b5cf6',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'l1011', name: 'Lockheed L-1011 TriStar', type: 'Clásico Pesado', category: 'commercial', price: 35000000, capacity: 256, maxSeats: 400, range: 7410, dailyProfit: 250000, defaultColor: '#94a3b8',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'c130', name: 'Lockheed C-130 Hercules', type: 'Transporte Militar/Cargo', category: 'military', price: 30000000, capacity: 92, maxSeats: 92, range: 3800, dailyProfit: 150000, defaultColor: '#4b5563',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'an124', name: 'Antonov An-124 Ruslan', type: 'Carga Súper Pesada', category: 'cargo', price: 150000000, capacity: 0, maxSeats: 88, range: 15000, dailyProfit: 1200000, defaultColor: '#eab308',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'an225', name: 'Antonov An-225 Mriya', type: 'Carga Ultra Pesada', category: 'cargo', price: 300000000, capacity: 0, maxSeats: 70, range: 15400, dailyProfit: 2500000, defaultColor: '#eab308',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'tu154', name: 'Tupolev Tu-154', type: 'Clásico Medio Alcance', category: 'commercial', price: 15000000, capacity: 164, maxSeats: 180, range: 5280, dailyProfit: 180000, defaultColor: '#ef4444',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'il76', name: 'Ilyushin Il-76', type: 'Carga Pesada / Militar', category: 'cargo', price: 50000000, capacity: 0, maxSeats: 140, range: 4400, dailyProfit: 400000, defaultColor: '#94a3b8',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'ssj100', name: 'Sukhoi Superjet 100', type: 'Regional Jet', category: 'commercial', price: 35000000, capacity: 87, maxSeats: 108, range: 4578, dailyProfit: 110000, defaultColor: '#2563eb',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'conc', name: 'Aerospatiale/BAC Concorde', type: 'Supersónico Comercial', category: 'commercial', price: 200000000, capacity: 100, maxSeats: 128, range: 7222, dailyProfit: 2000000, defaultColor: '#f8fafc',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'g650', name: 'Gulfstream G650', type: 'Jet de Negocios VIP', category: 'commercial', price: 65000000, capacity: 18, maxSeats: 19, range: 12960, dailyProfit: 300000, defaultColor: '#334155',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'citx', name: 'Cessna Citation X', type: 'Jet de Negocios Rápido', category: 'commercial', price: 23000000, capacity: 9, maxSeats: 12, range: 6408, dailyProfit: 150000, defaultColor: '#334155',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
+    },
+    { 
+        id: 'glob6k', name: 'Bombardier Global 6000', type: 'Jet de Negocios VIP', category: 'commercial', price: 62000000, capacity: 13, maxSeats: 17, range: 11112, dailyProfit: 280000, defaultColor: '#334155',
+        modelUrl: '',
+        svg: `<svg viewBox="0 0 1000 300" class="w-full h-full" style="color: #94a3b8;">
+            <g transform="translate(500, 150)">
+                <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+                <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
+            </g>
+        </svg>`
     }
 ];
 
 const AIRCRAFT_SPECS_LOOKUP = {
+    a300: { speed: "833 km/h", range: "7,500 km", fuel: "5.8 L/km", takeoff: "2,324 m", engine: "GE CF6-80C2", weight: "171.7 t", wingspan: "44.8 m" },
+    a321xlr: { speed: "833 km/h", range: "8,700 km", fuel: "2.3 L/km", takeoff: "2,150 m", engine: "CFM LEAP-1A", weight: "101.0 t", wingspan: "35.8 m" },
+    b707: { speed: "972 km/h", range: "9,300 km", fuel: "7.5 L/km", takeoff: "3,100 m", engine: "P&W JT3D", weight: "151.3 t", wingspan: "44.4 m" },
+    b727: { speed: "953 km/h", range: "3,500 km", fuel: "5.0 L/km", takeoff: "2,500 m", engine: "P&W JT8D", weight: "95.0 t", wingspan: "32.9 m" },
+    b737_700: { speed: "838 km/h", range: "6,230 km", fuel: "2.4 L/km", takeoff: "2,042 m", engine: "CFM56-7B", weight: "70.0 t", wingspan: "34.3 m" },
+    b737_900er: { speed: "838 km/h", range: "5,460 km", fuel: "2.7 L/km", takeoff: "2,804 m", engine: "CFM56-7B", weight: "85.1 t", wingspan: "35.8 m" },
+    b737_max9: { speed: "838 km/h", range: "6,500 km", fuel: "2.3 L/km", takeoff: "2,600 m", engine: "CFM LEAP-1B", weight: "88.3 t", wingspan: "35.9 m" },
+    b737_max10: { speed: "838 km/h", range: "6,110 km", fuel: "2.4 L/km", takeoff: "2,700 m", engine: "CFM LEAP-1B", weight: "89.8 t", wingspan: "35.9 m" },
+    b767_400er: { speed: "851 km/h", range: "10,415 km", fuel: "5.7 L/km", takeoff: "2,800 m", engine: "GE CF6-80C2", weight: "204.1 t", wingspan: "51.9 m" },
+    b777_200lr: { speed: "905 km/h", range: "15,843 km", fuel: "6.8 L/km", takeoff: "2,800 m", engine: "GE90-110B", weight: "347.5 t", wingspan: "64.8 m" },
+    b787_8: { speed: "903 km/h", range: "13,620 km", fuel: "4.8 L/km", takeoff: "2,600 m", engine: "GEnx-1B", weight: "227.9 t", wingspan: "60.1 m" },
+    b787_10: { speed: "903 km/h", range: "11,910 km", fuel: "5.4 L/km", takeoff: "2,800 m", engine: "GEnx-1B", weight: "254.0 t", wingspan: "60.1 m" },
+    l1011: { speed: "894 km/h", range: "7,410 km", fuel: "8.0 L/km", takeoff: "2,800 m", engine: "RR RB211", weight: "211.4 t", wingspan: "47.3 m" },
+    c130: { speed: "592 km/h", range: "3,800 km", fuel: "3.5 L/km", takeoff: "1,093 m", engine: "Allison T56", weight: "70.3 t", wingspan: "40.4 m" },
+    an124: { speed: "865 km/h", range: "15,000 km", fuel: "12.0 L/km", takeoff: "2,520 m", engine: "Progress D-18T", weight: "402.0 t", wingspan: "73.3 m" },
+    an225: { speed: "850 km/h", range: "15,400 km", fuel: "18.0 L/km", takeoff: "3,500 m", engine: "Progress D-18T", weight: "640.0 t", wingspan: "88.4 m" },
+    tu154: { speed: "950 km/h", range: "5,280 km", fuel: "6.0 L/km", takeoff: "2,200 m", engine: "Soloviev D-30", weight: "100.0 t", wingspan: "37.5 m" },
+    il76: { speed: "900 km/h", range: "4,400 km", fuel: "8.5 L/km", takeoff: "1,700 m", engine: "Soloviev D-30KP", weight: "195.0 t", wingspan: "50.5 m" },
+    ssj100: { speed: "870 km/h", range: "4,578 km", fuel: "1.9 L/km", takeoff: "1,731 m", engine: "PowerJet SaM146", weight: "49.4 t", wingspan: "27.8 m" },
+    conc: { speed: "2,179 km/h (Mach 2.04)", range: "7,222 km", fuel: "20.5 L/km", takeoff: "3,600 m", engine: "RR/Snecma Olympus", weight: "185.0 t", wingspan: "25.6 m" },
+    g650: { speed: "956 km/h", range: "12,960 km", fuel: "1.8 L/km", takeoff: "1,786 m", engine: "RR BR725", weight: "45.2 t", wingspan: "30.3 m" },
+    citx: { speed: "972 km/h", range: "6,408 km", fuel: "1.2 L/km", takeoff: "1,567 m", engine: "RR AE 3007", weight: "16.3 t", wingspan: "19.3 m" },
+    glob6k: { speed: "904 km/h", range: "11,112 km", fuel: "1.7 L/km", takeoff: "1,974 m", engine: "RR BR710", weight: "45.1 t", wingspan: "28.6 m" },
+
+    b717: { speed: "811 km/h", range: "3,820 km", fuel: "2.3 L/km", takeoff: "1,500 m", engine: "RR BR715", weight: "54.8 t", wingspan: "28.4 m" },
+    b734: { speed: "780 km/h", range: "3,800 km", fuel: "3.2 L/km", takeoff: "2,540 m", engine: "CFM56-3", weight: "68.0 t", wingspan: "28.9 m" },
+    b738: { speed: "838 km/h", range: "5,436 km", fuel: "2.5 L/km", takeoff: "2,300 m", engine: "CFM56-7B", weight: "79.0 t", wingspan: "34.3 m" },
+    b744: { speed: "920 km/h", range: "13,450 km", fuel: "10.0 L/km", takeoff: "3,018 m", engine: "PW4000 / GE CF6", weight: "396.8 t", wingspan: "64.4 m" },
+    b748: { speed: "914 km/h", range: "14,320 km", fuel: "8.5 L/km", takeoff: "3,100 m", engine: "GEnx-2B67", weight: "447.7 t", wingspan: "68.4 m" },
+    b752: { speed: "850 km/h", range: "7,222 km", fuel: "4.1 L/km", takeoff: "2,000 m", engine: "RR RB211", weight: "115.6 t", wingspan: "38.0 m" },
+    b763: { speed: "851 km/h", range: "11,090 km", fuel: "5.5 L/km", takeoff: "2,410 m", engine: "GE CF6-80C2", weight: "186.8 t", wingspan: "47.6 m" },
+    b772: { speed: "905 km/h", range: "13,080 km", fuel: "6.5 L/km", takeoff: "3,000 m", engine: "GE90 / RR Trent 800", weight: "297.5 t", wingspan: "60.9 m" },
+    b773: { speed: "896 km/h", range: "13,649 km", fuel: "7.0 L/km", takeoff: "3,200 m", engine: "GE90-115B", weight: "351.5 t", wingspan: "64.8 m" },
+    b779: { speed: "896 km/h", range: "13,500 km", fuel: "6.3 L/km", takeoff: "3,000 m", engine: "GE9X", weight: "351.5 t", wingspan: "71.7 m" },
+    e170: { speed: "829 km/h", range: "3,982 km", fuel: "1.8 L/km", takeoff: "1,644 m", engine: "CF34-8E", weight: "38.6 t", wingspan: "26.0 m" },
+    e175: { speed: "829 km/h", range: "4,074 km", fuel: "1.9 L/km", takeoff: "2,244 m", engine: "CF34-8E", weight: "40.3 t", wingspan: "26.0 m" },
+    e195: { speed: "829 km/h", range: "4,260 km", fuel: "2.3 L/km", takeoff: "2,179 m", engine: "CF34-10E", weight: "52.2 t", wingspan: "28.7 m" },
+    e190e2: { speed: "870 km/h", range: "5,278 km", fuel: "2.0 L/km", takeoff: "1,650 m", engine: "PW1900G", weight: "56.4 t", wingspan: "33.7 m" },
+    erj145: { speed: "833 km/h", range: "2,870 km", fuel: "1.5 L/km", takeoff: "2,270 m", engine: "AE 3007", weight: "24.1 t", wingspan: "20.0 m" },
+    crj2: { speed: "860 km/h", range: "3,148 km", fuel: "1.5 L/km", takeoff: "1,918 m", engine: "CF34-3B1", weight: "24.0 t", wingspan: "21.2 m" },
+    crj7: { speed: "829 km/h", range: "2,553 km", fuel: "1.8 L/km", takeoff: "1,600 m", engine: "CF34-8C5B1", weight: "34.0 t", wingspan: "23.2 m" },
+    crj9: { speed: "829 km/h", range: "2,871 km", fuel: "2.0 L/km", takeoff: "1,778 m", engine: "CF34-8C5", weight: "38.3 t", wingspan: "24.8 m" },
+    a221: { speed: "829 km/h", range: "6,390 km", fuel: "1.8 L/km", takeoff: "1,463 m", engine: "PW1500G", weight: "63.1 t", wingspan: "35.1 m" },
+    a223: { speed: "829 km/h", range: "6,297 km", fuel: "2.0 L/km", takeoff: "1,890 m", engine: "PW1500G", weight: "70.9 t", wingspan: "35.1 m" },
+    atr42: { speed: "556 km/h", range: "1,326 km", fuel: "0.8 L/km", takeoff: "1,107 m", engine: "PW127M", weight: "18.6 t", wingspan: "24.5 m" },
+    atr72: { speed: "510 km/h", range: "1,528 km", fuel: "1.1 L/km", takeoff: "1,367 m", engine: "PW127M", weight: "23.0 t", wingspan: "27.0 m" },
+    md80: { speed: "811 km/h", range: "2,897 km", fuel: "3.5 L/km", takeoff: "2,200 m", engine: "JT8D-200", weight: "67.8 t", wingspan: "32.8 m" },
+    md11: { speed: "876 km/h", range: "12,633 km", fuel: "8.5 L/km", takeoff: "3,100 m", engine: "GE CF6-80C2", weight: "285.9 t", wingspan: "51.6 m" },
+
+    a318: { speed: "828 km/h", range: "5,750 km", fuel: "2.4 L/km", takeoff: "1,355 m", engine: "CFM56-5B", weight: "39.5 t", wingspan: "34.1 m" },
+    a319: { speed: "828 km/h", range: "6,950 km", fuel: "2.5 L/km", takeoff: "1,950 m", engine: "CFM56-5B", weight: "40.8 t", wingspan: "35.8 m" },
+    a321: { speed: "833 km/h", range: "7,400 km", fuel: "2.2 L/km", takeoff: "1,988 m", engine: "CFM LEAP-1A", weight: "50.1 t", wingspan: "35.8 m" },
+    a332: { speed: "871 km/h", range: "13,450 km", fuel: "5.6 L/km", takeoff: "2,770 m", engine: "RR Trent 700", weight: "119.6 t", wingspan: "60.3 m" },
+    a333: { speed: "871 km/h", range: "11,750 km", fuel: "5.8 L/km", takeoff: "2,770 m", engine: "RR Trent 700", weight: "124.5 t", wingspan: "60.3 m" },
+    a338: { speed: "871 km/h", range: "15,090 km", fuel: "5.0 L/km", takeoff: "2,770 m", engine: "RR Trent 7000", weight: "132 t", wingspan: "64.0 m" },
+    a339: { speed: "871 km/h", range: "13,330 km", fuel: "5.2 L/km", takeoff: "2,770 m", engine: "RR Trent 7000", weight: "137 t", wingspan: "64.0 m" },
+    a343: { speed: "871 km/h", range: "13,500 km", fuel: "6.5 L/km", takeoff: "3,000 m", engine: "CFM56-5C", weight: "130.2 t", wingspan: "60.3 m" },
+    a346: { speed: "871 km/h", range: "14,450 km", fuel: "7.2 L/km", takeoff: "3,100 m", engine: "RR Trent 556", weight: "177.8 t", wingspan: "63.4 m" },
+    a351: { speed: "903 km/h", range: "16,100 km", fuel: "5.6 L/km", takeoff: "2,600 m", engine: "RR Trent XWB-97", weight: "155 t", wingspan: "64.75 m" },
+
     c208: {
         speed: "340 km/h",
         ceiling: "25.000 ft (7.620 m)",
@@ -548,7 +1238,7 @@ const AIRCRAFT_SPECS_LOOKUP = {
 
 
 
-let gameState = { base: null, money: 50000000, time: { day: 1, hour: 8, minute: 0 }, fleet: [], routes: [], activeDispatches: [], currentTab: 'dashboard', gameLoop: null, employees: null };
+let gameState = { base: null, money: 50000000, time: { day: 1, hour: 8, minute: 0 }, fleet: [], routes: [], activeDispatches: [], currentTab: 'dashboard', gameLoop: null, employees: null, upgrades: { atcPriority: false, paxSatisfaction: false, extraHubs: 0, militaryAccess: false } };
 let selectedAirportTemp = null;
 let leafletMap = null;
 
@@ -561,6 +1251,25 @@ const WEATHER_STATES = {
     RAIN: { id: 'Lluvia', icon: '🌧️', color: '#60a5fa' },
     STORM: { id: 'Tormenta', icon: '⛈️', color: '#818cf8' },
     FOG: { id: 'Niebla', icon: '🌫️', color: '#cbd5e1' }
+};
+
+
+const getAircraftSpeed = (model) => {
+    if (!model) return 800;
+    if (model.speed) return model.speed;
+    const lookup = typeof AIRCRAFT_SPECS_LOOKUP !== 'undefined' ? AIRCRAFT_SPECS_LOOKUP[model.id] : null;
+    if (lookup && lookup.speed) {
+        const match = lookup.speed.match(/([\d,]+)/);
+        if (match) return parseInt(match[1].replace(/,/g, ''), 10);
+    }
+    if (model.category === 'military') {
+        if (model.type.includes('Furtivo') || model.type.includes('Caza') || model.type.includes('Superioridad') || model.type.includes('Multirrol')) return 2000;
+        if (model.type.includes('Bombardero')) return 1000;
+        return 900;
+    }
+    if (model.id === 'c208' || model.type.includes('Ligero') || model.type.includes('Helicóptero')) return 340;
+    if (model.type.includes('Regional')) return 700;
+    return 800;
 };
 
 const WEATHER_TRANSITIONS = {
@@ -660,6 +1369,16 @@ const loadGame = () => {
         if (!gameState.moneyHistory) gameState.moneyHistory = [];
         if (!gameState.loans) gameState.loans = [];
         fillMoneyHistory();
+
+        if (!gameState.upgrades) gameState.upgrades = { atcPriority: false, paxSatisfaction: false, extraHubs: 0, militaryAccess: false };
+        if (!gameState.stats) gameState.stats = {
+            totalFlights: 0, totalPassengers: 0, totalRevenue: 0,
+            totalFuelConsumed: 0, paxFirst: 0, paxBusiness: 0, paxEco: 0, paxCargo: 0,
+            foundingDay: gameState.time ? gameState.time.day : 1,
+            routesCreated: 0, totalDelayedFlights: 0, totalFlightsForOTP: 0,
+            kmFlown: 0, peakFleetSize: 0
+        };
+        if (gameState.stats.foundingDay === undefined) gameState.stats.foundingDay = gameState.time ? gameState.time.day : 1;
         
         if (gameState.lastSavedRealTime) {
             lastRealTime = gameState.lastSavedRealTime;
@@ -824,6 +1543,7 @@ const startGame = () => {
         }
     }
 
+    if (typeof applyBentoLayoutOrder === 'function') applyBentoLayoutOrder();
     renderMarket(); updateUI(); renderFlights();
     if (gameState.currentTab) switchTab(gameState.currentTab);
     
@@ -857,7 +1577,7 @@ window.setHeaderBack = function(action, text) {
 
 const switchTab = (tab) => {
     // Hide all views
-    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'routes', 'history', 'planner', 'aircraft-detail', 'bank', 'airline', 'employees'].forEach(t => {
+    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'routes', 'history', 'planner', 'aircraft-detail', 'bank', 'airline', 'employees', 'menu', 'stats', 'store'].forEach(t => {
         const view = document.getElementById(`view-${t}`);
         if(view) {
             view.classList.remove('view-active');
@@ -898,7 +1618,7 @@ const switchTab = (tab) => {
     }
 
     // Update Bottom Nav
-    ['dashboard', 'market', 'flights'].forEach(t => {
+    ['dashboard', 'market', 'flights', 'airline', 'menu'].forEach(t => {
         const bottomBtn = document.getElementById(`bottom-tab-${t}`);
         if(bottomBtn) bottomBtn.className = 'bottom-nav-btn';
     });
@@ -908,12 +1628,12 @@ const switchTab = (tab) => {
     if (tab === 'fleet' || tab === 'fuel' || tab === 'aircraft-detail') bottomTabId = 'market';
     if (tab === 'routes' || tab === 'history' || tab === 'planner') bottomTabId = 'flights';
     if (tab === 'employees') bottomTabId = 'airline';
+    if (tab === 'stats') bottomTabId = 'menu';
+    if (tab === 'store') bottomTabId = 'menu';
     const activeBottomBtn = document.getElementById(`bottom-tab-${bottomTabId}`);
     if(activeBottomBtn) activeBottomBtn.className = 'bottom-nav-btn active';
 
-    // Menu button default off
-    const menuBtn = document.getElementById('bottom-tab-menu');
-    if(menuBtn) menuBtn.className = 'bottom-nav-btn';
+    // (Menu button handled by the forEach above now)
 
     // Show selected view
     const activeView = document.getElementById(`view-${tab}`);
@@ -928,6 +1648,9 @@ const switchTab = (tab) => {
     if(tab === 'planner') renderPlanner();
     if(tab === 'airline') renderAirline();
     if(tab === 'employees') renderEmployees();
+    if(tab === 'menu') { if(window.renderMenuScreen) window.renderMenuScreen(); }
+    if(tab === 'stats') { if(window.renderStats) window.renderStats(); }
+    if(tab === 'store') { if(window.updateStoreUI) window.updateStoreUI(); }
     
     // Update header back button logic
     if (tab === 'dashboard' || tab === 'flights' || tab === 'menu') {
@@ -948,6 +1671,10 @@ const switchTab = (tab) => {
         if (window.setHeaderBack) window.setHeaderBack(null);
     } else if (tab === 'employees') {
         if (window.setHeaderBack) window.setHeaderBack(() => switchTab('airline'), 'a Aerolínea');
+    } else if (tab === 'stats') {
+        if (window.setHeaderBack) window.setHeaderBack(() => switchTab('menu'), 'al Menú');
+    } else if (tab === 'store') {
+        if (window.setHeaderBack) window.setHeaderBack(() => switchTab('menu'), 'al Menú');
     }
     
     saveGame();
@@ -1024,6 +1751,21 @@ const renderMarket = () => {
     
     gridMfr.innerHTML = '';
     
+    // Tarjeta de Mercado de Usados
+    if (!gameState.usedMarket) generateUsedMarket();
+    const usedCard = document.createElement('div');
+    usedCard.className = 'manufacturer-card';
+    usedCard.onclick = () => showUsedMarket();
+    usedCard.innerHTML = `
+        <div class="mfr-logo"><i class="ph ph-shopping-bag"></i></div>
+        <div class="mfr-info">
+            <h3>Mercado de Usados</h3>
+            <p>Aeronaves pre-configuradas a precios reducidos. Rotación periódica.</p>
+            <span class="mfr-count">${gameState.usedMarket ? gameState.usedMarket.length : 0} opciones disponibles</span>
+        </div>
+    `;
+    gridMfr.appendChild(usedCard);
+
     MANUFACTURERS.forEach(mfr => {
         // Count how many models this manufacturer has
         let modelCount = 0;
@@ -1053,6 +1795,116 @@ const renderMarket = () => {
     });
 
     showManufacturers(); // Asegura que estemos en la vista correcta
+};
+
+const generateUsedMarket = () => {
+    gameState.usedMarket = [];
+    gameState.lastUsedMarketRefreshDay = gameState.time.day;
+    
+    // Generar entre 8 y 15 aviones usados
+    const numPlanes = Math.floor(Math.random() * 8) + 8;
+    
+    for(let i=0; i<numPlanes; i++) {
+        // Elegir un modelo comercial al azar
+        const commercialModels = AIRCRAFT_MODELS.filter(m => m.category === 'commercial');
+        const baseModel = commercialModels[Math.floor(Math.random() * commercialModels.length)];
+        
+        // Edad entre 5 y 30 años
+        const age = Math.floor(Math.random() * 26) + 5;
+        
+        // Descuento: 2% por año, máximo 60%
+        const discountPercent = Math.min(60, age * 2);
+        const usedPrice = Math.floor(baseModel.price * (1 - discountPercent/100));
+        
+        // Generar configuración aleatoria
+        let seatsFirst = 0, seatsBusiness = 0, seatsEco = baseModel.maxSeats;
+        
+        if (baseModel.maxSeats > 50) {
+            if (Math.random() > 0.3) {
+                seatsBusiness = Math.floor(Math.random() * (baseModel.maxSeats * 0.2));
+                seatsEco -= seatsBusiness;
+            }
+            if (Math.random() > 0.6) {
+                seatsFirst = Math.floor(Math.random() * (baseModel.maxSeats * 0.1));
+                seatsEco -= seatsFirst;
+            }
+        }
+        
+        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#64748b', '#0f172a', '#ffffff'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        gameState.usedMarket.push({
+            usedId: 'used_' + Math.random().toString(36).substr(2, 9),
+            baseModelId: baseModel.id,
+            age: age,
+            price: usedPrice,
+            seatsFirst: seatsFirst,
+            seatsBusiness: seatsBusiness,
+            seatsEco: seatsEco,
+            color: randomColor
+        });
+    }
+};
+
+const showUsedMarket = () => {
+    document.getElementById('market-manufacturers-view').style.display = 'none';
+    document.getElementById('market-models-view').style.display = 'block';
+    document.getElementById('market-manufacturer-title').innerText = 'Mercado de Usados';
+    
+    const descEl = document.querySelector('#market-models-view .market-header p');
+    if (descEl) descEl.innerText = 'Aviones con historial de vuelo. Configuración de asientos fija, entrega inmediata.';
+
+    if (window.setHeaderBack) window.setHeaderBack(() => showManufacturers(), 'a Fabricantes');
+
+    const gridCom = document.getElementById('market-grid-commercial');
+    const gridMil = document.getElementById('market-grid-military');
+    gridCom.innerHTML = '';
+    gridMil.innerHTML = ''; 
+    document.getElementById('market-models-military-section').style.display = 'none';
+    document.getElementById('market-models-commercial-section').style.display = 'block';
+    
+    if (!gameState.usedMarket) generateUsedMarket();
+
+    gameState.usedMarket.forEach(used => {
+        const model = AIRCRAFT_MODELS.find(m => m.id === used.baseModelId);
+        if (!model) return;
+
+        const card = document.createElement('div');
+        card.className = 'compact-aircraft-card';
+        card.onclick = () => window.openUsedAircraftDetail(used.usedId);
+        
+        const visualHtml = model.modelUrl
+            ? `<model-viewer id="model-${used.usedId}" src="${model.modelUrl}" loading="lazy" auto-rotate shadow-intensity="1" style="width:100%;height:100%;background-color:transparent; pointer-events: none;" exposure="1.2" environment-image="neutral" interaction-prompt="none"></model-viewer>`
+            : `<div id="svg-container-${used.usedId}" class="svg-wrap" style="--plane-color: ${used.color}; width:100%; height:100%;">${model.svg}</div>`;
+
+        const catIconClass = 'ph-briefcase';
+        const profitHtml = model.dailyProfit 
+            ? `<span class="compact-spec-item text-profit" title="Rentabilidad Diaria Proyectada"><i class="ph ph-trend-up"></i> +$${new Intl.NumberFormat('es-AR').format(model.dailyProfit)}/d</span>`
+            : '';
+
+        card.innerHTML = `
+            <div class="compact-preview">
+                <div class="blueprint-grid"></div>
+                ${visualHtml}
+            </div>
+            <div class="compact-body">
+                <div class="compact-meta-row">
+                    <span class="compact-type-badge">${model.type} · ${used.age} años</span>
+                    <i class="ph ${catIconClass} compact-category-icon" title="Usado Comercial"></i>
+                </div>
+                <h3 class="compact-name">${model.name}</h3>
+                <div class="compact-specs">
+                    <span class="compact-spec-item" title="Rango Operativo"><i class="ph ph-arrows-out-line-horizontal"></i> ${model.range} km</span>
+                    <span class="compact-spec-item" title="Configuración de Asientos"><i class="ph ph-users"></i> ${used.seatsFirst+used.seatsBusiness+used.seatsEco} pax</span>
+                    ${profitHtml}
+                </div>
+                <div class="compact-price-tag">
+                    <i class="ph ph-tag"></i> ${formatMoney(used.price)}
+                </div>
+            </div>
+        `;
+        gridCom.appendChild(card);
+    });
 };
 
 const showManufacturers = () => {
@@ -1142,7 +1994,28 @@ const showManufacturerModels = (manufacturerName) => {
     });
 
     document.getElementById('market-models-commercial-section').style.display = hasCom ? 'block' : 'none';
-    document.getElementById('market-models-military-section').style.display = hasMil ? 'block' : 'none';
+    const milSection = document.getElementById('market-models-military-section');
+    if (hasMil) {
+        const hasLicense = gameState.upgrades && gameState.upgrades.militaryAccess;
+        milSection.style.display = 'block';
+        let lockedBanner = milSection.querySelector('.military-locked-banner');
+        if (!hasLicense) {
+            if (!lockedBanner) {
+                lockedBanner = document.createElement('div');
+                lockedBanner.className = 'military-locked-banner';
+                lockedBanner.innerHTML = `<i class="ph-fill ph-lock"></i> <span>Se requiere <strong>Licencia Militar</strong>. Adquirila en la <a href="#" onclick="switchTab('store'); return false;" style="color:#30d158; text-decoration:underline;">Tienda de Mejoras</a>.</span>`;
+                milSection.insertBefore(lockedBanner, milSection.querySelector('.market-grid'));
+            }
+            document.getElementById('market-grid-military').style.opacity = '0.25';
+            document.getElementById('market-grid-military').style.pointerEvents = 'none';
+        } else {
+            if (lockedBanner) lockedBanner.remove();
+            document.getElementById('market-grid-military').style.opacity = '1';
+            document.getElementById('market-grid-military').style.pointerEvents = 'auto';
+        }
+    } else {
+        milSection.style.display = 'none';
+    }
 };
 
 const buyAircraft = (modelId, customLiveryData = null, qty = 1) => {
@@ -1981,7 +2854,7 @@ const renderFleet = () => {
             : `<div class="fleet-color-indicator"><span class="fleet-plane-color-dot" style="background-color: ${plane.savedColor}"></span><span class="fleet-plane-color-label">Color de fábrica</span></div>`;
 
         card.innerHTML = `
-            <div class="fleet-card-left">
+            <div class="fleet-card-header">
                 <div class="fleet-card-preview blueprint-grid">
                     ${visualHtml}
                 </div>
@@ -1998,19 +2871,26 @@ const renderFleet = () => {
                 </div>
             </div>
             
-            <div class="fleet-card-right">
-                <div class="fleet-card-specs">
-                    <div class="fleet-spec-item"><i class="ph ph-users"></i> <span>${plane.capacity} pax</span></div>
-                    <div class="fleet-spec-item"><i class="ph ph-arrows-out-line-horizontal"></i> <span>${plane.range} km</span></div>
+            <div class="fleet-card-stats-grid">
+                <div class="fleet-card-stat">
+                    <span class="fleet-stat-label">Capacidad</span>
+                    <span class="fleet-stat-value"><i class="ph ph-users"></i> ${plane.capacity} pax</span>
                 </div>
-                <div class="fleet-card-actions-profit">
-                    <div class="fleet-profit-section">
-                        <span class="fleet-profit-value">+${formatMoney(plane.dailyProfit)}</span>
-                        <span class="fleet-profit-label">estimado / día</span>
-                    </div>
-                    ${(plane.status === 'idle' && plane.location && gameState.base && plane.location !== gameState.base.id) ? `<button class="btn btn-secondary btn-sm btn-ferry" onclick="requestFerryFlight('${plane.id}')"><i class="ph ph-airplane-takeoff"></i> Vuelo Ferry</button>` : ''}
+                <div class="fleet-card-stat">
+                    <span class="fleet-stat-label">Alcance</span>
+                    <span class="fleet-stat-value"><i class="ph ph-arrows-out-line-horizontal"></i> ${plane.range} km</span>
+                </div>
+                <div class="fleet-card-stat">
+                    <span class="fleet-stat-label">Rentabilidad / Día</span>
+                    <span class="fleet-stat-value"><i class="ph ph-currency-dollar profit-icon"></i> +${formatMoney(plane.dailyProfit)}</span>
                 </div>
             </div>
+            
+            ${(plane.status === 'idle' && plane.location && gameState.base && plane.location !== gameState.base.id) ? `
+            <div class="fleet-card-actions">
+                <button class="btn btn-ferry" onclick="requestFerryFlight('${plane.id}')"><i class="ph ph-airplane-takeoff"></i> Vuelo Ferry</button>
+            </div>
+            ` : ''}
         `;
         list.appendChild(card);
 
@@ -2453,6 +3333,8 @@ const startBoarding = (route, freq, model, dest, schedAbs, originalSchedAbs = nu
     
     if (availablePlaneId && gameState.fuelReserves >= fuelNeeded) {
         gameState.fuelReserves -= fuelNeeded;
+        if (!gameState.stats) gameState.stats = { totalFuelConsumed: 0 };
+        gameState.stats.totalFuelConsumed = (gameState.stats.totalFuelConsumed || 0) + fuelNeeded;
         const plane = gameState.fleet.find(p => p.id === availablePlaneId);
         plane.status = 'boarding';
         
@@ -2561,7 +3443,8 @@ const processFlightDeparture = (dispatch) => {
     const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
     dispatch.totalDelayMins = nowAbs - (dispatch.originalSchedAbs || dispatch.schedAbs);
     
-    const durationHours = r.distance / 800;
+    const _m3420 = typeof plane !== 'undefined' && plane ? AIRCRAFT_MODELS.find(m=>m.id===plane.modelId||m.name===plane.modelId) : null;
+    const durationHours = r.distance / getAircraftSpeed(_m3420);
     const durationMinutes = Math.round(durationHours * 60);
     
     const arrAbs = dispatch.actualDepartureAbs + durationMinutes;
@@ -2585,6 +3468,28 @@ const processFlightDeparture = (dispatch) => {
         const profit = flightResult.profit;
         dispatch.profit = profit;
         gameState.money += profit;
+
+        // --- Statistics Tracking ---
+        if (!gameState.stats) gameState.stats = { totalFlights: 0, totalPassengers: 0, totalRevenue: 0, totalFuelConsumed: 0, paxFirst: 0, paxBusiness: 0, paxEco: 0, paxCargo: 0, foundingDay: 1, routesCreated: 0, totalDelayedFlights: 0, totalFlightsForOTP: 0, kmFlown: 0, peakFleetSize: 0 };
+        if (!dispatch.isFerry) {
+            gameState.stats.totalFlights++;
+            gameState.stats.totalPassengers += flightResult.passengers || 0;
+            gameState.stats.totalRevenue += Math.max(0, profit);
+            gameState.stats.totalFlightsForOTP++;
+            if ((dispatch.totalDelayMins || 0) >= 15) gameState.stats.totalDelayedFlights++;
+            gameState.stats.kmFlown += r.distance || 0;
+            if (gameState.fleet.length > (gameState.stats.peakFleetSize || 0)) gameState.stats.peakFleetSize = gameState.fleet.length;
+            if ((flightResult.passengers || 0) > 0) {
+                if (model.type === 'passenger' || model.category === 'commercial') {
+                    gameState.stats.paxFirst    += Math.round((flightResult.passengers || 0) * 0.06);
+                    gameState.stats.paxBusiness += Math.round((flightResult.passengers || 0) * 0.22);
+                    gameState.stats.paxEco      += Math.round((flightResult.passengers || 0) * 0.72);
+                } else {
+                    gameState.stats.paxCargo += flightResult.passengers || 0;
+                }
+            }
+        }
+
         if (!isCatchingUp) {
             const logDest = dispatch.isReturn ? gameState.base.name : dispatch.destName;
             showToast('Vuelo Despegó', `+${formatMoney(profit)} (Ingresos de vuelo a ${logDest})`, 'success');
@@ -2637,6 +3542,12 @@ const gameTick = () => {
                     updateFuelMarket();
                     processDailyBank();
                     processDailyEmployeesCost();
+                    
+                    if (!gameState.lastUsedMarketRefreshDay) gameState.lastUsedMarketRefreshDay = gameState.time.day;
+                    if (gameState.time.day - gameState.lastUsedMarketRefreshDay >= 3) {
+                        generateUsedMarket();
+                        if (gameState.currentTab === 'market') renderMarket();
+                    }
                 }
                 updateWeatherSystem();
             }
@@ -2655,8 +3566,28 @@ const gameTick = () => {
 };
 
 const updateUI = () => {
+    if (gameState.employees) {
+        const headerBrand = document.querySelector('.header-brand-name');
+        if (headerBrand && headerBrand.innerText !== 'Volver') {
+            headerBrand.innerText = gameState.employees.airlineName || 'Mi Aerolínea';
+        }
+        
+        const headerIcon = document.querySelector('.header-brand-icon');
+        if (headerIcon) {
+            const logoIcon = gameState.employees.logoIcon || 'ph-airplane-tilt';
+            const logoColor = gameState.employees.logoColor || '#0a84ff';
+            headerIcon.className = `ph-fill ph-${logoIcon.replace('ph-', '')} header-brand-icon`;
+            headerIcon.style.color = logoColor;
+            headerIcon.style.textShadow = `0 0 8px ${logoColor}`;
+        }
+    }
+
     // Usar formato abreviado en header — nunca desborda
     document.getElementById('header-money').innerText = formatMoneyShort(gameState.money);
+
+    // Sync store balance if visible
+    const storeBalance = document.getElementById('store-current-balance');
+    if (storeBalance) storeBalance.innerText = formatMoney(gameState.money);
     
     const timeStr = formatTime(gameState.time.hour, gameState.time.minute);
     
@@ -3406,10 +4337,9 @@ const finalizeRouteCreation = () => {
         finalFrequencies.push(f);
 
         // Calculate return flight
-        const durationHours = dist / 800;
-        const durationMinutes = Math.round(durationHours * 60);
-
         const model = AIRCRAFT_MODELS.find(m => m.id === f.modelId || m.name === f.modelId);
+        const durationHours = dist / getAircraftSpeed(model);
+        const durationMinutes = Math.round(durationHours * 60);
         let turnaroundMins = getTurnaroundMins(model);
 
         const parts = f.time.split(':');
@@ -3655,9 +4585,9 @@ window.addFrequencyToExistingRoute = (routeId) => {
         isReturn: false
     };
     
-    const durationHours = dist / 800;
-    const durationMinutes = Math.round(durationHours * 60);
     const model = AIRCRAFT_MODELS.find(m => m.id === modelId || m.name === modelId);
+    const durationHours = dist / getAircraftSpeed(model);
+    const durationMinutes = Math.round(durationHours * 60);
     const turnaroundMins = getTurnaroundMins(model);
     const bufferMins = getScheduleBufferMins(durationMinutes);
     let boardingMins = 30;
@@ -4115,7 +5045,8 @@ window.requestFerryFlight = (planeId) => {
     gameState.money -= cost;
     plane.status = 'in_flight';
     
-    const durationHours = dist / 800;
+    const _m5022 = typeof plane !== 'undefined' && plane ? AIRCRAFT_MODELS.find(m=>m.id===plane.modelId||m.name===plane.modelId) : null;
+    const durationHours = dist / getAircraftSpeed(_m5022);
     const durationMinutes = Math.round(durationHours * 60);
     const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
     const arrAbs = nowAbs + durationMinutes;
@@ -4216,7 +5147,7 @@ const renderFlights = () => {
     const weatherDelayedFl = gameState.activeDispatches.filter(d => d.status === 'delayed_weather');
     const completedFl = gameState.activeDispatches.filter(d => d.status === 'completed');
 
-    const calculateArrivalStr = (routeId, depTimeStr) => {
+    const calculateArrivalStr = (routeId, depTimeStr, modelId) => {
         if (!depTimeStr || depTimeStr === '--:--') return '--:--';
         const r = gameState.routes.find(ro => ro.id === routeId);
         if (!r) return '--:--';
@@ -4225,7 +5156,8 @@ const renderFlights = () => {
         const m = parseInt(parts[1], 10);
         if (isNaN(h) || isNaN(m)) return '--:--';
         const depAbs = h * 60 + m;
-        const durationHours = r.distance / 800;
+        const _m5132 = typeof modelId !== 'undefined' && modelId ? AIRCRAFT_MODELS.find(m=>m.id===modelId||m.name===modelId) : null;
+        const durationHours = r.distance / getAircraftSpeed(_m5132);
         const durationMinutes = Math.round(durationHours * 60);
         const arrAbs = depAbs + durationMinutes;
         return formatTime(Math.floor(arrAbs / 60) % 24, arrAbs % 60);
@@ -4242,7 +5174,7 @@ const renderFlights = () => {
             planeReg: plane ? plane.registration : '---',
             planeModel: plane ? plane.name : 'Sin Asignar',
             depTimeStr: d.reqTime, 
-            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime),
+            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime, typeof plane !== 'undefined' && plane ? plane.modelId : d.modelId),
             status: d.reason === 'fuel' ? 'Sin Combustible' : 'Atrasado',
             dayGroup: -1,
             sortKey: 0,
@@ -4264,7 +5196,7 @@ const renderFlights = () => {
             planeReg: plane ? plane.registration : '---',
             planeModel: plane ? plane.name : 'Sin Asignar',
             depTimeStr: d.reqTime, 
-            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime),
+            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime, typeof plane !== 'undefined' && plane ? plane.modelId : d.modelId),
             status: 'Demorado (Clima)',
             dayGroup: -1,
             sortKey: 1,
@@ -4341,7 +5273,7 @@ const renderFlights = () => {
             planeReg: plane ? plane.registration : '---',
             planeModel: plane ? plane.name : '---',
             depTimeStr: d.reqTime || '--:--',
-            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime),
+            arrTimeStr: calculateArrivalStr(d.routeId, d.reqTime, typeof plane !== 'undefined' && plane ? plane.modelId : d.modelId),
             status: 'Embarcando',
             dayGroup: d.schedAbs ? Math.floor(d.schedAbs / (24 * 60)) : gameState.time.day,
             sortKey: 0.5,
@@ -4399,7 +5331,7 @@ const renderFlights = () => {
                         planeModel: model ? model.name : '---',
                         planeId: assignedPlane ? assignedPlane.id : null,
                         depTimeStr: formatTime(nextHour, nextMinute),
-                        arrTimeStr: calculateArrivalStr(route.id, formatTime(nextHour, nextMinute)), 
+                        arrTimeStr: calculateArrivalStr(route.id, formatTime(nextHour, nextMinute), freq ? freq.modelId : null), 
                         status: 'Programado',
                         dayGroup: nextD,
                         sortKey: 2,
@@ -4471,9 +5403,9 @@ const renderFlights = () => {
                     let offsetMins = 0;
                     const outFreq = r.frequencies.find(fr => fr.id === outFreqId);
                     if (outFreq) {
-                        const durationHours = r.distance / 800;
-                        const durationMinutes = Math.round(durationHours * 60);
                         const model = AIRCRAFT_MODELS.find(m => m.id === outFreq.modelId || m.name === outFreq.modelId);
+                        const durationHours = r.distance / getAircraftSpeed(model);
+                        const durationMinutes = Math.round(durationHours * 60);
                         const turnaroundMins = getTurnaroundMins(model);
                         const bufferMins = getScheduleBufferMins(durationMinutes);
                         let boardingMins = 30;
@@ -4572,9 +5504,9 @@ const renderFlights = () => {
             if (outDelayMins > 0 || rt.return.type === 'stub') {
                 const r = gameState.routes.find(ro => ro.id === (rt.outbound.obj ? rt.outbound.obj.routeId : null));
                 if (r) {
-                    const durationHours = r.distance / 800;
-                    const durationMinutes = Math.round(durationHours * 60);
                     const model = AIRCRAFT_MODELS.find(m => m.id === rt.outbound.planeModel || m.name === rt.outbound.planeModel);
+                    const durationHours = r.distance / getAircraftSpeed(model);
+                    const durationMinutes = Math.round(durationHours * 60);
                     const turnaroundMins = getTurnaroundMins(model);
 
                     let originalSchedAbs = rt.outbound.obj ? rt.outbound.obj.originalSchedAbs : null;
@@ -5265,7 +6197,8 @@ window.openFlightModal = (flightId, type) => {
     } else {
         const route = gameState.routes.find(r => r.id === flight.routeId);
         const distance = route ? route.distance : 0;
-        const durationMins = distance > 0 ? Math.round((distance / 800) * 60) : 0;
+        const _m6193 = AIRCRAFT_MODELS.find(m => m.id === flight.modelId || m.name === flight.planeModel || m.id === flight.planeModel);
+        const durationMins = distance > 0 ? Math.round((distance / getAircraftSpeed(_m6193)) * 60) : 0;
         
         const origSchedAbs = flight.obj ? (flight.obj.originalSchedAbs !== undefined ? flight.obj.originalSchedAbs : flight.obj.schedAbs) : (flight.schedAbs || 0);
         
@@ -5543,7 +6476,8 @@ const renderPlanner = () => {
                 const totalMinutes = h * 60 + m;
                 const leftPercent = (totalMinutes / (24 * 60)) * 100;
 
-                const durationHours = route.distance / 800;
+                const _m6471 = AIRCRAFT_MODELS.find(m => m.id === freq.modelId || m.name === freq.modelId);
+                const durationHours = route.distance / getAircraftSpeed(_m6471);
                 const widthPercent = (durationHours / 24) * 100;
 
                 block.style.left = `${leftPercent}%`;
@@ -5710,9 +6644,9 @@ window.addFrequencyFromPlanner = (routeId, dayStr) => {
         isReturn: false
     };
     
-    const durationHours = dist / 800;
-    const durationMinutes = Math.round(durationHours * 60);
     const model = AIRCRAFT_MODELS.find(m => m.id === modelId || m.name === modelId);
+    const durationHours = dist / getAircraftSpeed(model);
+    const durationMinutes = Math.round(durationHours * 60);
     const turnaroundMins = getTurnaroundMins(model);
     const bufferMins = getScheduleBufferMins(durationMinutes);
     let boardingMins = 30;
@@ -5755,9 +6689,9 @@ window.addFrequencyFromPlanner = (routeId, dayStr) => {
 
 const returnDayOffsetMins = (route, outboundFreq) => {
     const dist = route.distance || 0;
-    const durationHours = dist / 800;
-    const durationMinutes = Math.round(durationHours * 60);
     const model = AIRCRAFT_MODELS.find(m => m.id === outboundFreq.modelId || m.name === outboundFreq.modelId);
+    const durationHours = dist / getAircraftSpeed(model);
+    const durationMinutes = Math.round(durationHours * 60);
     const turnaroundMins = getTurnaroundMins(model);
     const bufferMins = getScheduleBufferMins(durationMinutes);
     let boardingMins = 30;
@@ -5916,9 +6850,9 @@ window.togglePlannerFlightDay = (routeId, freqId, dayStr) => {
 
     if (returnFreq) {
         const dist = route.distance || 0;
-        const durationHours = dist / 800;
-        const durationMinutes = Math.round(durationHours * 60);
         const model = AIRCRAFT_MODELS.find(m => m.id === outboundFreq.modelId || m.name === outboundFreq.modelId);
+        const durationHours = dist / getAircraftSpeed(model);
+        const durationMinutes = Math.round(durationHours * 60);
         const turnaroundMins = getTurnaroundMins(model);
         const bufferMins = getScheduleBufferMins(durationMinutes);
         let boardingMins = 30;
@@ -6027,7 +6961,8 @@ window.updatePlannerFlightTime = (routeId, freqId, timeVal) => {
     plannerUnsavedChanges = true;
 
     const dist = route.distance || 0;
-    const durationHours = dist / 800;
+    const _m6955 = typeof freq !== 'undefined' ? AIRCRAFT_MODELS.find(m => m.id === freq.modelId || m.name === freq.modelId) : null;
+    const durationHours = dist / getAircraftSpeed(_m6955);
     const durationMins = Math.round(durationHours * 60);
 
     if (!freq.isReturn) {
@@ -6123,6 +7058,11 @@ window.openOwnedAircraftDetail = (planeId) => {
         } else {
              initCabinConfigurator(plane);
         }
+        
+        const sliders = document.querySelectorAll('.cabin-divider');
+        sliders.forEach(s => s.style.display = 'flex');
+        const pitchControls = document.querySelectorAll('.pitch-segmented');
+        pitchControls.forEach(p => p.style.display = 'flex');
 
         const section = document.getElementById('cabin-configurator-section');
         let saveBtn = document.getElementById('cabin-save-btn');
@@ -6190,6 +7130,110 @@ window.openOwnedAircraftDetail = (planeId) => {
     switchTab('aircraft-detail');
 };
 
+window.openUsedAircraftDetail = (usedId) => {
+    const used = gameState.usedMarket.find(u => u.usedId === usedId);
+    if (!used) return;
+    const model = AIRCRAFT_MODELS.find(m => m.id === used.baseModelId);
+    if (!model) return;
+
+    document.getElementById('ac-detail-buy-btn').style.display = 'block';
+    let saveBtn = document.getElementById('cabin-save-btn');
+    if (saveBtn) saveBtn.style.display = 'none';
+
+    const qtySelector = document.querySelector('.quantity-selector');
+    if (qtySelector) qtySelector.style.display = 'none';
+
+    document.getElementById('ac-detail-name').innerText = model.name + ` (Usado, ${used.age} años)`;
+    document.getElementById('ac-detail-type').innerText = model.type;
+    document.getElementById('ac-detail-capacity').innerText = (used.seatsFirst + used.seatsBusiness + used.seatsEco) + ' pax';
+    const maxSeatsLabel = document.getElementById('ac-detail-maxseats');
+    if (maxSeatsLabel) maxSeatsLabel.innerText = model.maxSeats + ' pax';
+    document.getElementById('ac-detail-range').innerText = model.range + ' km';
+    document.getElementById('ac-detail-profit').innerText = '+' + formatMoney(model.dailyProfit) + '/día';
+    document.getElementById('ac-detail-price').innerText = formatMoney(used.price);
+
+    const specs = AIRCRAFT_SPECS_LOOKUP[model.id] || { speed: "---", ceiling: "---", fuelBurn: "---", engine: "---", wingspan: "---" };
+    document.getElementById('ac-detail-speed').innerText = specs.speed;
+    document.getElementById('ac-detail-ceiling').innerText = specs.ceiling;
+    document.getElementById('ac-detail-fuel-burn').innerText = specs.fuelBurn;
+    document.getElementById('ac-detail-engine').innerText = specs.engine;
+    document.getElementById('ac-detail-wingspan').innerText = specs.wingspan;
+
+    const expandedDiv = document.getElementById('detail-specs-expanded');
+    const btnToggle = document.getElementById('btn-specs-toggle');
+    if (expandedDiv && btnToggle) {
+        expandedDiv.style.display = 'none';
+        btnToggle.innerHTML = `<span>Ver más especificaciones</span> <i class="ph ph-caret-down"></i>`;
+        btnToggle.classList.remove('active');
+    }
+
+    if (typeof initCabinConfigurator !== 'undefined') {
+        initCabinConfigurator(model);
+        const total = model.maxSeats;
+        const firstP = (used.seatsFirst / total) * 100;
+        const bizP = (used.seatsBusiness / total) * 100;
+        const ecoP = (used.seatsEco / total) * 100;
+        cabinConfig.first = firstP;
+        cabinConfig.business = bizP;
+        cabinConfig.eco = ecoP;
+        updateCabinVisuals();
+        
+        const sliders = document.querySelectorAll('.cabin-divider');
+        sliders.forEach(s => s.style.display = 'none');
+        const pitchControls = document.querySelectorAll('.pitch-segmented');
+        pitchControls.forEach(p => p.style.display = 'none');
+    }
+
+    const visual = document.getElementById('ac-detail-visual');
+    if (model.modelUrl) {
+        visual.innerHTML = `<model-viewer src="${model.modelUrl}" loading="lazy" auto-rotate camera-controls shadow-intensity="1" exposure="1" environment-image="neutral" style="width:100%;height:100%;"></model-viewer>`;
+    } else {
+        visual.innerHTML = `<div style="--plane-color: ${used.color}; height: 100%; display: flex; align-items: center; justify-content: center;">${model.svg || ''}</div>`;
+    }
+
+    const liveryBtn = document.getElementById('ac-detail-livery-btn');
+    if (liveryBtn) liveryBtn.style.display = 'none';
+
+    document.getElementById('ac-detail-buy-btn').innerHTML = `<i class="ph ph-shopping-cart"></i> Adquirir Usado por ${formatMoney(used.price)}`;
+    document.getElementById('ac-detail-buy-btn').onclick = () => {
+        if (gameState.money >= used.price) {
+            gameState.money -= used.price;
+            const registration = generateRegistration();
+            gameState.fleet.push({ 
+                ...model, 
+                id: Math.random().toString(36).substr(2, 9), 
+                registration: registration,
+                customLivery: null,
+                savedColor: used.color,
+                location: gameState.base ? gameState.base.id : 'EZE',
+                age: used.age,
+                seatsFirst: used.seatsFirst,
+                seatsBusiness: used.seatsBusiness,
+                seatsEco: used.seatsEco
+            });
+            gameState.usedMarket = gameState.usedMarket.filter(u => u.usedId !== usedId);
+            
+            logMsg(`Compra de usado procesada: ${model.name} (${used.age} años). Matrícula: ${registration}.`);
+            showToast('Aeronave Usada Integrada', `El ${model.name} está listo para operar.`, 'success');
+            
+            updateUI(); 
+            saveGame();
+            document.getElementById('view-aircraft-detail').classList.remove('view-active');
+            document.getElementById('view-aircraft-detail').classList.add('view');
+            showUsedMarket();
+        } else {
+            showToast('Fondos Insuficientes', 'Balance negativo para esta transacción.', 'error');
+        }
+    };
+
+    if (window.setHeaderBack) window.setHeaderBack(() => {
+        switchTab('market');
+        showUsedMarket();
+    }, 'al Mercado de Usados');
+
+    switchTab('aircraft-detail');
+};
+
 const openAircraftDetail = (modelId) => {
     document.getElementById('ac-detail-buy-btn').style.display = 'block';
     let saveBtn = document.getElementById('cabin-save-btn');
@@ -6252,6 +7296,11 @@ const openAircraftDetail = (modelId) => {
 
     if (typeof initCabinConfigurator !== 'undefined') {
         initCabinConfigurator(model);
+        
+        const sliders = document.querySelectorAll('.cabin-divider');
+        sliders.forEach(s => s.style.display = 'flex');
+        const pitchControls = document.querySelectorAll('.pitch-segmented');
+        pitchControls.forEach(p => p.style.display = 'flex');
     }
 
     document.getElementById('ac-detail-buy-btn').innerHTML = `<i class="ph ph-shopping-cart"></i> Adquirir por ${formatMoney(model.price)}`;
@@ -6350,6 +7399,17 @@ function initCabinConfigurator(model) {
     cabinConfig.first = 0;
     cabinConfig.business = 20;
     cabinConfig.eco = 80;
+    cabinConfig.pitchFirst = 'standard';
+    cabinConfig.pitchBusiness = 'standard';
+    cabinConfig.pitchEco = 'standard';
+
+    // Reset radio buttons if they exist
+    const radioFirst = document.getElementById('pitch-first-standard');
+    if (radioFirst) radioFirst.checked = true;
+    const radioBusiness = document.getElementById('pitch-business-standard');
+    if (radioBusiness) radioBusiness.checked = true;
+    const radioEco = document.getElementById('pitch-eco-standard');
+    if (radioEco) radioEco.checked = true;
     
     updateCabinVisuals();
 }
@@ -6374,16 +7434,44 @@ function updateCabinVisuals() {
     const spaceBusiness = (cabinConfig.business / 100) * cabinConfig.modelMaxSeats;
     const spaceEco = (cabinConfig.eco / 100) * cabinConfig.modelMaxSeats;
     
-    const seatsFirst = Math.floor(spaceFirst / 3.5);
-    const seatsBusiness = Math.floor(spaceBusiness / 2);
-    const seatsEco = Math.floor(spaceEco / 1);
+    // Determine multipliers
+    const multFirst = cabinConfig.pitchFirst === 'density' ? 3.0 : (cabinConfig.pitchFirst === 'spacious' ? 4.5 : 3.5);
+    const multBusiness = cabinConfig.pitchBusiness === 'density' ? 1.6 : (cabinConfig.pitchBusiness === 'spacious' ? 2.5 : 2.0);
+    const multEco = cabinConfig.pitchEco === 'density' ? 0.85 : (cabinConfig.pitchEco === 'spacious' ? 1.2 : 1.0);
+
+    const seatsFirst = Math.floor(spaceFirst / multFirst);
+    const seatsBusiness = Math.floor(spaceBusiness / multBusiness);
+    const seatsEco = Math.floor(spaceEco / multEco);
     
     document.getElementById('cabin-first-seats').innerText = seatsFirst;
     document.getElementById('cabin-business-seats').innerText = seatsBusiness;
     document.getElementById('cabin-eco-seats').innerText = seatsEco;
     
+    // Update card seats
+    const cardFirst = document.getElementById('cabin-first-seats-card');
+    if(cardFirst) cardFirst.innerText = seatsFirst;
+    const cardBusiness = document.getElementById('cabin-business-seats-card');
+    if(cardBusiness) cardBusiness.innerText = seatsBusiness;
+    const cardEco = document.getElementById('cabin-eco-seats-card');
+    if(cardEco) cardEco.innerText = seatsEco;
+
     document.getElementById('cabin-total-seats').innerText = (seatsFirst + seatsBusiness + seatsEco);
+
+    // Update pill-desc
+    const pillFirst = document.getElementById('pill-desc-first');
+    if(pillFirst) pillFirst.innerText = multFirst.toFixed(1) + 'x esp.';
+    const pillBusiness = document.getElementById('pill-desc-business');
+    if(pillBusiness) pillBusiness.innerText = multBusiness.toFixed(1) + 'x esp.';
+    const pillEco = document.getElementById('pill-desc-eco');
+    if(pillEco) pillEco.innerText = multEco.toFixed(1) + 'x esp.';
 }
+
+window.updatePitch = function(cabinClass, pitchLevel) {
+    if (cabinClass === 'first') cabinConfig.pitchFirst = pitchLevel;
+    if (cabinClass === 'business') cabinConfig.pitchBusiness = pitchLevel;
+    if (cabinClass === 'eco') cabinConfig.pitchEco = pitchLevel;
+    updateCabinVisuals();
+};
 
 // Setup drag events
 document.addEventListener('DOMContentLoaded', () => {
@@ -6496,7 +7584,9 @@ const initEmployees = () => {
         gameState.employees = {
             airlineName: 'Mi Aerolínea',
             airlineMotto: '"Volando hacia el futuro"',
-            staff: {}
+            staff: {},
+            logoIcon: 'ph-airplane-tilt',
+            logoColor: '#0a84ff'
         };
         Object.keys(EMPLOYEES_CONFIG).forEach(key => {
             gameState.employees.staff[key] = {
@@ -6512,9 +7602,11 @@ const initEmployees = () => {
         });
     }
     
-    // Compatibility for existing saves that might have empty airline name
+    // Compatibility for existing saves that might have empty fields
     if (!gameState.employees.airlineName) gameState.employees.airlineName = 'Mi Aerolínea';
     if (!gameState.employees.airlineMotto) gameState.employees.airlineMotto = '"Volando hacia el futuro"';
+    if (!gameState.employees.logoIcon) gameState.employees.logoIcon = 'ph-airplane-tilt';
+    if (!gameState.employees.logoColor) gameState.employees.logoColor = '#0a84ff';
     
     // Add satisfaction if missing and auto-heal wildly inaccurate historical bugs
     Object.keys(EMPLOYEES_CONFIG).forEach(key => {
@@ -6564,20 +7656,89 @@ const getDailyEmployeesCost = () => {
 
 const renderAirline = () => {
     initEmployees();
+    
+    // Update name and motto input cards
     const nameDisplay = document.getElementById('airline-name-display');
     const mottoDisplay = document.getElementById('airline-motto-display');
-    
     if (nameDisplay) {
         nameDisplay.innerHTML = `${gameState.employees.airlineName} <button class="btn-icon-small" onclick="editAirlineName()"><i class="ph ph-pencil-simple"></i></button>`;
     }
     if (mottoDisplay) {
-        mottoDisplay.innerHTML = `${gameState.employees.airlineMotto} <button class="btn-icon-small" onclick="editAirlineMotto()"><i class="ph ph-pencil-simple"></i></button>`;
+        mottoDisplay.innerHTML = `${gameState.employees.airlineMotto || '<i>Sin lema</i>'} <button class="btn-icon-small" onclick="editAirlineMotto()"><i class="ph ph-pencil-simple"></i></button>`;
+    }
+
+    // Render Base and Estimated Value
+    const baseDisplay = document.getElementById('airline-base-display');
+    if (baseDisplay) {
+        baseDisplay.innerText = gameState.base ? gameState.base.id : 'EZE';
     }
     
-    // Calcular rating global basado en la satisfacción
+    const valueDisplay = document.getElementById('airline-value-display');
+    if (valueDisplay) {
+        let estimatedValue = gameState.money;
+        if (gameState.fleet) {
+            gameState.fleet.forEach(p => {
+                const model = AIRCRAFT_MODELS.find(m => m.id === p.model);
+                if (model) {
+                    estimatedValue += model.price;
+                }
+            });
+        }
+        valueDisplay.innerText = formatMoney(estimatedValue);
+    }
+
+    // Update Brand Customizer preview
+    const logoPreview = document.getElementById('airline-logo-preview');
+    if (logoPreview) {
+        const logoIcon = gameState.employees.logoIcon || 'ph-airplane-tilt';
+        const logoColor = gameState.employees.logoColor || '#0a84ff';
+        
+        logoPreview.className = `airline-logo-emblem`;
+        logoPreview.innerHTML = `<i class="ph ph-${logoIcon.replace('ph-', '')}"></i>`;
+        logoPreview.style.backgroundColor = `rgba(${hexToRgb(logoColor)}, 0.15)`;
+        logoPreview.style.borderColor = logoColor;
+        logoPreview.style.boxShadow = `0 8px 32px rgba(${hexToRgb(logoColor)}, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.1)`;
+        logoPreview.style.color = logoColor;
+    }
+
+    // Set active states on customizer options
+    document.querySelectorAll('.color-dot-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.boxShadow = '';
+    });
+    const selectedColor = gameState.employees.logoColor || '#0a84ff';
+    const colorBtnMap = {
+        '#0a84ff': 'color-blue',
+        '#30d158': 'color-green',
+        '#ffd60a': 'color-yellow',
+        '#ff9f0a': 'color-orange',
+        '#ff453a': 'color-red',
+        '#bf5af2': 'color-purple'
+    };
+    const activeColorClass = colorBtnMap[selectedColor];
+    if (activeColorClass) {
+        const activeBtn = document.querySelector(`.${activeColorClass}`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.style.boxShadow = `0 0 15px ${selectedColor}`;
+        }
+    }
+
+    document.querySelectorAll('.icon-select-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const selectedIcon = gameState.employees.logoIcon || 'ph-airplane-tilt';
+    const activeIconBtn = document.getElementById(`icon-btn-${selectedIcon}`);
+    if (activeIconBtn) {
+        activeIconBtn.classList.add('active');
+    }
+    
+    // Calculate global rating and HR summaries
     let totalSat = 0;
     let count = 0;
+    let totalEmployees = 0;
     Object.values(gameState.employees.staff).forEach(emp => {
+        totalEmployees += emp.count;
         if (emp.count > 0) {
             totalSat += emp.satisfaction;
             count++;
@@ -6585,7 +7746,6 @@ const renderAirline = () => {
     });
     
     let avgSat = count > 0 ? totalSat / count : 100;
-    // Escalar 0-100 a 1.0-5.0
     let rating = 1.0 + (avgSat / 100) * 4.0;
     
     let starsHtml = '';
@@ -6604,18 +7764,201 @@ const renderAirline = () => {
     else if (rating >= 2.5) ratingLabel = 'Operaciones inestables';
     else ratingLabel = 'Clima laboral crítico';
     
-    const ratingBox = document.querySelector('.airline-rating-box');
-    if (ratingBox) {
-        ratingBox.innerHTML = `
+    // 1. Reputation Card
+    const reputationBox = document.getElementById('airline-reputation-box');
+    if (reputationBox) {
+        reputationBox.innerHTML = `
             <h3 class="bento-title"><i class="ph-fill ph-star" style="color: #fbbf24;"></i> Reputación Global</h3>
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 16px 0;">
-                <div style="font-size: 3rem; font-weight: 800; color: #fff; line-height: 1;">${rating.toFixed(1)}</div>
-                <div style="color: #fbbf24; font-size: 1.5rem; letter-spacing: 4px; margin: 8px 0;">${starsHtml}</div>
-                <div class="text-sm text-muted">${ratingLabel}</div>
+            <div class="reputation-score-wrap">
+                <div class="reputation-score">${rating.toFixed(1)}</div>
+                <div class="reputation-stars">${starsHtml}</div>
+            </div>
+            <div class="text-sm text-muted" style="margin-top: 10px;">${ratingLabel}</div>
+        `;
+    }
+
+    // Check for staffing shortages
+    const minReqs = calculateMinimumEmployees();
+    let shortage = false;
+    Object.keys(minReqs).forEach(key => {
+        const hired = gameState.employees.staff[key]?.count || 0;
+        const required = minReqs[key];
+        if (hired < required) {
+            shortage = true;
+        }
+    });
+
+    // 2. HR Summary Card
+    const hrSummaryBox = document.getElementById('airline-hr-summary-box');
+    if (hrSummaryBox) {
+        let satisfactionColor = '#30d158'; // Green
+        if (avgSat < 40) satisfactionColor = '#ff453a'; // Red
+        else if (avgSat < 75) satisfactionColor = '#ff9f0a'; // Orange
+
+        let alertBadgeHtml = shortage ? `
+            <div class="hr-alert-badge">
+                <i class="ph-fill ph-warning"></i> Falta Personal
+            </div>
+        ` : '';
+
+        hrSummaryBox.innerHTML = `
+            <h3 class="bento-title"><i class="ph ph-users" style="color: var(--accent);"></i> Recursos Humanos</h3>
+            ${alertBadgeHtml}
+            <div class="hr-stats-row">
+                <div class="hr-stat-col">
+                    <span class="hr-stat-label">Total Empleados</span>
+                    <span class="hr-stat-value">${totalEmployees}</span>
+                </div>
+                <div class="hr-stat-col">
+                    <span class="hr-stat-label">Costo Diario</span>
+                    <span class="hr-stat-value" style="color: #ff453a;">$${getDailyEmployeesCost().toLocaleString()}</span>
+                </div>
+            </div>
+            <div class="hr-satisfaction-wrap" style="margin-top: auto;">
+                <div class="hr-satisfaction-header">
+                    <span>Clima Laboral</span>
+                    <span>${Math.round(avgSat)}%</span>
+                </div>
+                <div class="hr-satisfaction-bar">
+                    <div class="hr-satisfaction-fill" style="width: ${avgSat}%; background-color: ${satisfactionColor}; box-shadow: 0 0 8px ${satisfactionColor};"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 3. Operational Metrics
+    const metricsGrid = document.getElementById('airline-metrics-grid-content');
+    if (metricsGrid) {
+        const fleetCount = gameState.fleet ? gameState.fleet.length : 0;
+        const activeRoutes = gameState.routes ? gameState.routes.length : 0;
+        
+        let scheduledWeeklyFlights = 0;
+        if (gameState.routes) {
+            gameState.routes.forEach(r => {
+                if (r.frequencies) {
+                    scheduledWeeklyFlights += r.frequencies.length;
+                }
+            });
+        }
+
+        metricsGrid.innerHTML = `
+            <div class="metric-grid-item">
+                <div class="metric-icon-wrap" style="color: var(--accent);">
+                    <i class="ph ph-airplane"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Flota Activa</span>
+                    <span class="metric-value">${fleetCount}</span>
+                </div>
+            </div>
+            <div class="metric-grid-item">
+                <div class="metric-icon-wrap" style="color: #30d158;">
+                    <i class="ph ph-globe"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Rutas Conectadas</span>
+                    <span class="metric-value">${activeRoutes}</span>
+                </div>
+            </div>
+            <div class="metric-grid-item">
+                <div class="metric-icon-wrap" style="color: #ff9f0a;">
+                    <i class="ph ph-calendar"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Vuelos Semanales</span>
+                    <span class="metric-value">${scheduledWeeklyFlights}</span>
+                </div>
+            </div>
+            <div class="metric-grid-item">
+                <div class="metric-icon-wrap" style="color: #bf5af2;">
+                    <i class="ph ph-coins"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Gasto Diario Personal</span>
+                    <span class="metric-value">$${getDailyEmployeesCost().toLocaleString()}</span>
+                </div>
             </div>
         `;
     }
 };
+
+window.toggleBrandCustomizer = () => {
+    const customizer = document.getElementById('airline-brand-customizer');
+    if (customizer) {
+        customizer.classList.toggle('hidden');
+    }
+};
+
+window.selectBrandColor = (colorHex, btnClass) => {
+    gameState.employees.logoColor = colorHex;
+    
+    // Update active state in UI
+    document.querySelectorAll('.color-dot-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.boxShadow = '';
+    });
+    const activeBtn = document.querySelector(`.${btnClass}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.boxShadow = `0 0 15px ${colorHex}`;
+    }
+    
+    // Update preview emblem color
+    const preview = document.getElementById('airline-logo-preview');
+    if (preview) {
+        preview.style.backgroundColor = `rgba(${hexToRgb(colorHex)}, 0.15)`;
+        preview.style.borderColor = colorHex;
+        preview.style.boxShadow = `0 8px 32px rgba(${hexToRgb(colorHex)}, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.1)`;
+        preview.style.color = colorHex;
+    }
+    
+    // Update top header brand icon color if it exists
+    const headerIcon = document.querySelector('.header-brand-icon');
+    if (headerIcon) {
+        headerIcon.style.color = colorHex;
+        headerIcon.style.textShadow = `0 0 8px ${colorHex}`;
+    }
+    
+    saveGame();
+};
+
+window.selectBrandIcon = (iconClass) => {
+    gameState.employees.logoIcon = iconClass;
+    
+    // Update active state in UI
+    document.querySelectorAll('.icon-select-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`icon-btn-${iconClass}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Update preview emblem icon
+    const preview = document.getElementById('airline-logo-preview');
+    if (preview) {
+        const iconElement = preview.querySelector('i');
+        if (iconElement) {
+            iconElement.className = `ph ph-${iconClass.replace('ph-', '')}`;
+        }
+    }
+    
+    // Update top header brand icon if it exists
+    const headerIcon = document.querySelector('.header-brand-icon');
+    if (headerIcon) {
+        headerIcon.className = `ph-fill ph-${iconClass.replace('ph-', '')} header-brand-icon`;
+    }
+    
+    saveGame();
+};
+
+// Helper function to convert HEX to RGB for transparency styles
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? 
+        (parseInt(result[1], 16) + ',' + parseInt(result[2], 16) + ',' + parseInt(result[3], 16))
+        : '10, 132, 255';
+}
 
 window.editAirlineName = () => {
     const newName = prompt("Ingresá el nuevo nombre de la aerolínea:", gameState.employees.airlineName);
@@ -6682,66 +8025,66 @@ const renderEmployees = () => {
             isPrediction = true;
         }
         
-        let satColor = 'var(--money)';
+        let satColor = '#30d158'; // Green
         let satText = 'Motivados';
         if (displaySat < 40) {
-            satColor = 'var(--danger)';
+            satColor = '#ff453a'; // Red
             satText = 'Descontentos';
-        } else if (displaySat < 70) {
-            satColor = 'var(--warning)';
+        } else if (displaySat < 75) {
+            satColor = '#ff9f0a'; // Orange
             satText = 'Estables';
         }
         
         html += `
-            <div class="card card-padded" style="display:flex; flex-direction:column; gap:16px; ${isChanged ? 'border: 1px solid var(--accent);' : ''}">
-                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:16px;">
-                    <div style="display:flex; align-items:center; gap:12px; min-width:200px;">
-                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:var(--accent);">
-                            <i class="ph-fill ${config.icon}" style="font-size:1.5rem;"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight:600; font-size:1.05rem;">${config.name} ${isChanged ? '<span class="text-xs" style="color:var(--accent); background:rgba(10,132,255,0.1); padding:2px 6px; border-radius:4px; margin-left:6px;">Modificado</span>' : ''}</div>
-                            <div class="text-sm ${isMet ? 'text-muted' : 'text-danger'}" style="margin-top:2px;">
-                                ${isMet ? `<i class="ph ph-check-circle" style="color:#22c55e;"></i> Mínimo cubierto (${req})` : `<i class="ph ph-warning-circle"></i> Faltan empleados (Mínimo: ${req})`}
-                            </div>
-                        </div>
+            <div class="employee-card ${isChanged ? 'draft-mode' : ''} fade-in">
+                <div class="employee-left-col">
+                    <div class="employee-avatar-emblem">
+                        <i class="ph ph-${config.icon.replace('ph-', '')}"></i>
                     </div>
-                    
-                    <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <span class="text-xs text-muted" style="margin-bottom:4px;">Cantidad</span>
-                            <div style="display:flex; align-items:center; background:var(--surface); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden;">
-                                <button onclick="adjustEmployeeCount('${key}', -1)" style="padding:6px 12px; background:none; border:none; color:#fff; cursor:pointer; font-weight:bold; border-right:1px solid var(--border-subtle); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">-</button>
-                                <input type="number" value="${current.count}" onchange="setEmployeeCount('${key}', this.value)" style="width:50px; text-align:center; background:none; border:none; color:#fff; font-family:var(--font-mono); outline:none;" />
-                                <button onclick="adjustEmployeeCount('${key}', 1)" style="padding:6px 12px; background:none; border:none; color:#fff; cursor:pointer; font-weight:bold; border-left:1px solid var(--border-subtle); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">+</button>
-                            </div>
+                    <div class="employee-role-details">
+                        <div class="employee-role-title">
+                            ${config.name}
+                            ${isChanged ? '<span class="employee-draft-badge">Borrador</span>' : ''}
                         </div>
-                        
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <span class="text-xs text-muted" style="margin-bottom:4px;">Salario Diario</span>
-                            <div style="display:flex; align-items:center; background:var(--surface); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden;">
-                                <button onclick="adjustEmployeeSalary('${key}', -10)" style="padding:6px 12px; background:none; border:none; color:#fff; cursor:pointer; font-weight:bold; border-right:1px solid var(--border-subtle); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">-</button>
-                                <input type="number" value="${current.salary}" onchange="setEmployeeSalary('${key}', this.value)" style="width:60px; text-align:center; background:none; border:none; color:#fff; font-family:var(--font-mono); outline:none;" />
-                                <button onclick="adjustEmployeeSalary('${key}', 10)" style="padding:6px 12px; background:none; border:none; color:#fff; cursor:pointer; font-weight:bold; border-left:1px solid var(--border-subtle); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">+</button>
-                            </div>
-                        </div>
-                        
-                        <div style="min-width: 90px; text-align:right;">
-                            <span class="text-xs text-muted" style="display:block; margin-bottom:4px;">Costo Total</span>
-                            <span class="mono" style="font-weight:600; color:var(--text-primary);">$${cost}</span>
+                        <div class="employee-role-desc ${isMet ? 'text-muted' : 'text-danger'}">
+                            ${isMet ? `<i class="ph ph-check-circle" style="color:#30d158; margin-right:4px;"></i> Mínimo cubierto (${req})` : `<i class="ph ph-warning-circle" style="color:#ff453a; margin-right:4px;"></i> Faltan empleados (Mínimo: ${req})`}
                         </div>
                     </div>
                 </div>
                 
-                <div style="display:flex; flex-direction:column; gap:6px; background:rgba(0,0,0,0.2); padding:10px 14px; border-radius:8px; border:1px solid var(--border-subtle);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;">
-                        <span style="color:var(--text-secondary); font-weight:600;">Satisfacción ${isPrediction ? '<span style="color:var(--accent); font-size:0.75rem; margin-left:4px;"><i class="ph ph-magic-wand"></i> Proyección</span>' : ''}</span>
-                        <span style="color:${satColor}; font-weight:700;">
-                            ${isPrediction ? `<i class="ph ph-arrow-right" style="margin-right:4px;"></i>` : ''}${displaySat}% - ${satText}
-                        </span>
+                <div class="employee-qty-adjuster">
+                    <span class="adjuster-label">Cantidad</span>
+                    <div class="adjuster-controls">
+                        <button class="adjuster-btn" onclick="adjustEmployeeCount('${key}', -1)">-</button>
+                        <span class="adjuster-value mono">${current.count}</span>
+                        <button class="adjuster-btn" onclick="adjustEmployeeCount('${key}', 1)">+</button>
                     </div>
-                    <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
-                        <div style="width:${displaySat}%; height:100%; background:${satColor}; box-shadow:0 0 8px ${satColor}; transition:width 0.5s ease;"></div>
+                </div>
+                
+                <div class="employee-salary-adjuster">
+                    <span class="adjuster-label">Salario Diario</span>
+                    <div class="adjuster-controls">
+                        <button class="adjuster-btn" onclick="adjustEmployeeSalary('${key}', -10)">-</button>
+                        <span class="adjuster-value mono">$${current.salary}</span>
+                        <button class="adjuster-btn" onclick="adjustEmployeeSalary('${key}', 10)">+</button>
+                    </div>
+                </div>
+                
+                <div style="min-width: 90px; display: flex; flex-direction: column;">
+                    <span class="adjuster-label">Costo Total</span>
+                    <span class="mono" style="font-size: 1.1rem; font-weight:700; color:#ffffff; margin-top:4px;">$${cost.toLocaleString()}</span>
+                </div>
+                
+                <div class="employee-satisfaction-col">
+                    <div class="hr-satisfaction-wrap">
+                        <div class="hr-satisfaction-header">
+                            <span>Clima ${isPrediction ? '<span style="color:var(--accent); font-size:0.65rem;"><i class="ph ph-magic-wand"></i> Proy.</span>' : ''}</span>
+                            <span style="color: ${satColor}; font-weight:700;">${displaySat}%</span>
+                        </div>
+                        <div class="hr-satisfaction-bar">
+                            <div class="hr-satisfaction-fill" style="width: ${displaySat}%; background-color: ${satColor}; box-shadow: 0 0 8px ${satColor};"></div>
+                        </div>
+                        <div style="font-size: 0.65rem; color: #64748b; text-align: right; text-transform: uppercase; font-weight:600; margin-top:1px;">${satText}</div>
                     </div>
                 </div>
             </div>
@@ -6752,31 +8095,29 @@ const renderEmployees = () => {
     
     const statusBar = document.getElementById('employees-global-status');
     if (statusBar) {
+        statusBar.style.background = '';
+        statusBar.style.borderColor = '';
+        statusBar.style.color = '';
+        
         if (hasDraftChanges) {
-            statusBar.style.background = 'rgba(10, 132, 255, 0.1)';
-            statusBar.style.borderColor = 'rgba(10, 132, 255, 0.3)';
-            statusBar.style.color = 'var(--text-primary)';
+            statusBar.className = 'employees-status-bar draft-active';
             statusBar.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between; width:100%; flex-wrap:wrap; gap:12px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <i class="ph-fill ph-info" style="font-size: 1.5rem; color: var(--accent);"></i>
-                        <span style="font-weight: 500;">Tienes cambios sin guardar.</span>
+                        <i class="ph-fill ph-info" style="font-size: 1.5rem; color: #0a84ff;"></i>
+                        <span style="font-weight: 500;">Tienes cambios sin guardar en la dotación de personal.</span>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button class="btn btn-secondary" onclick="cancelEmployeeChanges()" style="padding: 6px 16px;">Cancelar</button>
-                        <button class="btn btn-primary" onclick="confirmEmployeeChanges()" style="padding: 6px 16px;">Aplicar Cambios</button>
+                        <button class="btn btn-secondary btn-sm" onclick="cancelEmployeeChanges()">Cancelar</button>
+                        <button class="btn btn-primary btn-sm" onclick="confirmEmployeeChanges()">Aplicar Cambios</button>
                     </div>
                 </div>
             `;
         } else if (allMet) {
-            statusBar.style.background = 'rgba(34, 197, 94, 0.1)';
-            statusBar.style.borderColor = 'rgba(34, 197, 94, 0.2)';
-            statusBar.style.color = '#22c55e';
+            statusBar.className = 'employees-status-bar all-met';
             statusBar.innerHTML = `<i class="ph-fill ph-check-circle" style="font-size: 1.5rem;"></i><span style="font-weight: 500;">Todo el personal mínimo está cubierto. Operaciones normales.</span>`;
         } else {
-            statusBar.style.background = 'rgba(255, 69, 58, 0.1)';
-            statusBar.style.borderColor = 'rgba(255, 69, 58, 0.2)';
-            statusBar.style.color = '#ff453a';
+            statusBar.className = 'employees-status-bar shortage';
             statusBar.innerHTML = `<i class="ph-fill ph-warning-circle" style="font-size: 1.5rem;"></i><span style="font-weight: 500;">Alerta: Falta personal. Contratá más empleados para evitar retrasos y penalizaciones.</span>`;
         }
     }
@@ -6947,5 +8288,548 @@ window.processDailyEmployeesCost = () => {
             showToast('Huelga / Renuncias', 'Empleados descontentos han abandonado la aerolínea.', 'error');
         }
     }
+};
+
+// ==========================================================================
+// DASHBOARD CUSTOMIZATION & DRAG-AND-DROP SYSTEM
+// ==========================================================================
+
+let isBentoEditMode = false;
+let draggedCard = null;
+let placeholder = null;
+let dragOffset = { x: 0, y: 0 };
+let activePointerId = null;
+
+const applyBentoLayoutOrder = () => {
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (!grid) return;
+
+    const defaultOrder = [
+        'dash-finance-card',
+        'dash-fuel-card',
+        'dash-delay-index',
+        'dash-fleet-card',
+        'dash-live-flight',
+        'dash-actions-card',
+        'dash-activity-card'
+    ];
+
+    const order = gameState.bentoCardsOrder || defaultOrder;
+
+    const cardNodes = {};
+    order.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            cardNodes[id] = el;
+        }
+    });
+
+    order.forEach(id => {
+        if (cardNodes[id]) {
+            grid.appendChild(cardNodes[id]);
+        }
+    });
+
+    // Handle any extra cards not present in the order list (future-proofing)
+    Array.from(grid.children).forEach(child => {
+        if (child.id && !order.includes(child.id) && child.classList.contains('bento-box')) {
+            grid.appendChild(child);
+        }
+    });
+};
+
+const saveBentoLayoutOrder = () => {
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll('.bento-box'));
+    const order = cards.map(card => card.id).filter(id => id);
+
+    gameState.bentoCardsOrder = order;
+    saveGame();
+};
+
+const enterBentoEditMode = () => {
+    if (isBentoEditMode) return;
+    isBentoEditMode = true;
+
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (grid) {
+        grid.classList.add('editing-active');
+        const cards = grid.querySelectorAll('.bento-box');
+        cards.forEach(card => card.classList.add('editing-active'));
+    }
+
+    const banner = document.getElementById('bento-edit-banner');
+    if (banner) {
+        banner.classList.add('active');
+    }
+
+    // Update main header button to active state
+    const editBtn = document.getElementById('edit-layout-btn');
+    if (editBtn) {
+        editBtn.innerHTML = '<i class="ph-bold ph-check" style="color: var(--money);"></i> Listo';
+        editBtn.classList.add('btn-active');
+    }
+
+    // Capture and prevent normal clicks on dashboard bento boxes in edit mode
+    document.addEventListener('click', blockBentoClicksDuringEdit, true);
+
+    // Click outside to close edit mode (with a slight delay to prevent instant closing)
+    setTimeout(() => {
+        document.addEventListener('click', handleBentoOutsideClick, true);
+    }, 50);
+
+    showToast('Personalización', 'Mantené y arrastrá las tarjetas para reordenarlas.', 'info');
+};
+
+const exitBentoEditMode = () => {
+    if (!isBentoEditMode) return;
+    isBentoEditMode = false;
+
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (grid) {
+        grid.classList.remove('editing-active');
+        const cards = grid.querySelectorAll('.bento-box');
+        cards.forEach(card => card.classList.remove('editing-active'));
+    }
+
+    const banner = document.getElementById('bento-edit-banner');
+    if (banner) {
+        banner.classList.remove('active');
+    }
+
+    // Restore header button to default state
+    const editBtn = document.getElementById('edit-layout-btn');
+    if (editBtn) {
+        editBtn.innerHTML = '<i class="ph ph-squares-four"></i> Personalizar Inicio';
+        editBtn.classList.remove('btn-active');
+    }
+
+    document.removeEventListener('click', blockBentoClicksDuringEdit, true);
+    document.removeEventListener('click', handleBentoOutsideClick, true);
+
+    saveBentoLayoutOrder();
+    showToast('Personalización', 'Orden guardado correctamente.', 'success');
+};
+
+const toggleBentoEditMode = () => {
+    if (isBentoEditMode) {
+        exitBentoEditMode();
+    } else {
+        enterBentoEditMode();
+    }
+};
+
+const blockBentoClicksDuringEdit = (e) => {
+    if (isBentoEditMode) {
+        const card = e.target.closest('#dashboard-bento-grid > .bento-box');
+        // Allow clicks on buttons inside edit banner and header buttons, block clicks inside the cards themselves
+        if (card && !e.target.closest('.bento-edit-banner') && !e.target.closest('#edit-layout-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+};
+
+const handleBentoOutsideClick = (e) => {
+    if (!isBentoEditMode) return;
+    if (draggedCard) return; // ignore during drag operations
+
+    const clickedBento = e.target.closest('#dashboard-bento-grid > .bento-box');
+    const clickedButton = e.target.closest('#edit-layout-btn');
+    const clickedBanner = e.target.closest('#bento-edit-banner');
+
+    if (!clickedBento && !clickedButton && !clickedBanner) {
+        exitBentoEditMode();
+    }
+};
+
+// Check intersection of pointer coordinates with bento card bounds
+const getHoveredCard = (x, y) => {
+    const cards = Array.from(document.querySelectorAll('#dashboard-bento-grid > .bento-box:not(.dragging)'));
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            return card;
+        }
+    }
+    return null;
+};
+
+const startBentoDrag = (card, e) => {
+    if (draggedCard) return;
+    draggedCard = card;
+    activePointerId = e.pointerId;
+
+    const rect = card.getBoundingClientRect();
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'bento-placeholder';
+    placeholder.style.gridColumn = window.getComputedStyle(card).gridColumn;
+    placeholder.style.height = `${rect.height}px`;
+
+    card.parentNode.insertBefore(placeholder, card);
+
+    card.classList.add('dragging');
+    card.style.position = 'fixed';
+    card.style.width = `${rect.width}px`;
+    card.style.height = `${rect.height}px`;
+    card.style.left = `${rect.left}px`;
+    card.style.top = `${rect.top}px`;
+    card.style.zIndex = '10000';
+
+    try {
+        card.setPointerCapture(e.pointerId);
+    } catch (err) {
+        console.warn("Could not set pointer capture", err);
+    }
+
+    card.addEventListener('pointermove', onBentoDragMove);
+    card.addEventListener('pointerup', onBentoDragEnd);
+    card.addEventListener('pointercancel', onBentoDragEnd);
+};
+
+const onBentoDragMove = (e) => {
+    if (!draggedCard || e.pointerId !== activePointerId) return;
+
+    draggedCard.style.left = `${e.clientX - dragOffset.x}px`;
+    draggedCard.style.top = `${e.clientY - dragOffset.y}px`;
+
+    // Retrieve hovered card dynamically via boundary checking
+    const targetCard = getHoveredCard(e.clientX, e.clientY);
+
+    if (targetCard && targetCard !== draggedCard && targetCard !== placeholder) {
+        const parent = targetCard.parentNode;
+        const children = Array.from(parent.children);
+        const placeholderIdx = children.indexOf(placeholder);
+        const targetIdx = children.indexOf(targetCard);
+
+        if (targetIdx !== -1 && placeholderIdx !== -1 && targetIdx !== placeholderIdx) {
+            flipLayout(() => {
+                if (targetIdx > placeholderIdx) {
+                    parent.insertBefore(placeholder, targetCard.nextSibling);
+                } else {
+                    parent.insertBefore(placeholder, targetCard);
+                }
+            });
+        }
+    }
+};
+
+const onBentoDragEnd = (e) => {
+    if (!draggedCard || e.pointerId !== activePointerId) return;
+
+    draggedCard.removeEventListener('pointermove', onBentoDragMove);
+    draggedCard.removeEventListener('pointerup', onBentoDragEnd);
+    draggedCard.removeEventListener('pointercancel', onBentoDragEnd);
+
+    try {
+        draggedCard.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+
+    flipLayout(() => {
+        if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.insertBefore(draggedCard, placeholder);
+            placeholder.parentNode.removeChild(placeholder);
+        }
+
+        draggedCard.classList.remove('dragging');
+        draggedCard.style.position = '';
+        draggedCard.style.width = '';
+        draggedCard.style.height = '';
+        draggedCard.style.left = '';
+        draggedCard.style.top = '';
+        draggedCard.style.zIndex = '';
+    });
+
+    draggedCard = null;
+    placeholder = null;
+    activePointerId = null;
+
+    saveBentoLayoutOrder();
+};
+
+const flipLayout = (action) => {
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (!grid) {
+        action();
+        return;
+    }
+
+    const cards = Array.from(grid.querySelectorAll('.bento-box'));
+    const firstPos = cards.map(card => {
+        return {
+            el: card,
+            rect: card.getBoundingClientRect()
+        };
+    });
+
+    action();
+
+    firstPos.forEach(item => {
+        if (item.el.classList.contains('dragging') || item.el.classList.contains('bento-placeholder')) return;
+
+        const lastRect = item.el.getBoundingClientRect();
+        const firstRect = item.rect;
+
+        const dx = firstRect.left - lastRect.left;
+        const dy = firstRect.top - lastRect.top;
+
+        if (dx !== 0 || dy !== 0) {
+            item.el.style.transition = 'none';
+            item.el.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // Force browser layout reflow
+            item.el.offsetHeight;
+
+            item.el.style.transition = 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+            item.el.style.transform = '';
+        }
+    });
+};
+
+const initBentoCustomization = () => {
+    const grid = document.getElementById('dashboard-bento-grid');
+    if (!grid) return;
+
+    grid.addEventListener('pointerdown', (e) => {
+        const card = e.target.closest('#dashboard-bento-grid > .bento-box');
+        if (!card) return;
+
+        // Ignore clicks on buttons/inputs
+        if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+            return;
+        }
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        let hasMoved = false;
+
+        if (isBentoEditMode) {
+            e.preventDefault();
+            startBentoDrag(card, e);
+        } else {
+            const longPressTimer = setTimeout(() => {
+                if (!hasMoved) {
+                    enterBentoEditMode();
+                    startBentoDrag(card, e);
+                }
+            }, 600);
+
+            const onPointerMove = (moveEvt) => {
+                if (Math.hypot(moveEvt.clientX - startX, moveEvt.clientY - startY) > 8) {
+                    hasMoved = true;
+                    clearTimeout(longPressTimer);
+                }
+            };
+
+            const onPointerUp = () => {
+                clearTimeout(longPressTimer);
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerUp);
+                document.removeEventListener('pointercancel', onPointerUp);
+            };
+
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointercancel', onPointerUp);
+        }
+    });
+};
+
+// Expose functions to window scope for HTML inline handlers
+window.toggleBentoEditMode = toggleBentoEditMode;
+window.enterBentoEditMode = enterBentoEditMode;
+window.exitBentoEditMode = exitBentoEditMode;
+
+document.addEventListener('DOMContentLoaded', () => {
+    initBentoCustomization();
+});
+
+// =========================================
+// STORE / MEJORAS LOGIC
+// =========================================
+
+window.buyUpgrade = (upgradeId, cost) => {
+    if (gameState.money >= cost) {
+        if (upgradeId === 'extraHubs') {
+            gameState.upgrades[upgradeId] = (gameState.upgrades[upgradeId] || 0) + 1;
+            gameState.money -= cost;
+            showToast('Concesión de Nuevo Hub adquirida. Capacidad expandida.', 'success');
+        } else if (!gameState.upgrades[upgradeId]) {
+            gameState.upgrades[upgradeId] = true;
+            gameState.money -= cost;
+            showToast('Mejora adquirida con éxito.', 'success');
+            if (upgradeId === 'militaryAccess') {
+                showToast('Licencia Militar activada. Ya puedes acceder al mercado militar.', 'info');
+            }
+        } else {
+            showToast('Ya posees esta mejora.', 'warning');
+            return;
+        }
+        updateUI();
+        if(window.updateStoreUI) window.updateStoreUI();
+        saveGame();
+    } else {
+        showToast('Fondos insuficientes para esta mejora.', 'error');
+    }
+};
+
+window.updateStoreUI = () => {
+    const b = document.getElementById('store-current-balance');
+    if (b) b.innerText = formatMoney(gameState.money);
+
+    const checkOwned = (id, key) => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        if (gameState.upgrades && gameState.upgrades[key]) {
+            card.classList.add('owned');
+            const btn = card.querySelector('.btn');
+            if(btn) btn.innerText = 'Comprado';
+        }
+    };
+    checkOwned('upgrade-atc', 'atcPriority');
+    checkOwned('upgrade-pax', 'paxSatisfaction');
+    checkOwned('upgrade-military', 'militaryAccess');
+    // extraHubs can be bought multiple times, so we don't disable it unless there's a hard limit.
+    const hubCard = document.getElementById('upgrade-hub');
+    if (hubCard && gameState.upgrades && gameState.upgrades.extraHubs > 0) {
+        const btn = hubCard.querySelector('.btn');
+        if(btn) btn.innerText = `Adquirir (${gameState.upgrades.extraHubs} adquiridos)`;
+    }
+};
+
+window.renderMenuScreen = () => {
+    // Update airline name and motto from game state
+    const nameEl = document.getElementById('menu-hero-airline-name');
+    const mottoEl = document.getElementById('menu-hero-motto');
+    const emblemEl = document.getElementById('menu-hero-emblem');
+
+    if (nameEl && gameState.employees) {
+        nameEl.innerText = gameState.employees.airlineName || 'Mi Aerolínea';
+    }
+    if (mottoEl && gameState.employees) {
+        mottoEl.innerText = gameState.employees.airlineMotto || '"Volando hacia el futuro"';
+    }
+    if (emblemEl && gameState.employees) {
+        const iconClass = gameState.employees.logoIcon || 'ph-airplane-tilt';
+        const iconColor = gameState.employees.logoColor || '#0a84ff';
+        emblemEl.style.background = `${iconColor}22`;
+        emblemEl.style.color = iconColor;
+        emblemEl.style.boxShadow = `0 0 30px ${iconColor}44`;
+        emblemEl.innerHTML = `<i class="ph ${iconClass}"></i>`;
+    }
+};
+
+window.renderStats = () => {
+    if (!gameState.stats) return;
+    const s = gameState.stats;
+    const t = gameState.time || { day: 1 };
+
+    // Company age
+    const ageLabel = document.getElementById('stats-company-age');
+    if (ageLabel) {
+        const foundingDay = s.foundingDay || 1;
+        const daysOp = Math.max(0, t.day - foundingDay);
+        ageLabel.innerText = `Operando desde el Día ${foundingDay} — ${daysOp} días en operación`;
+    }
+
+    // KPI cards
+    const safe = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+    const fmt = (n) => new Intl.NumberFormat('es-AR').format(n || 0);
+
+    safe('stat-total-flights', fmt(s.totalFlights));
+    safe('stat-total-pax', fmt(s.totalPassengers));
+    safe('stat-total-revenue', '$' + fmt(s.totalRevenue));
+    safe('stat-fleet-size', gameState.fleet ? gameState.fleet.length : 0);
+
+    // Operations
+    const activeRoutes = gameState.routes ? gameState.routes.filter(r => r.active !== false) : [];
+    const totalFreqs = activeRoutes.reduce((sum, r) => sum + (r.frequencies ? r.frequencies.reduce((s2, f) => s2 + (f.days ? f.days.length : 0), 0) : 0), 0);
+    const inFlight = gameState.activeDispatches ? gameState.activeDispatches.filter(d => d.phase === 'flight').length : 0;
+    const inTurnaround = gameState.activeDispatches ? gameState.activeDispatches.filter(d => d.phase === 'turnaround').length : 0;
+    const daysOps = Math.max(0, t.day - (s.foundingDay || 1));
+
+    safe('stat-routes-created', s.routesCreated || activeRoutes.length);
+    safe('stat-routes-active', activeRoutes.length);
+    safe('stat-frequencies', fmt(totalFreqs));
+    safe('stat-days-ops', daysOps);
+    safe('stat-flights-today', fmt(s.flightsToday || 0));
+    safe('stat-planes-inflight', inFlight);
+    safe('stat-delayed-flights', fmt(s.totalDelayedFlights || 0));
+    const totalForOTP = s.totalFlightsForOTP || s.totalFlights || 0;
+    const delayed = s.totalDelayedFlights || 0;
+    const otp = totalForOTP > 0 ? Math.round((1 - delayed / totalForOTP) * 100) : 100;
+    safe('stat-otp', otp + '%');
+
+    // Passengers by class
+    const totalPax = (s.paxFirst || 0) + (s.paxBusiness || 0) + (s.paxEco || 0) + (s.paxCargo || 0) || 1;
+    safe('stat-pax-first', fmt(s.paxFirst || 0));
+    safe('stat-pax-business', fmt(s.paxBusiness || 0));
+    safe('stat-pax-eco', fmt(s.paxEco || 0));
+    safe('stat-pax-cargo', fmt(s.paxCargo || 0));
+    const setPct = (id, val) => { const el = document.getElementById(id); if(el) el.style.width = Math.round(val / totalPax * 100) + '%'; };
+    setPct('stat-bar-first', s.paxFirst || 0);
+    setPct('stat-bar-business', s.paxBusiness || 0);
+    setPct('stat-bar-eco', s.paxEco || 0);
+    setPct('stat-bar-cargo', s.paxCargo || 0);
+
+    // Fleet
+    const fleet = gameState.fleet || [];
+    safe('stat-fleet-total', fleet.length);
+    safe('stat-fleet-flying', inFlight);
+    safe('stat-fleet-turnaround', inTurnaround);
+    safe('stat-fleet-idle', fleet.length - inFlight - inTurnaround);
+    const modelCount = {};
+    fleet.forEach(p => { modelCount[p.name] = (modelCount[p.name] || 0) + 1; });
+    const topModel = Object.entries(modelCount).sort((a, b) => b[1] - a[1])[0];
+    safe('stat-top-plane', topModel ? `${topModel[0]} ×${topModel[1]}` : '—');
+    const fleetValue = fleet.reduce((sum, p) => sum + (p.price || 0), 0);
+    safe('stat-fleet-value', '$' + fmt(fleetValue));
+
+    // Fuel
+    safe('stat-fuel-used', fmt(s.totalFuelConsumed || 0) + ' L');
+    safe('stat-fuel-reserves', fmt(gameState.fuelReserves || 0) + ' L');
+    safe('stat-fuel-price', '$' + (gameState.fuelPrice || 0).toFixed(2) + '/L');
+    const fuelAvg = s.totalFuelConsumed && s.totalRevenue ? (gameState.fuelPrice || 0).toFixed(2) : '0.00';
+    safe('stat-fuel-avg', '$' + fuelAvg + '/L');
+
+    // Finances
+    safe('stat-current-balance', '$' + fmt(gameState.money));
+    const dailyProfit = typeof getActiveProfit === 'function' ? getActiveProfit() : 0;
+    safe('stat-profit-day', (dailyProfit >= 0 ? '+' : '') + '$' + fmt(dailyProfit));
+    const avgFlightProfit = s.totalFlights > 0 ? Math.round(s.totalRevenue / s.totalFlights) : 0;
+    safe('stat-avg-flight-profit', '$' + fmt(avgFlightProfit));
+    const totalDebt = gameState.loans ? gameState.loans.reduce((sum, l) => sum + l.remainingAmount, 0) : 0;
+    safe('stat-total-debt', '$' + fmt(totalDebt));
+    safe('stat-best-flight', s.bestFlightRoute || '—');
+    // Top route by flight count
+    if (gameState.routes && gameState.routes.length) {
+        const topRoute = [...gameState.routes].sort((a, b) => (b.totalFlights || 0) - (a.totalFlights || 0))[0];
+        safe('stat-best-route', topRoute ? `${topRoute.from} ↔ ${topRoute.to}` : '—');
+    }
+
+    // Destinations
+    const allDests = new Set();
+    (gameState.routes || []).forEach(r => { allDests.add(r.from); allDests.add(r.to); });
+    safe('stat-unique-dests', allDests.size);
+    const destFreq = {};
+    (gameState.routes || []).forEach(r => {
+        destFreq[r.to] = (destFreq[r.to] || 0) + (r.totalFlights || 0);
+    });
+    const topDest = Object.entries(destFreq).sort((a, b) => b[1] - a[1])[0];
+    safe('stat-top-dest', topDest ? topDest[0] : '—');
+    safe('stat-km-flown', fmt(Math.round(s.kmFlown || 0)) + ' km');
+    safe('stat-base', gameState.base ? gameState.base.name : '—');
+
+    // Employees
+    safe('stat-total-employees', gameState.employees && gameState.employees.staff ? Object.values(gameState.employees.staff).reduce((sum, n) => sum + n, 0) : 0);
 };
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -137,10 +137,11 @@
                     </div>
                 </div>
 
-                <div class="bento-grid slide-up">
+                <div class="bento-grid slide-up" id="dashboard-bento-grid">
                     <!-- KPIs REDISEÑADOS -->
                     <!-- Tarjeta Financiera Fusionada (Balance + Beneficio) -->
-                    <div class="bento-box bento-finance-card">
+                    <div class="bento-box bento-finance-card" id="dash-finance-card">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
                         <div class="finance-header">
                             <h3 class="bento-title"><i class="ph-light ph-chart-line-up"></i> Finanzas y Rendimiento</h3>
                             <span class="finance-status-badge" id="dash-finance-status">Operación Estable</span>
@@ -160,32 +161,9 @@
                         </div>
                     </div>
 
-                    <!-- Tarjeta de Flota y Operaciones -->
-                    <div class="bento-box bento-fleet-card" onclick="switchTab('fleet')" style="cursor: pointer;">
-                        <h3 class="bento-title"><i class="ph-light ph-airplane-tilt"></i> Flota y Rutas</h3>
-                        <div class="ops-grid">
-                            <div class="ops-item">
-                                <div class="ops-header">
-                                    <span class="ops-label">Aeronaves</span>
-                                    <span class="ops-value" id="dash-fleet-status">0 / 0</span>
-                                </div>
-                                <div class="ops-progress-bar">
-                                    <div class="ops-progress-fill" id="dash-fleet-progress" style="width: 0%;"></div>
-                                </div>
-                                <span class="ops-subtext" id="dash-fleet-active-text">0 activas en vuelo</span>
-                            </div>
-                            <div class="ops-item" style="margin-top: 14px;">
-                                <div class="ops-header">
-                                    <span class="ops-label">Rutas Activas</span>
-                                    <span class="ops-value" id="dash-routes-count">0</span>
-                                </div>
-                                <span class="ops-subtext" id="dash-routes-weekly-flights">0 vuelos semanales</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Tarjeta de Combustible -->
-                    <div class="bento-box bento-fuel-card" onclick="switchTab('fuel')" style="cursor: pointer;">
+                    <div class="bento-box bento-fuel-card" onclick="switchTab('fuel')" style="cursor: pointer;" id="dash-fuel-card">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
                         <h3 class="bento-title"><i class="ph-light ph-gas-pump"></i> Combustible</h3>
                         <div class="fuel-grid">
                             <div class="fuel-info-row">
@@ -207,41 +185,9 @@
                         </div>
                     </div>
 
-                    <!-- Próximo Vuelo Widget -->
-                    <div class="bento-box bento-live-flight" id="dash-live-flight">
-                        <div class="live-flight-header">
-                            <h3 class="bento-title"><i class="ph-light ph-radar"></i> Vuelo en Curso</h3>
-                            <div class="live-status-pulse" id="dash-live-pulse" style="display: none;"></div>
-                        </div>
-                        <div class="live-flight-content" id="dash-live-content">
-                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:120px; opacity:0.6;">
-                                <i class="ph-light ph-airplane-slash" style="font-size:2rem; margin-bottom:8px; color:var(--text-muted);"></i>
-                                <p class="text-muted text-sm" style="font-weight: 400;">No hay vuelos activos</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="bento-box bento-actions">
-                        <h3 class="bento-title"><i class="ph-light ph-lightning"></i> Acciones Rápidas</h3>
-                        <div class="action-grid">
-                            <button onclick="switchTab('market')" class="action-btn">
-                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-shopping-cart"></i></div>
-                                <span>Mercado</span>
-                            </button>
-                            <button onclick="switchTab('routes')" class="action-btn">
-                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-map-trifold"></i></div>
-                                <span>Rutas</span>
-                            </button>
-                            <button onclick="resetGame()" class="action-btn action-danger">
-                                <div class="action-icon"><i class="ph-light ph-trash"></i></div>
-                                <span>Reiniciar</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Tarjeta de Índice de Retrasos -->
                     <div class="bento-box bento-delay-index" id="dash-delay-index">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
                         <h3 class="bento-title"><i class="ph-light ph-clock-afternoon"></i> Índice de Retrasos</h3>
                         <div class="delay-index-content">
                             <div class="delay-score-container">
@@ -274,8 +220,69 @@
                         </div>
                     </div>
 
+                    <!-- Tarjeta de Flota y Operaciones -->
+                    <div class="bento-box bento-fleet-card" onclick="switchTab('fleet')" style="cursor: pointer;" id="dash-fleet-card">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                        <h3 class="bento-title"><i class="ph-light ph-airplane-tilt"></i> Flota y Rutas</h3>
+                        <div class="ops-grid">
+                            <div class="ops-item">
+                                <div class="ops-header">
+                                    <span class="ops-label">Aeronaves</span>
+                                    <span class="ops-value" id="dash-fleet-status">0 / 0</span>
+                                </div>
+                                <div class="ops-progress-bar">
+                                    <div class="ops-progress-fill" id="dash-fleet-progress" style="width: 0%;"></div>
+                                </div>
+                                <span class="ops-subtext" id="dash-fleet-active-text">0 activas en vuelo</span>
+                            </div>
+                            <div class="ops-item" style="margin-top: 14px;">
+                                <div class="ops-header">
+                                    <span class="ops-label">Rutas Activas</span>
+                                    <span class="ops-value" id="dash-routes-count">0</span>
+                                </div>
+                                <span class="ops-subtext" id="dash-routes-weekly-flights">0 vuelos semanales</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Próximo Vuelo Widget -->
+                    <div class="bento-box bento-live-flight" id="dash-live-flight">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                        <div class="live-flight-header">
+                            <h3 class="bento-title"><i class="ph-light ph-radar"></i> Vuelo en Curso</h3>
+                            <div class="live-status-pulse" id="dash-live-pulse" style="display: none;"></div>
+                        </div>
+                        <div class="live-flight-content" id="dash-live-content">
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:120px; opacity:0.6;">
+                                <i class="ph-light ph-airplane-slash" style="font-size:2rem; margin-bottom:8px; color:var(--text-muted);"></i>
+                                <p class="text-muted text-sm" style="font-weight: 400;">No hay vuelos activos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bento-box bento-actions" id="dash-actions-card">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                        <h3 class="bento-title"><i class="ph-light ph-lightning"></i> Acciones Rápidas</h3>
+                        <div class="action-grid">
+                            <button onclick="switchTab('market')" class="action-btn">
+                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-shopping-cart"></i></div>
+                                <span>Mercado</span>
+                            </button>
+                            <button onclick="switchTab('routes')" class="action-btn">
+                                <div class="action-icon" style="color:var(--text-primary)"><i class="ph-light ph-map-trifold"></i></div>
+                                <span>Rutas</span>
+                            </button>
+                            <button onclick="resetGame()" class="action-btn action-danger">
+                                <div class="action-icon"><i class="ph-light ph-trash"></i></div>
+                                <span>Reiniciar</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Activity Feed -->
-                    <div class="bento-box bento-activity">
+                    <div class="bento-box bento-activity" id="dash-activity-card">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
                         <div class="activity-header">
                             <h3 class="bento-title"><i class="ph-light ph-clock-counter-clockwise"></i> Actividad Reciente</h3>
                         </div>
@@ -433,30 +440,60 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Estadísticas de la cabina (Compactas) -->
-                                    <div class="cabin-stats-compact">
-                                        <div class="stat-pill first-pill">
-                                            <div class="pill-color"></div>
-                                            <div class="pill-info">
-                                                <span class="pill-name">Primera</span>
-                                                <span class="pill-desc">3.5x esp.</span>
+                                    <!-- Tarjetas de Clase y Configuración -->
+                                    <div class="cabin-class-cards-container">
+                                        <!-- Primera Clase -->
+                                        <div class="cabin-class-card card-first">
+                                            <div class="card-header">
+                                                <div class="class-title"><div class="color-dot"></div> Primera</div>
+                                                <div class="class-pitch-text" id="pill-desc-first">3.5x esp.</div>
+                                            </div>
+                                            <div class="card-seats"><span id="cabin-first-seats-card">0</span> <small>pax</small></div>
+                                            <div class="pitch-segmented">
+                                                <input type="radio" id="pitch-first-density" name="pitch-first" value="density" onchange="updatePitch('first', 'density')">
+                                                <label for="pitch-first-density">Densidad</label>
+                                                <input type="radio" id="pitch-first-standard" name="pitch-first" value="standard" checked onchange="updatePitch('first', 'standard')">
+                                                <label for="pitch-first-standard">Estándar</label>
+                                                <input type="radio" id="pitch-first-spacious" name="pitch-first" value="spacious" onchange="updatePitch('first', 'spacious')">
+                                                <label for="pitch-first-spacious">Espacioso</label>
                                             </div>
                                         </div>
-                                        <div class="stat-pill business-pill">
-                                            <div class="pill-color"></div>
-                                            <div class="pill-info">
-                                                <span class="pill-name">Business</span>
-                                                <span class="pill-desc">2.0x esp.</span>
+
+                                        <!-- Business Class -->
+                                        <div class="cabin-class-card card-business">
+                                            <div class="card-header">
+                                                <div class="class-title"><div class="color-dot"></div> Business</div>
+                                                <div class="class-pitch-text" id="pill-desc-business">2.0x esp.</div>
+                                            </div>
+                                            <div class="card-seats"><span id="cabin-business-seats-card">0</span> <small>pax</small></div>
+                                            <div class="pitch-segmented">
+                                                <input type="radio" id="pitch-business-density" name="pitch-business" value="density" onchange="updatePitch('business', 'density')">
+                                                <label for="pitch-business-density">Densidad</label>
+                                                <input type="radio" id="pitch-business-standard" name="pitch-business" value="standard" checked onchange="updatePitch('business', 'standard')">
+                                                <label for="pitch-business-standard">Estándar</label>
+                                                <input type="radio" id="pitch-business-spacious" name="pitch-business" value="spacious" onchange="updatePitch('business', 'spacious')">
+                                                <label for="pitch-business-spacious">Espacioso</label>
                                             </div>
                                         </div>
-                                        <div class="stat-pill eco-pill">
-                                            <div class="pill-color"></div>
-                                            <div class="pill-info">
-                                                <span class="pill-name">Económica</span>
-                                                <span class="pill-desc">1.0x esp.</span>
+
+                                        <!-- Económica Class -->
+                                        <div class="cabin-class-card card-eco">
+                                            <div class="card-header">
+                                                <div class="class-title"><div class="color-dot"></div> Económica</div>
+                                                <div class="class-pitch-text" id="pill-desc-eco">1.0x esp.</div>
+                                            </div>
+                                            <div class="card-seats"><span id="cabin-eco-seats-card">0</span> <small>pax</small></div>
+                                            <div class="pitch-segmented">
+                                                <input type="radio" id="pitch-eco-density" name="pitch-eco" value="density" onchange="updatePitch('eco', 'density')">
+                                                <label for="pitch-eco-density">Densidad</label>
+                                                <input type="radio" id="pitch-eco-standard" name="pitch-eco" value="standard" checked onchange="updatePitch('eco', 'standard')">
+                                                <label for="pitch-eco-standard">Estándar</label>
+                                                <input type="radio" id="pitch-eco-spacious" name="pitch-eco" value="spacious" onchange="updatePitch('eco', 'spacious')">
+                                                <label for="pitch-eco-spacious">Espacioso</label>
                                             </div>
                                         </div>
                                     </div>
+
                                 </div>
                             </div>
 
@@ -586,34 +623,71 @@
 
             <!-- AEROLÍNEA -->
             <div id="view-airline" class="view">
-                <div class="airline-header fade-in">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <h2 id="airline-name-display" style="font-size: 2rem; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">Mi Aerolínea <button class="btn-icon-small" onclick="editAirlineName()"><i class="ph ph-pencil-simple"></i></button></h2>
-                            <p id="airline-motto-display" class="text-muted" style="font-style: italic; display:flex; align-items:center; gap:8px;">"Volando hacia el futuro" <button class="btn-icon-small" onclick="editAirlineMotto()"><i class="ph ph-pencil-simple"></i></button></p>
+                <!-- Brand Panel Card -->
+                <div class="airline-brand-card fade-in">
+                    <div class="airline-brand-top">
+                        <div class="airline-logo-container">
+                            <div id="airline-logo-preview" class="airline-logo-emblem">
+                                <i class="ph ph-airplane-tilt"></i>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="toggleBrandCustomizer()" style="margin-top: 10px; font-size: 0.75rem; padding: 4px 10px; justify-content: center; width: 100%;">
+                                <i class="ph ph-palette"></i> Personalizar
+                            </button>
+                        </div>
+                        <div class="airline-brand-info">
+                            <h2 id="airline-name-display" class="airline-brand-name">--- <button class="btn-icon-small" onclick="editAirlineName()"><i class="ph ph-pencil-simple"></i></button></h2>
+                            <p id="airline-motto-display" class="airline-brand-motto">--- <button class="btn-icon-small" onclick="editAirlineMotto()"><i class="ph ph-pencil-simple"></i></button></p>
+                            
+                            <div class="airline-brand-meta" style="margin-top: 14px; display: flex; gap: 16px; flex-wrap: wrap;">
+                                <span class="text-xs text-secondary" style="display:flex; align-items:center; gap:4px;"><i class="ph ph-map-pin" style="color:var(--accent); font-size: 1rem;"></i> Base: <strong id="airline-base-display" style="color:#fff;">---</strong></span>
+                                <span class="text-xs text-secondary" style="display:flex; align-items:center; gap:4px;"><i class="ph ph-currency-dollar" style="color:#30d158; font-size: 1rem;"></i> Valor Estimado: <strong id="airline-value-display" style="color:#fff;">---</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customizer Drawer -->
+                    <div id="airline-brand-customizer" class="brand-customizer-drawer hidden">
+                        <div class="customizer-section">
+                            <span class="customizer-label">Color Corporativo</span>
+                            <div class="customizer-options">
+                                <button class="color-dot-btn color-blue" onclick="selectBrandColor('#0a84ff', 'color-blue')" title="Azul"></button>
+                                <button class="color-dot-btn color-green" onclick="selectBrandColor('#30d158', 'color-green')" title="Verde"></button>
+                                <button class="color-dot-btn color-yellow" onclick="selectBrandColor('#ffd60a', 'color-yellow')" title="Amarillo"></button>
+                                <button class="color-dot-btn color-orange" onclick="selectBrandColor('#ff9f0a', 'color-orange')" title="Naranja"></button>
+                                <button class="color-dot-btn color-red" onclick="selectBrandColor('#ff453a', 'color-red')" title="Rojo"></button>
+                                <button class="color-dot-btn color-purple" onclick="selectBrandColor('#bf5af2', 'color-purple')" title="Violeta"></button>
+                            </div>
+                        </div>
+                        <div class="customizer-section" style="margin-top: 12px;">
+                            <span class="customizer-label">Logotipo de Aerolínea</span>
+                            <div class="customizer-options">
+                                <button id="icon-btn-ph-airplane-tilt" class="icon-select-btn" onclick="selectBrandIcon('ph-airplane-tilt')" title="Avión"><i class="ph ph-airplane-tilt"></i></button>
+                                <button id="icon-btn-ph-globe" class="icon-select-btn" onclick="selectBrandIcon('ph-globe')" title="Globo"><i class="ph ph-globe"></i></button>
+                                <button id="icon-btn-ph-sparkles" class="icon-select-btn" onclick="selectBrandIcon('ph-sparkles')" title="Destello"><i class="ph ph-sparkles"></i></button>
+                                <button id="icon-btn-ph-shield-checkered" class="icon-select-btn" onclick="selectBrandIcon('ph-shield-checkered')" title="Escudo"><i class="ph ph-shield-checkered"></i></button>
+                                <button id="icon-btn-ph-crown" class="icon-select-btn" onclick="selectBrandIcon('ph-crown')" title="Corona"><i class="ph ph-crown"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="bento-grid slide-up" style="margin-top: 24px;">
-                    <div class="bento-box airline-rating-box">
-                        <h3 class="bento-title"><i class="ph-fill ph-star" style="color: #fbbf24;"></i> Reputación Global</h3>
-                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 16px 0;">
-                            <div style="font-size: 3rem; font-weight: 800; color: #fff; line-height: 1;">4.8</div>
-                            <div style="color: #fbbf24; font-size: 1.5rem; letter-spacing: 4px; margin: 8px 0;">★★★★★</div>
-                            <div class="text-sm text-muted">Excelente nivel de servicio</div>
-                        </div>
+
+                <!-- Bento Grid layout for statistics and actions -->
+                <div class="airline-bento-grid slide-up" style="margin-top: 20px;">
+                    <!-- Reputation Box -->
+                    <div class="bento-box airline-reputation-card" id="airline-reputation-box">
+                        <!-- Rendered dynamically -->
                     </div>
-                    
-                    <div class="bento-box" onclick="switchTab('employees')" style="cursor: pointer; background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(59, 130, 246, 0.08) 100%); transition: all 0.2s; border: 1px solid rgba(59, 130, 246, 0.2);">
-                        <div style="display:flex; flex-direction:column; height:100%; justify-content:center; align-items:center; text-align:center; padding: 16px;">
-                            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(59, 130, 246, 0.1); color: var(--accent); display:flex; align-items:center; justify-content:center; margin-bottom: 12px;">
-                                <i class="ph-fill ph-users-three" style="font-size: 1.8rem;"></i>
-                            </div>
-                            <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 8px;">Gestión de Empleados</h3>
-                            <p class="text-sm text-muted">Contratá y administrá el personal. Fundamental para operar la flota.</p>
-                            <div style="margin-top: 16px; color: var(--accent); font-weight: 600; font-size: 0.9rem; display:flex; align-items:center; gap:4px;">
-                                Ingresar <i class="ph ph-arrow-right"></i>
-                            </div>
+
+                    <!-- Employees Summary Box -->
+                    <div class="bento-box airline-hr-summary-card" onclick="switchTab('employees')" style="cursor: pointer;" id="airline-hr-summary-box">
+                        <!-- Rendered dynamically -->
+                    </div>
+
+                    <!-- Metrics Card -->
+                    <div class="bento-box airline-metrics-card">
+                        <h3 class="bento-title"><i class="ph ph-chart-bar" style="color: var(--accent);"></i> Rendimiento Operativo</h3>
+                        <div class="airline-metrics-grid" id="airline-metrics-grid-content">
+                            <!-- Injected via JS -->
                         </div>
                     </div>
                 </div>
@@ -621,22 +695,428 @@
 
             <!-- EMPLEADOS -->
             <div id="view-employees" class="view">
-                <div class="employees-header fade-in" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+                <div class="employees-header fade-in">
                     <div>
                         <h2><i class="ph ph-users" style="color:var(--accent); margin-right:8px;"></i>Recursos Humanos</h2>
-                        <p class="text-muted" style="margin-top:4px;">Los mínimos requeridos se calculan en base a tu flota, asientos y rutas.</p>
+                        <p class="employees-header-desc">Los mínimos requeridos se calculan en base a tu flota, asientos y rutas.</p>
                     </div>
-                    <div class="employees-total-cost" style="background: rgba(255, 69, 58, 0.1); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 69, 58, 0.2);">
-                        <span class="text-sm" style="color: #ff453a; font-weight:500;">Costo Diario Total:</span>
-                        <div id="emp-total-cost" class="mono" style="color: #ff453a; font-size: 1.4rem; font-weight: 700;">$0</div>
+                    <div class="employees-total-cost">
+                        <span class="employees-total-cost-label">Costo Diario Total</span>
+                        <div id="emp-total-cost" class="mono employees-total-cost-val">$0</div>
                     </div>
                 </div>
-                <div class="employees-status-bar" id="employees-global-status" style="margin-bottom: 24px; padding: 16px; border-radius: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); color: #22c55e; display:flex; align-items:center; gap:12px;">
+                <div class="employees-status-bar" id="employees-global-status">
                     <i class="ph-fill ph-check-circle" style="font-size: 1.5rem;"></i>
                     <span style="font-weight: 500;">Todo el personal mínimo está cubierto. Operaciones normales.</span>
                 </div>
-                <div class="employees-grid slide-up" id="employees-grid" style="display:flex; flex-direction:column; gap:12px;">
+                <div class="employees-grid slide-up" id="employees-grid">
                     <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- MENÚ -->
+            <div id="view-menu" class="view">
+                <div class="menu-screen">
+                    <div class="menu-hero">
+                        <div class="menu-hero-emblem" id="menu-hero-emblem">
+                            <i class="ph ph-airplane-tilt"></i>
+                        </div>
+                        <div class="menu-hero-info">
+                            <h1 class="menu-hero-airline" id="menu-hero-airline-name">Mi Aerolínea</h1>
+                            <p class="menu-hero-subtitle" id="menu-hero-motto">"Volando hacia el futuro"</p>
+                        </div>
+                    </div>
+                    
+                    <div class="menu-section-label">Opciones</div>
+                    <div class="menu-options-grid">
+                        
+                        <!-- Estadísticas -->
+                        <button class="menu-option-card" onclick="switchTab('stats')">
+                            <div class="menu-option-icon" style="background: rgba(10,132,255,0.15); border-color: rgba(10,132,255,0.3);">
+                                <i class="ph ph-chart-bar" style="color: #0a84ff;"></i>
+                            </div>
+                            <div class="menu-option-info">
+                                <span class="menu-option-title">Estadísticas</span>
+                                <span class="menu-option-desc">Historial completo de tu aerolínea</span>
+                            </div>
+                            <i class="ph ph-caret-right menu-option-arrow"></i>
+                        </button>
+
+                        <!-- Tienda / Mejoras -->
+                        <button class="menu-option-card" onclick="switchTab('store')">
+                            <div class="menu-option-icon" style="background: rgba(48,209,88,0.15); border-color: rgba(48,209,88,0.3);">
+                                <i class="ph ph-shopping-bag" style="color: #30d158;"></i>
+                            </div>
+                            <div class="menu-option-info">
+                                <span class="menu-option-title">Tienda de Mejoras</span>
+                                <span class="menu-option-desc">Adquirí licencias y expansiones</span>
+                            </div>
+                            <i class="ph ph-caret-right menu-option-arrow"></i>
+                        </button>
+
+                        <!-- Aerolínea -->
+                        <button class="menu-option-card" onclick="switchTab('airline')">
+                            <div class="menu-option-icon" style="background: rgba(191,90,242,0.15); border-color: rgba(191,90,242,0.3);">
+                                <i class="ph ph-buildings" style="color: #bf5af2;"></i>
+                            </div>
+                            <div class="menu-option-info">
+                                <span class="menu-option-title">Sede Central</span>
+                                <span class="menu-option-desc">Gestioná la marca y finanzas</span>
+                            </div>
+                            <i class="ph ph-caret-right menu-option-arrow"></i>
+                        </button>
+                        
+                    </div>
+                    <div class="menu-version-tag">Airline Simulator ProEdition</div>
+                </div>
+            </div>
+
+            <!-- ESTADÍSTICAS -->
+            <div id="view-stats" class="view">
+                <div class="stats-screen">
+
+                    <!-- Header -->
+                    <div class="stats-top-bar">
+                        <div class="stats-top-bar-left">
+                            <div class="stats-top-icon"><i class="ph-fill ph-chart-bar"></i></div>
+                            <div>
+                                <h2 class="stats-main-title">Estadísticas</h2>
+                                <p class="stats-company-age" id="stats-company-age">Cargando...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI Hero Row -->
+                    <div class="stats-kpi-row">
+                        <div class="stats-kpi-card" style="--kpi-color: #30d158; --kpi-bg: rgba(48,209,88,0.08);">
+                            <div class="stats-kpi-icon-wrap"><i class="ph-fill ph-paper-plane-tilt"></i></div>
+                            <div class="stats-kpi-body">
+                                <div class="stats-kpi-value" id="stat-total-flights">0</div>
+                                <div class="stats-kpi-label">Vuelos Totales</div>
+                            </div>
+                        </div>
+                        <div class="stats-kpi-card" style="--kpi-color: #0a84ff; --kpi-bg: rgba(10,132,255,0.08);">
+                            <div class="stats-kpi-icon-wrap"><i class="ph-fill ph-users"></i></div>
+                            <div class="stats-kpi-body">
+                                <div class="stats-kpi-value" id="stat-total-pax">0</div>
+                                <div class="stats-kpi-label">Pasajeros</div>
+                            </div>
+                        </div>
+                        <div class="stats-kpi-card" style="--kpi-color: #ffd60a; --kpi-bg: rgba(255,214,10,0.08);">
+                            <div class="stats-kpi-icon-wrap"><i class="ph-fill ph-currency-dollar"></i></div>
+                            <div class="stats-kpi-body">
+                                <div class="stats-kpi-value" id="stat-total-revenue">$0</div>
+                                <div class="stats-kpi-label">Ingresos Totales</div>
+                            </div>
+                        </div>
+                        <div class="stats-kpi-card" style="--kpi-color: #bf5af2; --kpi-bg: rgba(191,90,242,0.08);">
+                            <div class="stats-kpi-icon-wrap"><i class="ph-fill ph-airplane-tilt"></i></div>
+                            <div class="stats-kpi-body">
+                                <div class="stats-kpi-value" id="stat-fleet-size">0</div>
+                                <div class="stats-kpi-label">Aeronaves</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Bento Grid -->
+                    <div class="stats-bento">
+
+                        <!-- Operaciones -->
+                        <div class="stats-card stats-card-wide">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#0a84ff; background:rgba(10,132,255,0.1);"><i class="ph-fill ph-chart-line-up"></i></span>
+                                <h3 class="stats-card-title">Operaciones</h3>
+                            </div>
+                            <div class="stats-detail-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Rutas Creadas</span>
+                                    <span class="stats-detail-val" id="stat-routes-created">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Rutas Activas</span>
+                                    <span class="stats-detail-val" id="stat-routes-active">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Frecuencias Semanales</span>
+                                    <span class="stats-detail-val" id="stat-frequencies">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Días Operando</span>
+                                    <span class="stats-detail-val" id="stat-days-ops">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Vuelos Hoy</span>
+                                    <span class="stats-detail-val" id="stat-flights-today">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">En Vuelo Ahora</span>
+                                    <span class="stats-detail-val" style="color:#30d158;" id="stat-planes-inflight">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Vuelos con Demora</span>
+                                    <span class="stats-detail-val" style="color:#ff453a;" id="stat-delayed-flights">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">OTP (Puntualidad)</span>
+                                    <span class="stats-detail-val" style="color:#30d158;" id="stat-otp">100%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Finanzas -->
+                        <div class="stats-card stats-card-wide">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#ffd60a; background:rgba(255,214,10,0.1);"><i class="ph-fill ph-bank"></i></span>
+                                <h3 class="stats-card-title">Finanzas</h3>
+                            </div>
+                            <div class="stats-detail-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Saldo Actual</span>
+                                    <span class="stats-detail-val" style="color:#30d158;" id="stat-current-balance">$0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Ingreso Estimado / Día</span>
+                                    <span class="stats-detail-val" id="stat-profit-day">$0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Ganancia Prom. por Vuelo</span>
+                                    <span class="stats-detail-val" id="stat-avg-flight-profit">$0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Deuda Total</span>
+                                    <span class="stats-detail-val" style="color:#ff453a;" id="stat-total-debt">$0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Vuelo Más Rentable</span>
+                                    <span class="stats-detail-val" id="stat-best-flight">—</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Ruta Más Rentable</span>
+                                    <span class="stats-detail-val" id="stat-best-route">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pasajeros por Clase -->
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#bf5af2; background:rgba(191,90,242,0.1);"><i class="ph-fill ph-seat"></i></span>
+                                <h3 class="stats-card-title">Pasajeros por Clase</h3>
+                            </div>
+                            <div class="stats-class-bars">
+                                <div class="stats-class-row">
+                                    <div class="stats-class-header">
+                                        <span class="stats-class-label"><i class="ph-fill ph-crown" style="color:#ffd60a"></i> Primera</span>
+                                        <span class="stats-class-count" id="stat-pax-first">0</span>
+                                    </div>
+                                    <div class="stats-bar-track"><div class="stats-bar-fill" style="background:linear-gradient(90deg,#ffd60a,#ff9f0a);" id="stat-bar-first" style="width:0%"></div></div>
+                                </div>
+                                <div class="stats-class-row">
+                                    <div class="stats-class-header">
+                                        <span class="stats-class-label"><i class="ph-fill ph-briefcase" style="color:#bf5af2"></i> Business</span>
+                                        <span class="stats-class-count" id="stat-pax-business">0</span>
+                                    </div>
+                                    <div class="stats-bar-track"><div class="stats-bar-fill" style="background:linear-gradient(90deg,#bf5af2,#9b59b6);" id="stat-bar-business" style="width:0%"></div></div>
+                                </div>
+                                <div class="stats-class-row">
+                                    <div class="stats-class-header">
+                                        <span class="stats-class-label"><i class="ph-fill ph-seat" style="color:#0a84ff"></i> Económica</span>
+                                        <span class="stats-class-count" id="stat-pax-eco">0</span>
+                                    </div>
+                                    <div class="stats-bar-track"><div class="stats-bar-fill" style="background:linear-gradient(90deg,#0a84ff,#0066cc);" id="stat-bar-eco" style="width:0%"></div></div>
+                                </div>
+                                <div class="stats-class-row">
+                                    <div class="stats-class-header">
+                                        <span class="stats-class-label"><i class="ph-fill ph-package" style="color:#ff9f0a"></i> Carga</span>
+                                        <span class="stats-class-count" id="stat-pax-cargo">0</span>
+                                    </div>
+                                    <div class="stats-bar-track"><div class="stats-bar-fill" style="background:linear-gradient(90deg,#ff9f0a,#e67e22);" id="stat-bar-cargo" style="width:0%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flota -->
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#30d158; background:rgba(48,209,88,0.1);"><i class="ph-fill ph-airplane-tilt"></i></span>
+                                <h3 class="stats-card-title">Flota</h3>
+                            </div>
+                            <div class="stats-detail-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Total Aeronaves</span>
+                                    <span class="stats-detail-val" id="stat-fleet-total">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">En Vuelo</span>
+                                    <span class="stats-detail-val" style="color:#30d158;" id="stat-fleet-flying">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">En Turnaround</span>
+                                    <span class="stats-detail-val" style="color:#ffd60a;" id="stat-fleet-turnaround">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Disponibles</span>
+                                    <span class="stats-detail-val" id="stat-fleet-idle">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Modelo Más Usado</span>
+                                    <span class="stats-detail-val" id="stat-top-plane">—</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Valor Estimado Flota</span>
+                                    <span class="stats-detail-val" style="color:#30d158;" id="stat-fleet-value">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Destinos y Red -->
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#ff9f0a; background:rgba(255,159,10,0.1);"><i class="ph-fill ph-map-pin"></i></span>
+                                <h3 class="stats-card-title">Red de Destinos</h3>
+                            </div>
+                            <div class="stats-detail-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Destinos Únicos</span>
+                                    <span class="stats-detail-val" id="stat-unique-dests">0</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Destino Top</span>
+                                    <span class="stats-detail-val" id="stat-top-dest">—</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">KM Volados</span>
+                                    <span class="stats-detail-val" id="stat-km-flown">0 km</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Base Principal</span>
+                                    <span class="stats-detail-val" id="stat-base">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Combustible -->
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#ff453a; background:rgba(255,69,58,0.1);"><i class="ph-fill ph-gas-pump"></i></span>
+                                <h3 class="stats-card-title">Combustible</h3>
+                            </div>
+                            <div class="stats-detail-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Total Consumido</span>
+                                    <span class="stats-detail-val" id="stat-fuel-used">0 L</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Reservas Actuales</span>
+                                    <span class="stats-detail-val" id="stat-fuel-reserves">0 L</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Precio Actual</span>
+                                    <span class="stats-detail-val" id="stat-fuel-price">$0/L</span>
+                                </div>
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Precio Promedio</span>
+                                    <span class="stats-detail-val" id="stat-fuel-avg">$0/L</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal -->
+                        <div class="stats-card">
+                            <div class="stats-card-header">
+                                <span class="stats-card-icon" style="color:#64d2ff; background:rgba(100,210,255,0.1);"><i class="ph-fill ph-users-three"></i></span>
+                                <h3 class="stats-card-title">Personal</h3>
+                            </div>
+                            <div class="stats-detail-grid" id="stat-employees-grid">
+                                <div class="stats-detail-item">
+                                    <span class="stats-detail-label">Total Empleados</span>
+                                    <span class="stats-detail-val" id="stat-total-employees">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /stats-bento -->
+                </div><!-- /stats-screen -->
+            </div><!-- /view-stats -->
+
+            <!-- TIENDA / MEJORAS -->
+            <div id="view-store" class="view">
+                <div class="store-screen fade-in">
+                    <!-- Hero header -->
+                    <div class="store-hero-header">
+                        <div class="store-hero-left">
+                            <h2 class="store-main-title"><i class="ph-fill ph-shopping-bag" style="color: #30d158;"></i> Tienda de Mejoras</h2>
+                            <p class="store-subtitle">Invertí en el desarrollo y expansión de tu aerolínea.</p>
+                        </div>
+                        <div class="store-hero-right">
+                            <div class="store-balance-badge" onclick="openBankModal()">
+                                <i class="ph ph-vault"></i> <span id="store-current-balance">$0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="store-grid" id="store-items-grid">
+                        <!-- Prioridad ATC -->
+                        <div class="store-item-card" id="upgrade-atc">
+                            <div class="store-item-icon" style="color: #0a84ff; background: rgba(10,132,255,0.1);">
+                                <i class="ph-fill ph-radar"></i>
+                            </div>
+                            <div class="store-item-content">
+                                <h3>Prioridad ATC VIP</h3>
+                                <p>Reduce significativamente los tiempos de espera y demoras en todos los aeropuertos. Mejor OTP.</p>
+                                <div class="store-item-action">
+                                    <span class="store-item-price mono">$5,000,000</span>
+                                    <button class="btn btn-primary" onclick="buyUpgrade('atcPriority', 5000000)">Adquirir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Satisfacción del Pasajero -->
+                        <div class="store-item-card" id="upgrade-pax">
+                            <div class="store-item-icon" style="color: #ffd60a; background: rgba(255,214,10,0.1);">
+                                <i class="ph-fill ph-star"></i>
+                            </div>
+                            <div class="store-item-content">
+                                <h3>Experiencia Premium</h3>
+                                <p>Aumenta la satisfacción base de todos los pasajeros. Mayor disposición a pagar tarifas más altas.</p>
+                                <div class="store-item-action">
+                                    <span class="store-item-price mono">$10,000,000</span>
+                                    <button class="btn btn-primary" onclick="buyUpgrade('paxSatisfaction', 10000000)">Adquirir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nuevo Hub -->
+                        <div class="store-item-card" id="upgrade-hub">
+                            <div class="store-item-icon" style="color: #bf5af2; background: rgba(191,90,242,0.1);">
+                                <i class="ph-fill ph-buildings"></i>
+                            </div>
+                            <div class="store-item-content">
+                                <h3>Concesión Nuevo Hub</h3>
+                                <p>Obtén permisos legales para establecer un segundo hub operativo y expandir drásticamente tu red.</p>
+                                <div class="store-item-action">
+                                    <span class="store-item-price mono">$50,000,000</span>
+                                    <button class="btn btn-primary" onclick="buyUpgrade('extraHubs', 50000000)">Adquirir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mercado Militar -->
+                        <div class="store-item-card" id="upgrade-military">
+                            <div class="store-item-icon" style="color: #ff453a; background: rgba(255,69,58,0.1);">
+                                <i class="ph-fill ph-crosshair"></i>
+                            </div>
+                            <div class="store-item-content">
+                                <h3>Licencia Militar</h3>
+                                <p>Desbloquea el acceso al mercado de aeronaves militares y contratos gubernamentales exclusivos.</p>
+                                <div class="store-item-action">
+                                    <span class="store-item-price mono">$25,000,000</span>
+                                    <button class="btn btn-primary" onclick="buyUpgrade('militaryAccess', 25000000)">Adquirir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 
@@ -660,7 +1140,7 @@
                 <i class="ph ph-buildings"></i>
                 <span>Aerolínea</span>
             </button>
-            <button onclick="alert('Menú próximamente')" id="bottom-tab-menu" class="bottom-nav-btn">
+            <button onclick="switchTab('menu')" id="bottom-tab-menu" class="bottom-nav-btn">
                 <i class="ph ph-list"></i>
                 <span>Menú</span>
             </button>
@@ -853,11 +1333,20 @@
             
             <div id="fd-actions" class="ticket-actions hidden">
                 <!-- Actions injected dynamically -->
-            </div>
-        </div>
     </div>
 
-
+    <!-- BANNER DE EDICIÓN BENTO -->
+    <div id="bento-edit-banner" class="bento-edit-banner">
+        <div class="edit-banner-content">
+            <span class="edit-banner-message">
+                <i class="ph-fill ph-grid-nine" style="color: var(--accent);"></i> 
+                <strong>Modo Personalización:</strong> Arrastrá las tarjetas para reorganizarlas.
+            </span>
+            <button class="btn-edit-done" onclick="exitBentoEditMode()">
+                <i class="ph-bold ph-check"></i> Listo
+            </button>
+        </div>
+    </div>
 
     <script>
         document.write('<script src="script.js?v=' + new Date().getTime() + '"><\/script>');
