@@ -1,4 +1,4 @@
-
+﻿
 window.toggleFlvCard = (headerEl) => {
     const card = headerEl.closest('.flv-card');
     if (!card) return;
@@ -38,6 +38,7 @@ const AIRPORTS = [
    El fuselaje usa el gradiente 'fuseBase' para mantenerlo blanco realista 3D.
 */
 const AIRCRAFT_MODELS = [
+
     { 
         id: 'c208', name: 'Cessna 208 Caravan', type: 'Regional Ligero', category: 'commercial', price: 2500000, capacity: 14, maxSeats: 14, range: 1980, dailyProfit: 18000, defaultColor: '#ef4444',
         modelUrl: 'models/Cesium_Air.glb',
@@ -65,7 +66,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="320" y="70" width="35" height="25" rx="3" fill="url(#glass)"/><rect x="380" y="70" width="35" height="25" rx="3" fill="url(#glass)"/>
                 <rect x="440" y="70" width="35" height="25" rx="3" fill="url(#glass)"/><rect x="500" y="70" width="35" height="25" rx="3" fill="url(#glass)"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1.5
     },
     { 
         id: 'e190', name: 'Embraer E190', type: 'Regional Jet', category: 'commercial', price: 50000000, capacity: 114, maxSeats: 114, range: 4537, dailyProfit: 135000, defaultColor: '#2563eb',
@@ -102,7 +103,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="195" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="2"/>
                 <rect x="760" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="2"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b737', name: 'Boeing 737 MAX 8', type: 'Medio Alcance', category: 'commercial', price: 122000000, capacity: 178, maxSeats: 210, range: 6570, dailyProfit: 445000, defaultColor: '#0ea5e9',
@@ -142,7 +143,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="185" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
                 <rect x="750" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a320', name: 'Airbus A320neo', type: 'Corto Alcance', category: 'commercial', price: 111000000, capacity: 165, maxSeats: 195, range: 6300, dailyProfit: 410000, defaultColor: '#10b981',
@@ -179,7 +180,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="180" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
                 <rect x="760" y="90" width="16" height="35" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b787', name: 'Boeing 787-9 Dreamliner', type: 'Largo Alcance', category: 'commercial', price: 293000000, capacity: 290, maxSeats: 420, range: 14140, dailyProfit: 1050000, defaultColor: '#8b5cf6',
@@ -213,7 +214,7 @@ const AIRCRAFT_MODELS = [
                 <!-- Ventanas Grandes Dreamliner -->
                 <line x1="200" y1="110" x2="750" y2="110" stroke="url(#glass)" stroke-width="8" stroke-dasharray="6 14" />
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a350', name: 'Airbus A350-900', type: 'Largo Alcance', category: 'commercial', price: 317000000, capacity: 315, maxSeats: 440, range: 15000, dailyProfit: 1150000, defaultColor: '#6366f1',
@@ -249,7 +250,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="400" y="90" width="18" height="40" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
                 <rect x="790" y="90" width="18" height="40" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'f22', name: 'Lockheed Martin F-22 Raptor', type: 'Caza Furtivo', category: 'military', price: 150000000, capacity: 1, maxSeats: 1, range: 2960, dailyProfit: 250000, defaultColor: '#475569',
@@ -269,7 +270,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 100 130 L 50 140 L 150 145 Z" fill="currentColor"/>
                 <path d="M 180 125 L 280 120 L 300 100 L 200 105 Z" fill="url(#glass)"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'p40', name: 'Curtiss P-40 Warhawk', type: 'Caza Histórico', category: 'military', price: 4000000, capacity: 1, maxSeats: 1, range: 1100, dailyProfit: 35000, defaultColor: '#4d7c0f',
@@ -279,7 +280,7 @@ const AIRCRAFT_MODELS = [
             <g transform="translate(100, 100)">
                 <path d="M 100 50 L 500 50 L 600 0 L 700 0 L 700 50 L 800 50 L 800 100 L 100 100 Z" fill="currentColor"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1.5
     },
     { 
         id: 'rq4', name: 'RQ-4 Global Hawk (Dron Militar)', type: 'Vigilancia Avanzada', category: 'military', price: 130000000, capacity: 0, maxSeats: 0, range: 22780, dailyProfit: 180000, defaultColor: '#94a3b8',
@@ -289,7 +290,7 @@ const AIRCRAFT_MODELS = [
             <g transform="translate(100, 100)">
                 <path d="M 100 50 L 500 50 L 600 0 L 700 0 L 700 50 L 800 50 L 800 100 L 100 100 Z" fill="currentColor"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b2', name: 'Northrop Grumman B-2 Spirit', type: 'Bombardero Furtivo', category: 'military', price: 2000000000, capacity: 2, maxSeats: 2, range: 11100, dailyProfit: 450000, defaultColor: '#1e293b',
@@ -301,7 +302,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 100 50 L 400 40 L 700 35 L 850 40 L 900 60 L 800 65 L 500 65 L 200 60 L 100 50 Z" fill="currentColor"/>
                 <path d="M 250 45 L 350 40 L 450 45 Z" fill="url(#glass)"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b1', name: 'Rockwell B-1 Lancer', type: 'Bombardero Estratégico', category: 'military', price: 283000000, capacity: 4, maxSeats: 4, range: 11998, dailyProfit: 300000, defaultColor: '#64748b',
@@ -318,7 +319,7 @@ const AIRCRAFT_MODELS = [
                 <!-- Cockpit -->
                 <path d="M 150 65 L 250 60 L 300 60 L 200 65 Z" fill="url(#glass)"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b52', name: 'Boeing B-52 Stratofortress', type: 'Bombardero Pesado', category: 'military', price: 84000000, capacity: 5, maxSeats: 5, range: 14200, dailyProfit: 250000, defaultColor: '#4b5563',
@@ -338,7 +339,7 @@ const AIRCRAFT_MODELS = [
                 <!-- Cockpit -->
                 <path d="M 100 55 L 150 50 L 200 50 Z" fill="url(#glass)"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a310_mrtt', name: 'Airbus A310 MRTT', type: 'Transporte Militar', category: 'military', price: 150000000, capacity: 187, maxSeats: 214, range: 13000, dailyProfit: 600000, defaultColor: '#708090',
@@ -352,7 +353,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 420 145 L 560 145 L 670 230 L 480 230 Z" fill="url(#fuseBase)" />
                 <rect x="360" y="135" width="90" height="45" rx="22" fill="currentColor" opacity="0.9" />
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a380', name: 'Airbus A380 Superjumbo', type: 'Largo Alcance Pesado', category: 'commercial', price: 446000000, capacity: 525, maxSeats: 853, range: 15200, dailyProfit: 1800000, defaultColor: '#1a365d',
@@ -372,7 +373,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="350" y="140" width="80" height="40" rx="20" fill="currentColor" opacity="0.95" />
                 <rect x="420" y="160" width="70" height="35" rx="17" fill="currentColor" opacity="0.85" />
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'f15', name: 'McDonnell Douglas F-15 Eagle', type: 'Caza de Superioridad', category: 'military', price: 30000000, capacity: 1, maxSeats: 1, range: 4800, dailyProfit: 120000, defaultColor: '#78909c',
@@ -386,7 +387,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 720 120 L 780 30 L 850 30 L 830 120 Z" fill="currentColor" />
                 <path d="M 450 135 L 650 210 L 750 210 L 700 135 Z" fill="currentColor" opacity="0.8"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'f35', name: 'Lockheed Martin F-35 Lightning II', type: 'Caza Polivalente Furtivo', category: 'military', price: 85000000, capacity: 1, maxSeats: 1, range: 2800, dailyProfit: 220000, defaultColor: '#37474f',
@@ -400,7 +401,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 680 120 L 750 40 L 820 40 L 800 120 Z" fill="currentColor" />
                 <path d="M 400 135 L 580 215 L 680 215 L 640 135 Z" fill="currentColor" opacity="0.8"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'fjets_lowpoly', name: 'Caza Polivalente Low-Poly', type: 'Caza Ligero', category: 'military', price: 15000000, capacity: 1, maxSeats: 1, range: 2200, dailyProfit: 80000, defaultColor: '#0f766e',
@@ -412,7 +413,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 680 125 L 740 45 L 800 45 L 780 125 Z" fill="currentColor" />
                 <path d="M 420 135 L 570 205 L 660 205 L 620 135 Z" fill="currentColor" opacity="0.8"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a340', name: 'Airbus A340-600', type: 'Largo Alcance Cuatrimotor', category: 'commercial', price: 275000000, capacity: 380, maxSeats: 475, range: 14450, dailyProfit: 950000, defaultColor: '#0f172a',
@@ -429,7 +430,7 @@ const AIRCRAFT_MODELS = [
                 <rect x="420" y="130" width="70" height="35" rx="17" fill="currentColor" opacity="0.9" />
                 <rect x="490" y="145" width="60" height="30" rx="15" fill="currentColor" opacity="0.8" />
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'mig35', name: 'Mikoyan MiG-35', type: 'Caza Multirrol', category: 'military', price: 40000000, capacity: 1, maxSeats: 1, range: 2000, dailyProfit: 110000, defaultColor: '#546e7a',
@@ -441,7 +442,7 @@ const AIRCRAFT_MODELS = [
                 <path d="M 670 122 L 730 42 L 790 42 L 770 122 Z" fill="currentColor" />
                 <path d="M 410 135 L 560 210 L 650 210 L 610 135 Z" fill="currentColor" opacity="0.8"/>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
 
     { 
@@ -453,7 +454,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a319', name: 'Airbus A319', type: 'Corto Alcance', category: 'commercial', price: 90000000, capacity: 124, maxSeats: 156, range: 6950, dailyProfit: 320000, defaultColor: '#10b981',
@@ -464,7 +465,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a321', name: 'Airbus A321neo', type: 'Medio Alcance', category: 'commercial', price: 129000000, capacity: 206, maxSeats: 240, range: 7400, dailyProfit: 500000, defaultColor: '#10b981',
@@ -475,7 +476,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a332', name: 'Airbus A330-200', type: 'Largo Alcance', category: 'commercial', price: 238000000, capacity: 246, maxSeats: 406, range: 13450, dailyProfit: 800000, defaultColor: '#3b82f6',
@@ -486,7 +487,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a333', name: 'Airbus A330-300', type: 'Largo Alcance', category: 'commercial', price: 264000000, capacity: 277, maxSeats: 440, range: 11750, dailyProfit: 850000, defaultColor: '#3b82f6',
@@ -497,7 +498,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a338', name: 'Airbus A330-800neo', type: 'Largo Alcance', category: 'commercial', price: 260000000, capacity: 257, maxSeats: 406, range: 15090, dailyProfit: 900000, defaultColor: '#3b82f6',
@@ -508,7 +509,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a339', name: 'Airbus A330-900neo', type: 'Largo Alcance', category: 'commercial', price: 296000000, capacity: 287, maxSeats: 440, range: 13330, dailyProfit: 950000, defaultColor: '#3b82f6',
@@ -519,7 +520,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a343', name: 'Airbus A340-300', type: 'Largo Alcance', category: 'commercial', price: 238000000, capacity: 277, maxSeats: 440, range: 13500, dailyProfit: 750000, defaultColor: '#8b5cf6',
@@ -530,7 +531,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a346', name: 'Airbus A340-600', type: 'Largo Alcance Pesado', category: 'commercial', price: 275000000, capacity: 326, maxSeats: 475, range: 14450, dailyProfit: 900000, defaultColor: '#8b5cf6',
@@ -541,7 +542,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'a351', name: 'Airbus A350-1000', type: 'Largo Alcance Pesado', category: 'commercial', price: 366000000, capacity: 369, maxSeats: 480, range: 16100, dailyProfit: 1300000, defaultColor: '#6366f1',
@@ -552,7 +553,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
 
     { 
@@ -564,7 +565,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b734', name: 'Boeing 737-400', type: 'Corto Alcance', category: 'commercial', price: 40000000, capacity: 146, maxSeats: 188, range: 3800, dailyProfit: 250000, defaultColor: '#0ea5e9',
@@ -575,7 +576,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b738', name: 'Boeing 737-800', type: 'Medio Alcance', category: 'commercial', price: 106000000, capacity: 162, maxSeats: 189, range: 5436, dailyProfit: 350000, defaultColor: '#0ea5e9',
@@ -586,7 +587,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b744', name: 'Boeing 747-400', type: 'Largo Alcance Pesado', category: 'commercial', price: 240000000, capacity: 416, maxSeats: 660, range: 13450, dailyProfit: 800000, defaultColor: '#0ea5e9',
@@ -597,7 +598,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b748', name: 'Boeing 747-8 Intercontinental', type: 'Largo Alcance Pesado', category: 'commercial', price: 418000000, capacity: 467, maxSeats: 605, range: 14320, dailyProfit: 1200000, defaultColor: '#0ea5e9',
@@ -608,7 +609,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b752', name: 'Boeing 757-200', type: 'Medio Alcance', category: 'commercial', price: 65000000, capacity: 200, maxSeats: 239, range: 7222, dailyProfit: 350000, defaultColor: '#0ea5e9',
@@ -619,7 +620,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b763', name: 'Boeing 767-300ER', type: 'Largo Alcance', category: 'commercial', price: 197000000, capacity: 218, maxSeats: 350, range: 11090, dailyProfit: 550000, defaultColor: '#0ea5e9',
@@ -630,7 +631,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b772', name: 'Boeing 777-200ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 306000000, capacity: 313, maxSeats: 440, range: 13080, dailyProfit: 950000, defaultColor: '#0ea5e9',
@@ -641,7 +642,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b773', name: 'Boeing 777-300ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 375000000, capacity: 396, maxSeats: 550, range: 13649, dailyProfit: 1300000, defaultColor: '#0ea5e9',
@@ -652,7 +653,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b779', name: 'Boeing 777-9', type: 'Largo Alcance Pesado', category: 'commercial', price: 442000000, capacity: 426, maxSeats: 550, range: 13500, dailyProfit: 1500000, defaultColor: '#0ea5e9',
@@ -663,7 +664,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'e170', name: 'Embraer E170', type: 'Regional Jet', category: 'commercial', price: 35000000, capacity: 66, maxSeats: 78, range: 3982, dailyProfit: 95000, defaultColor: '#2563eb',
@@ -674,7 +675,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'e175', name: 'Embraer E175', type: 'Regional Jet', category: 'commercial', price: 40000000, capacity: 76, maxSeats: 88, range: 4074, dailyProfit: 105000, defaultColor: '#2563eb',
@@ -685,7 +686,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'e195', name: 'Embraer E195', type: 'Regional Jet', category: 'commercial', price: 55000000, capacity: 118, maxSeats: 124, range: 4260, dailyProfit: 145000, defaultColor: '#2563eb',
@@ -696,7 +697,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'e190e2', name: 'Embraer E190-E2', type: 'Regional Jet', category: 'commercial', price: 60000000, capacity: 106, maxSeats: 114, range: 5278, dailyProfit: 165000, defaultColor: '#2563eb',
@@ -707,7 +708,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'erj145', name: 'Embraer ERJ-145', type: 'Regional Jet', category: 'commercial', price: 15000000, capacity: 50, maxSeats: 50, range: 2870, dailyProfit: 75000, defaultColor: '#2563eb',
@@ -718,7 +719,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'crj2', name: 'Bombardier CRJ-200', type: 'Regional Jet', category: 'commercial', price: 12000000, capacity: 50, maxSeats: 50, range: 3148, dailyProfit: 70000, defaultColor: '#64748b',
@@ -729,7 +730,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'crj7', name: 'Bombardier CRJ-700', type: 'Regional Jet', category: 'commercial', price: 24000000, capacity: 78, maxSeats: 78, range: 2553, dailyProfit: 90000, defaultColor: '#64748b',
@@ -740,7 +741,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'crj9', name: 'Bombardier CRJ-900', type: 'Regional Jet', category: 'commercial', price: 46000000, capacity: 90, maxSeats: 90, range: 2871, dailyProfit: 110000, defaultColor: '#64748b',
@@ -751,7 +752,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a221', name: 'Airbus A220-100', type: 'Regional Jet', category: 'commercial', price: 81000000, capacity: 116, maxSeats: 135, range: 6390, dailyProfit: 180000, defaultColor: '#10b981',
@@ -762,7 +763,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a223', name: 'Airbus A220-300', type: 'Medio Alcance', category: 'commercial', price: 91000000, capacity: 140, maxSeats: 160, range: 6297, dailyProfit: 220000, defaultColor: '#10b981',
@@ -773,7 +774,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'atr42', name: 'ATR 42-600', type: 'Turbohélice Regional', category: 'commercial', price: 20000000, capacity: 48, maxSeats: 50, range: 1326, dailyProfit: 50000, defaultColor: '#f59e0b',
@@ -784,7 +785,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'atr72', name: 'ATR 72-600', type: 'Turbohélice Regional', category: 'commercial', price: 26000000, capacity: 72, maxSeats: 78, range: 1528, dailyProfit: 70000, defaultColor: '#f59e0b',
@@ -795,7 +796,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'md80', name: 'McDonnell Douglas MD-80', type: 'Corto Alcance', category: 'commercial', price: 15000000, capacity: 155, maxSeats: 172, range: 2897, dailyProfit: 180000, defaultColor: '#ef4444',
@@ -806,7 +807,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'md11', name: 'McDonnell Douglas MD-11', type: 'Largo Alcance Pesado', category: 'commercial', price: 85000000, capacity: 298, maxSeats: 410, range: 12633, dailyProfit: 450000, defaultColor: '#ef4444',
@@ -817,7 +818,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
 
     { 
@@ -829,7 +830,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'a321xlr', name: 'Airbus A321XLR', type: 'Largo Alcance Estrecho', category: 'commercial', price: 142000000, capacity: 200, maxSeats: 244, range: 8700, dailyProfit: 550000, defaultColor: '#10b981',
@@ -840,7 +841,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b707', name: 'Boeing 707-320B', type: 'Clásico Largo Alcance', category: 'commercial', price: 15000000, capacity: 141, maxSeats: 189, range: 9300, dailyProfit: 150000, defaultColor: '#0ea5e9',
@@ -851,7 +852,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b727', name: 'Boeing 727-200', type: 'Clásico Medio Alcance', category: 'commercial', price: 10000000, capacity: 145, maxSeats: 189, range: 3500, dailyProfit: 120000, defaultColor: '#0ea5e9',
@@ -862,7 +863,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b737_700', name: 'Boeing 737-700', type: 'Corto Alcance', category: 'commercial', price: 89000000, capacity: 126, maxSeats: 149, range: 6230, dailyProfit: 280000, defaultColor: '#0ea5e9',
@@ -873,7 +874,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'b737_900er', name: 'Boeing 737-900ER', type: 'Medio Alcance', category: 'commercial', price: 112000000, capacity: 177, maxSeats: 215, range: 5460, dailyProfit: 380000, defaultColor: '#0ea5e9',
@@ -884,7 +885,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b737_max9', name: 'Boeing 737 MAX 9', type: 'Medio Alcance', category: 'commercial', price: 128000000, capacity: 193, maxSeats: 220, range: 6500, dailyProfit: 460000, defaultColor: '#0ea5e9',
@@ -895,7 +896,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b737_max10', name: 'Boeing 737 MAX 10', type: 'Medio Alcance', category: 'commercial', price: 134000000, capacity: 204, maxSeats: 230, range: 6110, dailyProfit: 500000, defaultColor: '#0ea5e9',
@@ -906,7 +907,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b767_400er', name: 'Boeing 767-400ER', type: 'Largo Alcance Pesado', category: 'commercial', price: 220000000, capacity: 245, maxSeats: 375, range: 10415, dailyProfit: 600000, defaultColor: '#0ea5e9',
@@ -917,7 +918,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b777_200lr', name: 'Boeing 777-200LR', type: 'Ultra Largo Alcance', category: 'commercial', price: 346000000, capacity: 317, maxSeats: 440, range: 15843, dailyProfit: 1000000, defaultColor: '#0ea5e9',
@@ -928,7 +929,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b787_8', name: 'Boeing 787-8 Dreamliner', type: 'Largo Alcance', category: 'commercial', price: 248000000, capacity: 242, maxSeats: 359, range: 13620, dailyProfit: 950000, defaultColor: '#8b5cf6',
@@ -939,7 +940,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'b787_10', name: 'Boeing 787-10 Dreamliner', type: 'Largo Alcance Pesado', category: 'commercial', price: 338000000, capacity: 330, maxSeats: 440, range: 11910, dailyProfit: 1150000, defaultColor: '#8b5cf6',
@@ -950,7 +951,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'l1011', name: 'Lockheed L-1011 TriStar', type: 'Clásico Pesado', category: 'commercial', price: 35000000, capacity: 256, maxSeats: 400, range: 7410, dailyProfit: 250000, defaultColor: '#94a3b8',
@@ -961,7 +962,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'c130', name: 'Lockheed C-130 Hercules', type: 'Transporte Militar/Cargo', category: 'military', price: 30000000, capacity: 92, maxSeats: 92, range: 3800, dailyProfit: 150000, defaultColor: '#4b5563',
@@ -972,7 +973,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'an124', name: 'Antonov An-124 Ruslan', type: 'Carga Súper Pesada', category: 'cargo', price: 150000000, capacity: 0, maxSeats: 88, range: 15000, dailyProfit: 1200000, defaultColor: '#eab308',
@@ -983,7 +984,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'an225', name: 'Antonov An-225 Mriya', type: 'Carga Ultra Pesada', category: 'cargo', price: 300000000, capacity: 0, maxSeats: 70, range: 15400, dailyProfit: 2500000, defaultColor: '#eab308',
@@ -994,7 +995,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'tu154', name: 'Tupolev Tu-154', type: 'Clásico Medio Alcance', category: 'commercial', price: 15000000, capacity: 164, maxSeats: 180, range: 5280, dailyProfit: 180000, defaultColor: '#ef4444',
@@ -1005,7 +1006,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'il76', name: 'Ilyushin Il-76', type: 'Carga Pesada / Militar', category: 'cargo', price: 50000000, capacity: 0, maxSeats: 140, range: 4400, dailyProfit: 400000, defaultColor: '#94a3b8',
@@ -1016,7 +1017,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'ssj100', name: 'Sukhoi Superjet 100', type: 'Regional Jet', category: 'commercial', price: 35000000, capacity: 87, maxSeats: 108, range: 4578, dailyProfit: 110000, defaultColor: '#2563eb',
@@ -1027,7 +1028,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'conc', name: 'Aerospatiale/BAC Concorde', type: 'Supersónico Comercial', category: 'commercial', price: 200000000, capacity: 100, maxSeats: 128, range: 7222, dailyProfit: 2000000, defaultColor: '#f8fafc',
@@ -1038,7 +1039,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 0.8
     },
     { 
         id: 'g650', name: 'Gulfstream G650', type: 'Jet de Negocios VIP', category: 'commercial', price: 65000000, capacity: 18, maxSeats: 19, range: 12960, dailyProfit: 300000, defaultColor: '#334155',
@@ -1049,7 +1050,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'citx', name: 'Cessna Citation X', type: 'Jet de Negocios Rápido', category: 'commercial', price: 23000000, capacity: 9, maxSeats: 12, range: 6408, dailyProfit: 150000, defaultColor: '#334155',
@@ -1060,7 +1061,7 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     },
     { 
         id: 'glob6k', name: 'Bombardier Global 6000', type: 'Jet de Negocios VIP', category: 'commercial', price: 62000000, capacity: 13, maxSeats: 17, range: 11112, dailyProfit: 280000, defaultColor: '#334155',
@@ -1071,8 +1072,9 @@ const AIRCRAFT_MODELS = [
                 <line x1="-21" y1="-21" x2="21" y2="21" stroke="currentColor" stroke-width="2" opacity="0.4"/>
                 <text x="0" y="55" text-anchor="middle" fill="currentColor" opacity="0.4" font-family="sans-serif" font-size="12" font-weight="300" letter-spacing="1">SIN MODELO VISUAL</text>
             </g>
-        </svg>`
+        </svg>`, maintFactor: 1
     }
+
 ];
 
 const AIRCRAFT_SPECS_LOOKUP = {
@@ -1371,6 +1373,17 @@ const loadGame = () => {
         fillMoneyHistory();
 
         if (!gameState.upgrades) gameState.upgrades = { atcPriority: false, paxSatisfaction: false, extraHubs: 0, militaryAccess: false };
+        
+        if (!gameState.dailyRatings) gameState.dailyRatings = [];
+        if (gameState.airlineRating === undefined) gameState.airlineRating = 3.0;
+
+        // Initialize flight hours for backwards compatibility
+        if (gameState.fleet) {
+            gameState.fleet.forEach(plane => {
+                if (plane.flightHours === undefined) plane.flightHours = 0;
+            });
+        }
+
         if (!gameState.stats) gameState.stats = {
             totalFlights: 0, totalPassengers: 0, totalRevenue: 0,
             totalFuelConsumed: 0, paxFirst: 0, paxBusiness: 0, paxEco: 0, paxCargo: 0,
@@ -1429,7 +1442,10 @@ const formatMoneyShort = (amount) => {
     if (abs >= 1_000)         return `${sign}$${(abs / 1_000).toFixed(0)}K`;
     return `${sign}$${abs}`;
 };
-const formatTime = (h, m) => `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+const formatTime = (h, m) => {
+    if (h === undefined || m === undefined) return '--:--';
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
 const getDayName = (dayIndex) => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][(dayIndex - 1) % 7];
 const generateRegistration = () => { const l = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; const c = () => l[Math.floor(Math.random() * l.length)]; return `LV-${c()}${c()}${c()}`; };
 
@@ -1577,7 +1593,7 @@ window.setHeaderBack = function(action, text) {
 
 const switchTab = (tab) => {
     // Hide all views
-    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'routes', 'history', 'planner', 'aircraft-detail', 'bank', 'airline', 'employees', 'menu', 'stats', 'store'].forEach(t => {
+    ['dashboard', 'market', 'fleet', 'fuel', 'flights', 'routes', 'history', 'planner', 'aircraft-detail', 'bank', 'airline', 'employees', 'menu', 'stats', 'store', 'maintenance', 'maintenance-detail', 'passenger-reviews'].forEach(t => {
         const view = document.getElementById(`view-${t}`);
         if(view) {
             view.classList.remove('view-active');
@@ -1630,6 +1646,8 @@ const switchTab = (tab) => {
     if (tab === 'employees') bottomTabId = 'airline';
     if (tab === 'stats') bottomTabId = 'menu';
     if (tab === 'store') bottomTabId = 'menu';
+    if (tab === 'maintenance' || tab === 'maintenance-detail') bottomTabId = 'menu';
+    if (tab === 'passenger-reviews') bottomTabId = 'dashboard';
     const activeBottomBtn = document.getElementById(`bottom-tab-${bottomTabId}`);
     if(activeBottomBtn) activeBottomBtn.className = 'bottom-nav-btn active';
 
@@ -1651,6 +1669,8 @@ const switchTab = (tab) => {
     if(tab === 'menu') { if(window.renderMenuScreen) window.renderMenuScreen(); }
     if(tab === 'stats') { if(window.renderStats) window.renderStats(); }
     if(tab === 'store') { if(window.updateStoreUI) window.updateStoreUI(); }
+    if(tab === 'maintenance') { if(window.renderMaintenance) window.renderMaintenance(); }
+    if(tab === 'passenger-reviews') { renderPassengerReviewsScreen(); }
     
     // Update header back button logic
     if (tab === 'dashboard' || tab === 'flights' || tab === 'menu') {
@@ -1675,6 +1695,10 @@ const switchTab = (tab) => {
         if (window.setHeaderBack) window.setHeaderBack(() => switchTab('menu'), 'al Menú');
     } else if (tab === 'store') {
         if (window.setHeaderBack) window.setHeaderBack(() => switchTab('menu'), 'al Menú');
+    } else if (tab === 'maintenance') {
+        if (window.setHeaderBack) window.setHeaderBack(() => switchTab('menu'), 'al Menú');
+    } else if (tab === 'maintenance-detail') {
+        if (window.setHeaderBack) window.setHeaderBack(() => switchTab('maintenance'), 'a Mantenimiento');
     }
     
     saveGame();
@@ -2032,6 +2056,7 @@ const buyAircraft = (modelId, customLiveryData = null, qty = 1) => {
                 ...model, 
                 id: Math.random().toString(36).substr(2, 9), 
                 registration: registration,
+                flightHours: 0,
                 customLivery: customLiveryData,
                 savedColor: model.defaultColor, // Fallback
                 location: gameState.base ? gameState.base.id : 'EZE'
@@ -2060,184 +2085,452 @@ const liveryEditor = {
     ctx: null,
     isDrawing: false,
     modelViewer: null,
-    textureUrl: null,
+    paintOverlay: null,
     textureObj: null,
     currentMode: 'camera',
-    
+    _pendingApply: false,
+    _lastU: null,
+    _lastV: null,
+    _materialColors: {},
+    _debugLogged: false,
+    // Maps THREE.js material UUID -> model-viewer material index
+    _uuidToMatIdx: null,
+
     open: function(modelId) {
         this.activeModelId = modelId;
         const model = AIRCRAFT_MODELS.find(m => m.id === modelId);
-    if (!model) return;
+        if (!model) return;
 
-    const qtySelector = document.querySelector('.quantity-selector');
-    if (qtySelector) qtySelector.style.display = 'flex';
-    const qtyInput = document.getElementById('buy-qty-input');
-    if (qtyInput) qtyInput.value = 1;
-    window.activeDetailModelPrice = model.price;
-        
+        const qtySelector = document.querySelector('.quantity-selector');
+        if (qtySelector) qtySelector.style.display = 'flex';
+        const qtyInput = document.getElementById('buy-qty-input');
+        if (qtyInput) qtyInput.value = 1;
+        window.activeDetailModelPrice = model.price;
+
         document.getElementById('livery-editor').classList.remove('hidden');
         this.setMode('camera');
-        
+        this._materialColors = {};
+        this._debugLogged = false;
+        this._uuidToMatIdx = null;
+
         const container = document.getElementById('livery-viewer-container');
         if (model.modelUrl) {
-            container.innerHTML = `<model-viewer id="livery-mv" src="${model.modelUrl}" loading="lazy" auto-rotate camera-controls shadow-intensity="1" exposure="1.2" environment-image="neutral" style="width:100%;height:100%;"></model-viewer>`;
+            container.innerHTML = `
+                <div style="position:relative;width:100%;height:100%;">
+                    <model-viewer id="livery-mv" src="${model.modelUrl}" loading="lazy" auto-rotate camera-controls shadow-intensity="1" exposure="1.2" environment-image="neutral" style="width:100%;height:100%;display:block;"></model-viewer>
+                    <div id="livery-paint-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;cursor:crosshair;z-index:10;touch-action:none;user-select:none;"></div>
+                </div>`;
             this.modelViewer = document.getElementById('livery-mv');
+            this.paintOverlay = document.getElementById('livery-paint-overlay');
             this.modelViewer.addEventListener('load', () => this.setupCanvas());
         } else {
-            container.innerHTML = `<div class="flex items-center justify-center h-full w-full"><p class="text-white text-center">Este modelo no admite edición en 3D todavía.</p></div>`;
+            container.innerHTML = `<div class="flex items-center justify-center h-full w-full"><p class="text-white text-center">Este modelo no admite edicion en 3D todavia.</p></div>`;
             this.modelViewer = null;
+            this.paintOverlay = null;
         }
     },
-    
+
     close: function() {
+        this._removeEvents();
         document.getElementById('livery-editor').classList.add('hidden');
         this.activeModelId = null;
         this.modelViewer = null;
+        this.paintOverlay = null;
         this.canvas = null;
         this.textureObj = null;
+        this._lastU = null;
+        this._lastV = null;
+        this.isDrawing = false;
+        this._materialColors = {};
+        this._uuidToMatIdx = null;
     },
-    
+
     setMode: function(mode) {
         this.currentMode = mode;
         document.getElementById('btn-mode-camera').className = mode === 'camera' ? 'livery-mode-btn active' : 'livery-mode-btn';
         document.getElementById('btn-mode-paint').className = mode === 'paint' ? 'livery-mode-btn active' : 'livery-mode-btn';
-        
+
         if (this.modelViewer) {
             if (mode === 'paint') {
                 this.modelViewer.removeAttribute('camera-controls');
-                this.modelViewer.style.touchAction = 'none';
+                this.modelViewer.removeAttribute('auto-rotate');
+                this.modelViewer.style.cursor = 'crosshair';
             } else {
                 this.modelViewer.setAttribute('camera-controls', '');
-                this.modelViewer.style.touchAction = 'auto';
+                this.modelViewer.setAttribute('auto-rotate', '');
+                this.modelViewer.style.cursor = 'grab';
             }
         }
+        if (this.paintOverlay) {
+            this.paintOverlay.style.display = mode === 'paint' ? 'block' : 'none';
+        }
+        this.isDrawing = false;
+        this._lastU = null;
+        this._lastV = null;
     },
-    
+
     setupCanvas: function() {
         if (!this.modelViewer) return;
-        
+
         this.canvas = document.createElement('canvas');
         this.canvas.width = 2048;
         this.canvas.height = 2048;
         this.ctx = this.canvas.getContext('2d');
-        
-        // Fill white initially
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fillRect(0, 0, 2048, 2048);
-        document.getElementById('livery-base-color').value = '#ffffff';
-        
-        this.applyTexture();
+        const baseColorEl = document.getElementById('livery-base-color');
+        if (baseColorEl) baseColorEl.value = '#ffffff';
+
+        // Build UUID -> material index map for faster lookup
+        this._buildMaterialMap();
         this.setupEvents();
     },
-    
-    applyTexture: async function() {
-        if (!this.modelViewer || !this.canvas) return;
-        const url = this.canvas.toDataURL('image/png');
-        
+
+    // Build a mapping from THREE.js material UUID to model-viewer material index
+    // This lets us identify exactly which material was hit via surface.node.material
+    _buildMaterialMap: function() {
+        this._uuidToMatIdx = {};
+        if (!this.modelViewer || !this.modelViewer.model) return;
+        const mvMats = this.modelViewer.model.materials;
+        if (!mvMats) return;
+
+        // Walk the scene graph to find all Three.js meshes and their materials
+        // model-viewer exposes the scene via its internal structure
+        // We probe the scene by looking at all symbols on the model-viewer element
+        // to find the Three.js scene object
         try {
-            if (!this.textureObj) {
-                this.textureObj = await this.modelViewer.createTexture(url);
-                if (this.modelViewer.model && this.modelViewer.model.materials) {
-                    this.modelViewer.model.materials.forEach(mat => {
-                        if(mat.name.toLowerCase().includes('glass') || mat.name.toLowerCase().includes('window')) return;
-                        mat.pbrMetallicRoughness.setBaseColorFactor([1,1,1,1]);
-                        if (mat.pbrMetallicRoughness.baseColorTexture) {
-                            mat.pbrMetallicRoughness.baseColorTexture.setTexture(this.textureObj);
+            const symbols = Object.getOwnPropertySymbols(this.modelViewer);
+            for (const sym of symbols) {
+                const val = this.modelViewer[sym];
+                if (val && typeof val === 'object' && val.scene) {
+                    const scene = val.scene;
+                    scene.traverse(obj => {
+                        if (obj.isMesh) {
+                            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                            mats.forEach(m => {
+                                if (!m) return;
+                                // Try to match by name
+                                const mvMat = mvMats.find(mm => mm.name === m.name);
+                                if (mvMat) {
+                                    this._uuidToMatIdx[m.uuid] = mvMats.indexOf(mvMat);
+                                }
+                            });
                         }
                     });
-                }
-            } else {
-                if (this.textureObj.source && this.textureObj.source.setURI) {
-                    await this.textureObj.source.setURI(url);
-                } else {
-                    // Fallback
-                    this.textureObj = await this.modelViewer.createTexture(url);
-                    this.modelViewer.model.materials.forEach(mat => {
-                        if(mat.name.toLowerCase().includes('glass') || mat.name.toLowerCase().includes('window')) return;
-                        if (mat.pbrMetallicRoughness.baseColorTexture) {
-                            mat.pbrMetallicRoughness.baseColorTexture.setTexture(this.textureObj);
-                        }
-                    });
+                    break;
                 }
             }
         } catch(e) {
-            console.error("Error applying texture:", e);
+            // Scene access failed, fall back to name-based matching
+        }
+
+        console.log('[LiveryEditor] Material map built:', this._uuidToMatIdx);
+        console.log('[LiveryEditor] Model-viewer materials:', mvMats.map((m,i) => `[${i}] "${m.name}"`));
+    },
+
+    // --- TEXTURE APPROACH ---
+    applyTexture: async function() {
+        if (!this.modelViewer || !this.canvas) return;
+        const url = this.canvas.toDataURL('image/png');
+        try {
+            if (!this.textureObj) {
+                this.textureObj = await this.modelViewer.createTexture(url);
+            } else if (this.textureObj.source && this.textureObj.source.setURI) {
+                await this.textureObj.source.setURI(url);
+            } else {
+                this.textureObj = await this.modelViewer.createTexture(url);
+            }
+
+            if (this.modelViewer.model && this.modelViewer.model.materials) {
+                for (const mat of this.modelViewer.model.materials) {
+                    const n = mat.name.toLowerCase();
+                    if (n.includes('glass') || n.includes('window')) continue;
+                    const pbr = mat.pbrMetallicRoughness;
+                    // Keep the base color factor white so texture shows correctly
+                    pbr.setBaseColorFactor([1, 1, 1, 1]);
+                    if (pbr.baseColorTexture) {
+                        pbr.baseColorTexture.setTexture(this.textureObj);
+                    } else if (typeof pbr.setBaseColorTexture === 'function') {
+                        await pbr.setBaseColorTexture(this.textureObj);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('applyTexture error:', e);
         }
     },
-    
-    fillBaseColor: function() {
-        if (!this.ctx) return;
-        const color = document.getElementById('livery-base-color').value;
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.applyTexture();
-    },
-    
-    setupEvents: function() {
-        if (!this.modelViewer) return;
-        
-        let lastU = null, lastV = null;
-        
-        const drawOnCanvas = (event) => {
-            if (this.currentMode !== 'paint') return;
-            
-            const surface = this.modelViewer.surfaceFromPoint(event.clientX, event.clientY);
-            
-            if (!surface) return;
-            if (!surface.uv) return;
-            
-            const uvX = surface.uv.u !== undefined ? surface.uv.u : (surface.uv.x !== undefined ? surface.uv.x : surface.uv[0]);
-            const uvY = surface.uv.v !== undefined ? surface.uv.v : (surface.uv.y !== undefined ? surface.uv.y : surface.uv[1]);
-            
-            if (uvX === undefined || uvY === undefined) return;
-            
-            const textInput = document.getElementById('livery-text-input').value;
-            const u = uvX * this.canvas.width;
-            const v = (1 - uvY) * this.canvas.height;
-            
-            if (textInput && event.type === 'pointerdown') {
-                // Draw text
-                const fontSize = document.getElementById('livery-text-size').value || 60;
-                const textColor = document.getElementById('livery-text-color').value;
-                this.ctx.font = `bold ${fontSize}px sans-serif`;
-                this.ctx.fillStyle = textColor;
-                this.ctx.fillText(textInput, u, v);
-                document.getElementById('livery-text-input').value = ''; // clear
+
+    _scheduleApply: function() {
+        if (!this._pendingApply) {
+            this._pendingApply = true;
+            requestAnimationFrame(() => {
+                this._pendingApply = false;
                 this.applyTexture();
+            });
+        }
+    },
+
+    fillBaseColor: function() {
+        if (!this.modelViewer) return;
+        const color = document.getElementById('livery-base-color').value;
+        const [r, g, b] = this._hexToLinear(color);
+
+        if (this.modelViewer.model && this.modelViewer.model.materials) {
+            this.modelViewer.model.materials.forEach(mat => {
+                const n = mat.name.toLowerCase();
+                if (n.includes('glass') || n.includes('window')) return;
+                mat.pbrMetallicRoughness.setBaseColorFactor([r, g, b, 1]);
+                this._materialColors[mat.name] = [r, g, b, 1];
+            });
+        }
+
+        if (this.ctx) {
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.applyTexture();
+        }
+    },
+
+    resetColors: function() {
+        if (!this.modelViewer || !this.modelViewer.model) return;
+        this._materialColors = {};
+        this.modelViewer.model.materials.forEach(mat => {
+            const n = mat.name.toLowerCase();
+            if (n.includes('glass') || n.includes('window')) return;
+            mat.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+        });
+        if (this.ctx) {
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.textureObj = null;
+            this.applyTexture();
+        }
+        const statusEl = document.getElementById('livery-paint-status');
+        if (statusEl) statusEl.style.display = 'none';
+    },
+
+    _hexToLinear: function(hex) {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        const toLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        return [toLinear(r), toLinear(g), toLinear(b)];
+    },
+
+    _getUV: function(surface) {
+        if (!surface || !surface.uv) return null;
+        const uv = surface.uv;
+        const u = uv.u !== undefined ? uv.u : (uv.x !== undefined ? uv.x : (Array.isArray(uv) ? uv[0] : null));
+        const v = uv.v !== undefined ? uv.v : (uv.y !== undefined ? uv.y : (Array.isArray(uv) ? uv[1] : null));
+        if (u === null || v === null || isNaN(u) || isNaN(v)) return null;
+        return { u, v };
+    },
+
+    _paintDot: function(u, v, size, color) {
+        this.ctx.beginPath();
+        this.ctx.arc(u, v, size / 2, 0, Math.PI * 2);
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+    },
+
+    _paintStroke: function(u1, v1, u2, v2, size, color) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(u1, v1);
+        this.ctx.lineTo(u2, v2);
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = size;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.stroke();
+    },
+
+    // Find the model-viewer material for a THREE.js material
+    _findMvMat: function(threeMat) {
+        if (!threeMat || !this.modelViewer || !this.modelViewer.model) return null;
+        const mvMats = this.modelViewer.model.materials;
+        if (!mvMats) return null;
+
+        // Method 1: UUID map (built during setup)
+        if (this._uuidToMatIdx && this._uuidToMatIdx[threeMat.uuid] !== undefined) {
+            return mvMats[this._uuidToMatIdx[threeMat.uuid]];
+        }
+
+        // Method 2: Match by name
+        if (threeMat.name) {
+            const byName = mvMats.find(m => m.name === threeMat.name);
+            if (byName) return byName;
+        }
+
+        return null;
+    },
+
+    // --- CORE PAINT ACTION ---
+    _doPaint: function(clientX, clientY) {
+        if (!this.modelViewer) return;
+        const brushSize = parseInt(document.getElementById('livery-brush-size').value) || 20;
+        const brushColor = document.getElementById('livery-brush-color').value;
+
+        const surface = this.modelViewer.surfaceFromPoint(clientX, clientY);
+        if (!surface) {
+            this._lastU = null;
+            this._lastV = null;
+            return;
+        }
+
+        // One-time diagnostics
+        if (!this._debugLogged) {
+            this._debugLogged = true;
+            const node = surface.node;
+            const threeMat = node ? (Array.isArray(node.material) ? node.material[0] : node.material) : null;
+            console.log('[LiveryEditor] surface keys:', Object.keys(surface));
+            console.log('[LiveryEditor] node name:', node?.name);
+            console.log('[LiveryEditor] THREE material name:', threeMat?.name);
+            console.log('[LiveryEditor] THREE material uuid:', threeMat?.uuid);
+            console.log('[LiveryEditor] surface.uv:', surface.uv);
+            if (this.modelViewer.model?.materials) {
+                console.log('[LiveryEditor] MV materials:', this.modelViewer.model.materials.map((m, i) => ({
+                    idx: i, name: m.name, hasTexSlot: !!m.pbrMetallicRoughness.baseColorTexture
+                })));
+            }
+        }
+
+        const [r, g, b] = this._hexToLinear(brushColor);
+        let paintedSection = false;
+
+        // --- STRATEGY 1: Identify the specific material from surface.node ---
+        if (surface.node && this.modelViewer.model) {
+            const node = surface.node;
+            const mats = Array.isArray(node.material) ? node.material : [node.material];
+
+            for (const threeMat of mats) {
+                if (!threeMat) continue;
+                const mvMat = this._findMvMat(threeMat);
+
+                if (mvMat) {
+                    const n = mvMat.name.toLowerCase();
+                    if (!n.includes('glass') && !n.includes('window')) {
+                        mvMat.pbrMetallicRoughness.setBaseColorFactor([r, g, b, 1]);
+                        this._materialColors[mvMat.name] = [r, g, b, 1];
+                        const statusEl = document.getElementById('livery-paint-status');
+                        const sectionEl = document.getElementById('livery-paint-section');
+                        if (statusEl) statusEl.style.display = 'block';
+                        if (sectionEl) sectionEl.textContent = mvMat.name || 'Seccion';
+                        paintedSection = true;
+                    }
+                } else if (threeMat) {
+                    // Model-viewer material not found, paint THREE.js material directly
+                    // This handles models where names don't match
+                    const n = (threeMat.name || '').toLowerCase();
+                    if (!n.includes('glass') && !n.includes('window')) {
+                        threeMat.color.setRGB(r, g, b);
+                        threeMat.needsUpdate = true;
+                        const statusEl = document.getElementById('livery-paint-status');
+                        const sectionEl = document.getElementById('livery-paint-section');
+                        if (statusEl) statusEl.style.display = 'block';
+                        if (sectionEl) sectionEl.textContent = threeMat.name || node.name || 'Seccion';
+                        paintedSection = true;
+                    }
+                }
+            }
+        }
+
+        // --- STRATEGY 2: UV canvas painting ---
+        if (this.canvas && this.ctx) {
+            const uv = this._getUV(surface);
+            if (uv) {
+                const px = uv.u * this.canvas.width;
+                const py = (1 - uv.v) * this.canvas.height;
+                if (this._lastU !== null) {
+                    this._paintStroke(this._lastU, this._lastV, px, py, brushSize, brushColor);
+                } else {
+                    this._paintDot(px, py, brushSize, brushColor);
+                }
+                this._lastU = px;
+                this._lastV = py;
+                this._scheduleApply();
                 return;
             }
-            
-            if (event.type === 'pointerdown' && !textInput) {
-                this.isDrawing = true;
-                lastU = u; lastV = v;
-            } else if (event.type === 'pointermove' && this.isDrawing) {
-                const brushSize = document.getElementById('livery-brush-size').value || 10;
-                const brushColor = document.getElementById('livery-brush-color').value;
-                
-                this.ctx.beginPath();
-                this.ctx.moveTo(lastU, lastV);
-                this.ctx.lineTo(u, v);
-                this.ctx.strokeStyle = brushColor;
-                this.ctx.lineWidth = brushSize;
-                this.ctx.lineCap = 'round';
-                this.ctx.stroke();
-                
-                lastU = u; lastV = v;
-                // Throttle texture update for performance
-                if(Math.random() > 0.5) this.applyTexture(); 
-            } else if (event.type === 'pointerup') {
+        }
+
+        this._lastU = null;
+        this._lastV = null;
+    },
+
+    // --- TEXT STAMP ---
+    _doStampText: function(clientX, clientY) {
+        const textInput = (document.getElementById('livery-text-input').value || '').trim();
+        if (!textInput || !this.canvas || !this.ctx) return false;
+
+        const surface = this.modelViewer.surfaceFromPoint(clientX, clientY);
+        const uv = this._getUV(surface);
+        if (!uv) return false;
+
+        const px = uv.u * this.canvas.width;
+        const py = (1 - uv.v) * this.canvas.height;
+        const fontSize = parseInt(document.getElementById('livery-text-size').value) || 60;
+        const textColor = document.getElementById('livery-text-color').value;
+        this.ctx.font = `bold ${fontSize}px sans-serif`;
+        this.ctx.fillStyle = textColor;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(textInput, px, py);
+        document.getElementById('livery-text-input').value = '';
+        this._scheduleApply();
+        return true;
+    },
+
+    _removeEvents: function() {
+        if (this._overlayHandlers && this.paintOverlay) {
+            this.paintOverlay.removeEventListener('pointerdown', this._overlayHandlers.down);
+            this.paintOverlay.removeEventListener('pointermove', this._overlayHandlers.move);
+            this.paintOverlay.removeEventListener('pointerup', this._overlayHandlers.up);
+        }
+        if (this._overlayHandlers && this._overlayHandlers.windowUp) {
+            window.removeEventListener('pointerup', this._overlayHandlers.windowUp);
+        }
+        this._overlayHandlers = null;
+    },
+
+    setupEvents: function() {
+        if (!this.paintOverlay) return;
+        this._removeEvents();
+
+        const onDown = (e) => {
+            e.preventDefault();
+            if (this._doStampText(e.clientX, e.clientY)) return;
+            this.isDrawing = true;
+            this._lastU = null;
+            this._lastV = null;
+            this._doPaint(e.clientX, e.clientY);
+        };
+
+        const onMove = (e) => {
+            e.preventDefault();
+            if (!this.isDrawing) return;
+            this._doPaint(e.clientX, e.clientY);
+        };
+
+        const onUp = () => {
+            if (!this.isDrawing) return;
+            this.isDrawing = false;
+            this._lastU = null;
+            this._lastV = null;
+        };
+
+        const onWindowUp = () => {
+            if (this.isDrawing) {
                 this.isDrawing = false;
-                this.applyTexture();
+                this._lastU = null;
+                this._lastV = null;
             }
         };
-        
-        this.modelViewer.addEventListener('pointerdown', drawOnCanvas);
-        this.modelViewer.addEventListener('pointermove', drawOnCanvas);
-        window.addEventListener('pointerup', () => { 
-            if(this.isDrawing) { this.isDrawing = false; this.applyTexture(); }
-        });
+
+        this._overlayHandlers = { down: onDown, move: onMove, up: onUp, windowUp: onWindowUp };
+        this.paintOverlay.addEventListener('pointerdown', onDown, { passive: false });
+        this.paintOverlay.addEventListener('pointermove', onMove, { passive: false });
+        this.paintOverlay.addEventListener('pointerup', onUp, { passive: false });
+        window.addEventListener('pointerup', onWindowUp);
     },
-    
+
     save: function() {
         if (!this.activeModelId) return;
         const liveryData = this.canvas ? this.canvas.toDataURL('image/png') : null;
@@ -2389,7 +2682,7 @@ window.renderFuelChart = () => {
     });
     
     const isUp = historySlice.length > 1 && historySlice[historySlice.length - 1] > historySlice[0];
-    const lineColor = isUp ? '#ff453a' : '#30d158'; 
+    const lineColor = isUp ? '#d32f2f' : '#30d158'; 
     const gradientColorStart = isUp ? 'rgba(255, 69, 58, 0.5)' : 'rgba(48, 209, 88, 0.5)';
     const gradientColorEnd = isUp ? 'rgba(255, 69, 58, 0.0)' : 'rgba(48, 209, 88, 0.0)';
 
@@ -2666,7 +2959,7 @@ window.renderBankChart = () => {
     });
     
     const isUp = historySlice.length > 1 && historySlice[historySlice.length - 1] > historySlice[0];
-    const lineColor = isUp ? '#30d158' : '#ff453a'; // Green if up, Red if down
+    const lineColor = isUp ? '#30d158' : '#d32f2f'; // Green if up, Red if down
     const gradientColorStart = isUp ? 'rgba(48, 209, 88, 0.5)' : 'rgba(255, 69, 58, 0.5)';
     const gradientColorEnd = isUp ? 'rgba(48, 209, 88, 0.0)' : 'rgba(255, 69, 58, 0.0)';
 
@@ -2929,11 +3222,15 @@ const renderFleet = () => {
     });
 };
 
-const simulatePassengers = (seatsEco, seatsBusiness, seatsFirst, model, destId, flightHour = 12, isSimulation = true) => {
-    // Variables base (para el futuro se pueden conectar a gameState)
-    const airlineRating = 5.0; // 0 a 5 estrellas
+const simulatePassengers = (seatsEco, seatsBusiness, seatsFirst, model, destId, flightHour = 12, isSimulation = true, routeMultiplier = 1.0) => {
+    const isMilitary = model.category === 'military' || model.category === 'cargo';
+    if (isMilitary) return { eco: 0, business: 0, first: 0, total: 0 }; // No passengers
+
+    const airlineRating = gameState.airlineRating || 3.0; // 1.0 a 5.0
     const marketingLevel = 1.0; // 0.0 a 1.0
-    const priceCompetitiveness = 1.0; // 1.0 es ideal
+    // Higher price -> lower demand. 
+    let priceCompetitiveness = 1.0 - (routeMultiplier - 1.0);
+    priceCompetitiveness = Math.max(0.1, Math.min(2.0, priceCompetitiveness));
 
     // 1. Demanda Base
     let baseDemand = (airlineRating / 5.0) * marketingLevel * priceCompetitiveness;
@@ -2969,7 +3266,7 @@ const simulatePassengers = (seatsEco, seatsBusiness, seatsFirst, model, destId, 
     };
 };
 
-const calculateFlightProfit = (model, distance, destId, freq = null, plane = null, isSimulation = true, flightHour = 12) => {
+const calculateFlightProfit = (model, distance, destId, freq = null, plane = null, isSimulation = true, flightHour = 12, routeMultiplier = 1.0) => {
     // Sistema Avanzado de Ganancias por Clase y Pasajeros Reales
     
     // 1. Multiplicador de destino para precios
@@ -2994,16 +3291,16 @@ const calculateFlightProfit = (model, distance, destId, freq = null, plane = nul
         const maxSeatsEco = Math.floor(spaceEco / 1);
 
         // Pasajeros reales usando el simulador probabilístico
-        const pax = simulatePassengers(maxSeatsEco, maxSeatsBusiness, maxSeatsFirst, model, destId, flightHour, isSimulation);
+        const pax = simulatePassengers(maxSeatsEco, maxSeatsBusiness, maxSeatsFirst, model, destId, flightHour, isSimulation, routeMultiplier);
 
         // Precios base y yields (precio por km)
         const baseEco = 40; const yieldEco = 0.10 * destMultiplier;
         const baseBus = 150; const yieldBus = 0.28 * destMultiplier;
         const baseFir = 400; const yieldFir = 0.65 * destMultiplier;
 
-        const ticketEco = baseEco + (distance * yieldEco);
-        const ticketBus = baseBus + (distance * yieldBus);
-        const ticketFir = baseFir + (distance * yieldFir);
+        const ticketEco = (baseEco + (distance * yieldEco)) * routeMultiplier;
+        const ticketBus = (baseBus + (distance * yieldBus)) * routeMultiplier;
+        const ticketFir = (baseFir + (distance * yieldFir)) * routeMultiplier;
 
         // CASM (Cost per Available Seat Mile/Km)
         let casm = 0.15; 
@@ -3071,7 +3368,8 @@ const getActiveProfit = () => {
                 // Estimación prorrateada diaria de esta frecuencia
                 const assignedPlaneId = f.assignedPlanes && f.assignedPlanes.length > 0 ? f.assignedPlanes[0] : null;
                 const assignedPlane = assignedPlaneId ? gameState.fleet.find(p => p.id === assignedPlaneId) : null;
-                const flightResult = calculateFlightProfit(model, r.distance, r.destinationId, f, assignedPlane, false);
+                const routeMultiplier = r.priceMultiplier || 1.0;
+                const flightResult = calculateFlightProfit(model, r.distance, r.destinationId, f, assignedPlane, false, 12, routeMultiplier);
                 total += (flightResult.profit * f.days.length) / 7; 
             }
         });
@@ -3147,13 +3445,90 @@ const getScheduleBufferMins = (durationMinutes) => {
     return 120; // Ultra long haul
 };
 
+const calculateFlightSatisfaction = (dispatch, plane) => {
+    let score = 5.0; // Base score
+    
+    // 1. Relacion Calidad-Precio (35% peso)
+    const route = gameState.routes.find(r => r.id === dispatch.routeId);
+    let routeMultiplier = route ? (route.priceMultiplier || 1.0) : 1.0;
+    let priceEffect = 0;
+    if (routeMultiplier > 1.0) priceEffect = -((routeMultiplier - 1.0) * 1.5);
+    else if (routeMultiplier < 1.0) priceEffect = (1.0 - routeMultiplier) * 0.5;
+    score += priceEffect;
+
+    // 2. Personal y Servicio (25% peso)
+    let avgSat = 100;
+    if (gameState.employees && gameState.employees.staff) {
+        const staff = Object.values(gameState.employees.staff);
+        if (staff.length > 0) {
+            let totalSat = 0;
+            staff.forEach(emp => { totalSat += (emp.satisfaction || 100); });
+            avgSat = totalSat / staff.length;
+        }
+    }
+    let staffEffect = 0;
+    if (avgSat < 80) staffEffect = -((80 - avgSat) / 20);
+    score += staffEffect;
+
+    // 3. Puntualidad (25% peso)
+    let delayEffect = 0;
+    const delayMins = dispatch.totalDelayMins || 0;
+    if (delayMins > 15) delayEffect = -((delayMins - 15) / 10) * 0.1; 
+    score += delayEffect;
+
+    // 4. Mantenimiento y Calidad del avion (15% peso)
+    let planeEffect = 0;
+    if (plane) {
+        const hours = plane.flightHours || 0;
+        if (hours < 100) planeEffect = 0.2;
+        else if (hours > 5000) planeEffect = -0.5;
+        else if (hours > 2000) planeEffect = -0.2;
+    }
+    score += planeEffect;
+
+    // 5. Factor Aleatorio (+/- 0.3)
+    score += (Math.random() * 0.6) - 0.3;
+
+    return Math.max(1.0, Math.min(5.0, score));
+};
+
+const updateGlobalAirlineRating = () => {
+    if (!gameState.dailyRatings) gameState.dailyRatings = [];
+    const currentDay = gameState.time.day;
+    
+    // Eliminar valoraciones mas antiguas a 30 dias
+    gameState.dailyRatings = gameState.dailyRatings.filter(bucket => currentDay - bucket.day < 30);
+    
+    let totalScoreSum = 0;
+    let totalPaxSum = 0;
+    
+    gameState.dailyRatings.forEach(bucket => {
+        totalScoreSum += bucket.totalScore;
+        totalPaxSum += bucket.totalPax;
+    });
+    
+    if (totalPaxSum > 0) {
+        gameState.airlineRating = totalScoreSum / totalPaxSum;
+    } else {
+        if(gameState.airlineRating === undefined) gameState.airlineRating = 3.0;
+        else gameState.airlineRating = (gameState.airlineRating * 0.99) + (3.0 * 0.01);
+    }
+    
+    gameState.airlineRating = Math.round(gameState.airlineRating * 10) / 10;
+    gameState.airlineRating = Math.max(1.0, Math.min(5.0, gameState.airlineRating));
+};
+
 const checkAndDispatchFlights = () => {
     const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
     
     // Auto-heal stuck planes & process Turnarounds
     gameState.fleet.forEach(p => {
-        if (p.status === 'turnaround') {
+        if (p.status === 'turnaround' || p.status === 'maintenance') {
             if (nowAbs >= p.readyAbs) {
+                if (p.status === 'maintenance' && !isCatchingUp) {
+                    showToast('Mantenimiento Terminado', `El avión ${p.registration} está listo para volar.`, 'success');
+                    logMsg(`Mantenimiento completado para el avión ${p.registration} (${p.name}).`);
+                }
                 p.status = 'idle';
                 
                 // Check for delayed flights waiting for this plane and auto-retry
@@ -3173,13 +3548,27 @@ const checkAndDispatchFlights = () => {
                     return false;
                 });
                 if (delayedForThisPlane) {
-                    retryDelayedFlight(delayedForThisPlane.id);
+                    retryDelayedFlight(delayedForThisPlane.id, p.id);
                 }
                 if(!isCatchingUp && gameState.currentTab === 'fleet') renderFleet();
             }
+        } else if (p.status === 'idle') {
+            const hasDispatch = gameState.activeDispatches.some(d => d.planeId === p.id);
+            if (!hasDispatch && p.location && p.location !== (gameState.base ? gameState.base.id : 'EZE')) {
+                if (!p.lastIdleAbs) p.lastIdleAbs = nowAbs;
+                if (nowAbs - p.lastIdleAbs > 24 * 60) {
+                    console.warn(`[Auto-Heal] Plane ${p.registration} stranded at ${p.location} for >24h. Initiating auto-ferry.`);
+                    requestFerryFlightSilent(p.id);
+                }
+            } else {
+                p.lastIdleAbs = nowAbs; // reset if it has a dispatch or is at base
+            }
         } else if (p.status !== 'idle') {
             const hasDispatch = gameState.activeDispatches.some(d => d.planeId === p.id);
-            if (!hasDispatch) p.status = 'idle';
+            if (!hasDispatch) {
+                p.status = 'idle';
+                p.lastIdleAbs = nowAbs;
+            }
         }
     });
     
@@ -3214,8 +3603,9 @@ const checkAndDispatchFlights = () => {
                 // Check if not already active for this specific scheduled time
                 const schedAbs = checkDay * 24 * 60 + checkHour * 60 + checkMinute;
                 const alreadyActive = gameState.activeDispatches.some(d => d.freqId === freq.id && d.schedAbs === schedAbs);
+                const alreadyInHistory = gameState.flightHistory && gameState.flightHistory.some(h => h.freqId === freq.id && (h.originalSchedAbs === schedAbs || h.schedAbs === schedAbs));
                 
-                if (!alreadyActive) {
+                if (!alreadyActive && !alreadyInHistory) {
                     startBoarding(route, freq, model, dest, schedAbs);
                 }
             }
@@ -3224,7 +3614,9 @@ const checkAndDispatchFlights = () => {
     
     // 2. Procesar despachos activos
     gameState.activeDispatches = gameState.activeDispatches.filter(dispatch => {
-        if (dispatch.status === 'boarding' || dispatch.status === 'delayed_weather') {
+        if (dispatch.status === 'canceled') {
+            return nowAbs < (dispatch.cancelAbs || nowAbs) + 15;
+        } else if (dispatch.status === 'boarding' || dispatch.status === 'delayed_weather') {
             if (nowAbs >= dispatch.actualDepartureAbs) {
                 return processFlightDeparture(dispatch);
             }
@@ -3236,6 +3628,21 @@ const checkAndDispatchFlights = () => {
 
                 if (!gameState.flightHistory) gameState.flightHistory = [];
                 if (!dispatch.isFerry) {
+                    const flightScore = calculateFlightSatisfaction(dispatch, plane);
+                    const pax = dispatch.passengers || 0;
+                    
+                    if (!gameState.dailyRatings) gameState.dailyRatings = [];
+                    const currentDay = gameState.time.day;
+                    let bucket = gameState.dailyRatings.find(b => b.day === currentDay);
+                    if (!bucket) {
+                        bucket = { day: currentDay, totalScore: 0, totalPax: 0 };
+                        gameState.dailyRatings.push(bucket);
+                    }
+                    bucket.totalScore += flightScore * pax;
+                    bucket.totalPax += pax;
+                    
+                    updateGlobalAirlineRating();
+
                     gameState.flightHistory.unshift({
                         id: dispatch.id,
                         routeId: dispatch.routeId,
@@ -3245,7 +3652,8 @@ const checkAndDispatchFlights = () => {
                         planeReg: plane ? plane.registration : 'Desconocido',
                         planeModel: plane ? plane.name : 'Desconocido',
                         profit: dispatch.profit || 0,
-                        passengers: dispatch.passengers || 0,
+                        passengers: pax,
+                        rating: flightScore,
                         departureDay: dispatch.departureDay,
                         departureHour: dispatch.departureHour,
                         departureMinute: dispatch.departureMinute,
@@ -3276,6 +3684,16 @@ const checkAndDispatchFlights = () => {
                     }
                 } else if (!dispatch.isReturn) {
                     if (plane) {
+                        plane.flightHours = (plane.flightHours || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceACheck = (plane.hoursSinceACheck || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceCCheck = (plane.hoursSinceCCheck || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceDCheck = (plane.hoursSinceDCheck || 0) + (dispatch.durationHours || 0);
+                        
+                        // Check if grounded due to D-Check
+                        if (plane.hoursSinceDCheck >= 5000 && plane.status !== 'maintenance') {
+                            plane.status = 'grounded';
+                        }
+
                         plane.status = 'turnaround';
                         plane.readyAbs = nowAbs + turnaround;
                         const r = gameState.routes.find(ro => ro.id === dispatch.routeId);
@@ -3287,6 +3705,16 @@ const checkAndDispatchFlights = () => {
                     }
                 } else {
                     if (plane) {
+                        plane.flightHours = (plane.flightHours || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceACheck = (plane.hoursSinceACheck || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceCCheck = (plane.hoursSinceCCheck || 0) + (dispatch.durationHours || 0);
+                        plane.hoursSinceDCheck = (plane.hoursSinceDCheck || 0) + (dispatch.durationHours || 0);
+                        
+                        // Check if grounded due to D-Check
+                        if (plane.hoursSinceDCheck >= 5000 && plane.status !== 'maintenance') {
+                            plane.status = 'grounded';
+                        }
+
                         plane.status = 'turnaround';
                         plane.readyAbs = nowAbs + turnaround;
                         plane.location = gameState.base ? gameState.base.id : 'EZE';
@@ -3314,15 +3742,28 @@ const checkAndDispatchFlights = () => {
     });
 };
 
-const startBoarding = (route, freq, model, dest, schedAbs, originalSchedAbs = null, originalReason = null) => {
+const startBoarding = (route, freq, model, dest, schedAbs, originalSchedAbs = null, originalReason = null, forcedPlaneId = null) => {
     const originId = freq.isReturn ? dest.id : (gameState.base ? gameState.base.id : 'EZE');
-    const availablePlaneId = freq.assignedPlanes.find(pid => {
-        const p = gameState.fleet.find(fl => fl.id === pid);
-        if (!p || p.location !== originId) return false;
-        if (p.status === 'idle') return true;
-        if (p.status === 'turnaround' && p.readyAbs <= schedAbs) return true;
-        return false;
-    });
+    
+    let availablePlaneId = null;
+    if (forcedPlaneId) {
+        const p = gameState.fleet.find(fl => fl.id === forcedPlaneId);
+        if (p && p.location === originId && (p.status === 'idle' || (p.status === 'turnaround' && p.readyAbs <= schedAbs))) {
+            availablePlaneId = forcedPlaneId;
+        } else {
+            console.warn(`[Tycoon Anti-Teleport] Airplane ${p ? p.registration : forcedPlaneId} rejected for flight to ${dest.id}. Wrong location or busy.`);
+        }
+    }
+    
+    if (!availablePlaneId) {
+        availablePlaneId = freq.assignedPlanes.find(pid => {
+            const p = gameState.fleet.find(fl => fl.id === pid);
+            if (!p || p.location !== originId) return false;
+            if (p.status === 'idle') return true;
+            if (p.status === 'turnaround' && p.readyAbs <= schedAbs) return true;
+            return false;
+        });
+    }
     
     let fuelNeeded = 0;
     if (model) {
@@ -3447,6 +3888,9 @@ const processFlightDeparture = (dispatch) => {
     const durationHours = r.distance / getAircraftSpeed(_m3420);
     const durationMinutes = Math.round(durationHours * 60);
     
+    // Store duration on dispatch for maintenance tracking
+    dispatch.durationHours = durationHours;
+    
     const arrAbs = dispatch.actualDepartureAbs + durationMinutes;
     
     dispatch.departureDay = Math.floor(dispatch.actualDepartureAbs / (24 * 60));
@@ -3463,7 +3907,8 @@ const processFlightDeparture = (dispatch) => {
         const freq = r.frequencies ? r.frequencies.find(f => f.id === dispatch.frequencyId) : null;
         const assignedPlaneId = dispatch.planeId || (freq && freq.assignedPlanes && freq.assignedPlanes.length > 0 ? freq.assignedPlanes[0] : null);
         const assignedPlane = assignedPlaneId ? gameState.fleet.find(p => p.id === assignedPlaneId) : null;
-        const flightResult = calculateFlightProfit(model, r.distance, destId, freq, assignedPlane, true, dispatch.departureHour);
+        const routeMultiplier = r.priceMultiplier || 1.0;
+        const flightResult = calculateFlightProfit(model, r.distance, destId, freq, assignedPlane, true, dispatch.departureHour, routeMultiplier);
         dispatch.passengers = flightResult.passengers;
         const profit = flightResult.profit;
         dispatch.profit = profit;
@@ -3565,7 +4010,229 @@ const gameTick = () => {
     }
 };
 
+const renderAirlineReputationCard = (boxId) => {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+
+    const ar = gameState.airlineRating || 3.0;
+    const arFStars = Math.floor(ar);
+    const arHStar = ar - arFStars >= 0.5;
+    let gStarsHtml = '';
+    for(let i=0; i<5; i++) {
+        if (i < arFStars) gStarsHtml += '<i class="ph-fill ph-star"></i>';
+        else if (i === arFStars && arHStar) gStarsHtml += '<i class="ph-fill ph-star-half"></i>';
+        else gStarsHtml += '<i class="ph ph-star"></i>';
+    }
+    
+    let arLabel = 'Aceptable';
+    if (ar >= 4.5) arLabel = 'Excelente reputación';
+    else if (ar >= 3.5) arLabel = 'Muy bien valorada';
+    else if (ar >= 2.5) arLabel = 'Aceptable';
+    else arLabel = 'Deficiente';
+
+    box.innerHTML = `
+        <div class="bento-title" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span><i class="ph-fill ph-star" style="color: var(--warning);"></i> Puntaje de la Compañía</span>
+            <i class="ph ph-arrow-right" style="color: var(--text-muted);"></i>
+        </div>
+        <div class="reputation-score-wrap">
+            <div class="reputation-score">${ar.toFixed(1)}</div>
+            <div class="reputation-stars">${gStarsHtml}</div>
+        </div>
+        <div class="text-sm text-muted" style="margin-top: 10px;">${arLabel}</div>
+    `;
+};
+
+const renderPassengerReviewsScreen = () => {
+    const ar = gameState.airlineRating || 3.0;
+    const globalScoreEl = document.getElementById('prv-global-score');
+    const globalStarsEl = document.getElementById('prv-global-stars');
+    
+    if (globalScoreEl) globalScoreEl.innerText = ar.toFixed(1);
+    
+    if (globalStarsEl) {
+        const fStars = Math.floor(ar);
+        const hStar = ar - fStars >= 0.5;
+        let gStarsHtml = '';
+        for(let i=0; i<5; i++) {
+            if (i < fStars) gStarsHtml += '<i class="ph-fill ph-star"></i>';
+            else if (i === fStars && hStar) gStarsHtml += '<i class="ph-fill ph-star-half"></i>';
+            else gStarsHtml += '<i class="ph ph-star"></i>';
+        }
+        globalStarsEl.innerHTML = gStarsHtml;
+    }
+    
+    let totalPaxSum = 0;
+    if (gameState.dailyRatings) {
+        gameState.dailyRatings.forEach(bucket => totalPaxSum += bucket.totalPax);
+    }
+    const paxEl = document.getElementById('prv-total-pax');
+    if (paxEl) paxEl.innerText = formatMoneyShort(totalPaxSum).replace('$', '');
+
+    // Analyze Pros and Cons
+    const pros = [];
+    const cons = [];
+    
+    // Check ticket pricing
+    if (gameState.marketMultiplier <= 0.8) pros.push({text: 'Precios muy accesibles', icon: 'ph-tag'});
+    else if (gameState.marketMultiplier >= 1.5) cons.push({text: 'Precios de boletos muy elevados', icon: 'ph-money'});
+    else if (gameState.marketMultiplier >= 1.2) cons.push({text: 'Precios ligeramente altos', icon: 'ph-money'});
+    else pros.push({text: 'Tarifas equilibradas', icon: 'ph-scales'});
+    
+    // Check maintenance
+    let avgMaint = 100;
+    if (gameState.fleet && gameState.fleet.length > 0) {
+        avgMaint = gameState.fleet.reduce((sum, ac) => sum + (100 - (ac.maintenanceHours / ac.maintenanceInterval) * 100), 0) / gameState.fleet.length;
+    }
+    if (avgMaint >= 85) pros.push({text: 'Flota en excelentes condiciones', icon: 'ph-wrench'});
+    else if (avgMaint <= 40) cons.push({text: 'Aviones deteriorados o sucios', icon: 'ph-warning'});
+    else if (avgMaint <= 60) cons.push({text: 'Mantenimiento de flota irregular', icon: 'ph-wrench'});
+    
+    // Check staff satisfaction
+    let totalSat = 0;
+    let empCount = 0;
+    if (gameState.employees && gameState.employees.staff) {
+        Object.values(gameState.employees.staff).forEach(emp => {
+            if (emp.count > 0) {
+                totalSat += emp.satisfaction;
+                empCount++;
+            }
+        });
+    }
+    let avgSat = empCount > 0 ? totalSat / empCount : 100;
+    if (avgSat >= 80) pros.push({text: 'Atención del personal amable', icon: 'ph-smiley'});
+    else if (avgSat <= 40) cons.push({text: 'Mala actitud de la tripulación', icon: 'ph-smiley-sad'});
+    
+    // Check for shortages (affects delays/service)
+    if (gameState.employees) {
+        const minReqs = typeof calculateMinimumEmployees === 'function' ? calculateMinimumEmployees() : {};
+        let shortage = false;
+        Object.keys(minReqs).forEach(key => {
+            const hired = gameState.employees.staff[key]?.count || 0;
+            if (hired < minReqs[key]) shortage = true;
+        });
+        if (shortage) cons.push({text: 'Servicio lento por falta de personal', icon: 'ph-users'});
+    }
+    
+    // If we have very few pros/cons, add generic ones
+    if (pros.length === 0) pros.push({text: 'Llegamos a destino', icon: 'ph-airplane-landing'});
+    if (cons.length === 0 && ar < 5.0) cons.push({text: 'Comodidad promedio en cabina', icon: 'ph-armchair'});
+    
+    // Render Pros
+    const prosList = document.getElementById('prv-pros-list');
+    if (prosList) {
+        prosList.innerHTML = pros.slice(0, 3).map(p => `<li style="display: flex; align-items: center; gap: 8px; color: #fff;"><i class="${p.icon}" style="color: #30d158;"></i> ${p.text}</li>`).join('');
+    }
+    
+    // Render Cons
+    const consList = document.getElementById('prv-cons-list');
+    if (consList) {
+        consList.innerHTML = cons.slice(0, 3).map(c => `<li style="display: flex; align-items: center; gap: 8px; color: #fff;"><i class="${c.icon}" style="color: #ff453a;"></i> ${c.text}</li>`).join('');
+    }
+
+    // Generate Procedural Reviews feed based on pros and cons
+    const feed = document.getElementById('prv-reviews-feed');
+    if (!feed) return;
+    
+    if (!gameState.flightHistory || gameState.flightHistory.length === 0) {
+        feed.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;"><i class="ph ph-airplane-tilt" style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;"></i><br>Aún no hay reseñas. Realiza algunos vuelos primero.</div>`;
+        return;
+    }
+    
+    let html = '';
+    const recentFlights = gameState.flightHistory.slice(-15).reverse(); // top 15 flights
+    
+    const firstNames = ["Carlos", "María", "José", "Laura", "Diego", "Ana", "Fernando", "Lucía", "Jorge", "Sofía", "Martín", "Valentina", "Juan", "Camila", "Miguel", "Julieta"];
+    const lastNames = ["Gómez", "Rodríguez", "López", "Fernández", "Pérez", "Martínez", "González", "Sánchez", "Díaz", "Romero", "Álvarez", "Ruiz", "Torres", "Suárez"];
+    
+    recentFlights.forEach(flight => {
+        if (!flight.rating) return;
+        
+        const paxName = firstNames[Math.floor(Math.random() * firstNames.length)] + ' ' + lastNames[Math.floor(Math.random() * lastNames.length)];
+        let paxScore = flight.rating + (Math.random() * 0.8 - 0.4);
+        paxScore = Math.max(1.0, Math.min(5.0, paxScore));
+        
+        let comment = '';
+        
+        // Context-aware comments
+        if (paxScore >= 4.0) {
+            const goodComments = [
+                "¡Un vuelo excelente! Llegamos a tiempo y la atención fue inmejorable.",
+                "Súper cómodo y tranquilo. Todo el personal fue muy amable.",
+                "Me sorprendió para bien. Definitivamente volveré a viajar con ellos.",
+            ];
+            if (pros.some(p => p.text.includes('accesibles'))) goodComments.push("El precio del pasaje fue excelente para la calidad del servicio.");
+            if (pros.some(p => p.text.includes('condiciones'))) goodComments.push("El avión se notaba muy limpio y bien mantenido.");
+            comment = goodComments[Math.floor(Math.random() * goodComments.length)];
+        } else if (paxScore >= 2.5) {
+            const midComments = [
+                "Un viaje normal. Cumplieron con lo básico, pero nada del otro mundo.",
+                "El vuelo estuvo bien, aunque hubo un poco de demora en el embarque.",
+                "Aceptable. Podría mejorar la comodidad de los asientos.",
+            ];
+            if (cons.some(c => c.text.includes('altos'))) midComments.push("El vuelo fue decente, pero me pareció un poco caro para lo que ofrecen.");
+            if (cons.some(c => c.text.includes('personal'))) midComments.push("Llegamos bien, pero tardaron muchísimo en atendernos a bordo.");
+            comment = midComments[Math.floor(Math.random() * midComments.length)];
+        } else {
+            const badComments = [
+                "Pésima experiencia. No recomiendo esta aerolínea.",
+                "El asiento era súper incómodo y el avión parecía viejo.",
+                "Mala atención. El personal parecía estar de muy mal humor todo el viaje.",
+            ];
+            if (cons.some(c => c.text.includes('elevados'))) badComments.push("Una estafa. Pagué un montón de dinero por un servicio terrible y lleno de demoras.");
+            if (cons.some(c => c.text.includes('sucios'))) badComments.push("El avión estaba sucio y descuidado. Me dio desconfianza.");
+            comment = badComments[Math.floor(Math.random() * badComments.length)];
+        }
+        
+        const fS = Math.floor(paxScore);
+        const hS = paxScore - fS >= 0.5;
+        let sH = '';
+        for(let k=0; k<5; k++) {
+            if (k < fS) sH += '<i class="ph-fill ph-star"></i>';
+            else if (k === fS && hS) sH += '<i class="ph-fill ph-star-half"></i>';
+            else sH += '<i class="ph ph-star"></i>';
+        }
+        
+        const dest = typeof AIRPORTS !== 'undefined' ? AIRPORTS.find(a => a.id === flight.destinationId) : null;
+        const routeTxt = gameState.base ? `${gameState.base.id} ✈ ${dest ? dest.id : '?'}` : 'Vuelo';
+        
+        // Random badge
+        const badges = ['Viaje de Negocios', 'Familia', 'Turismo', 'Solo'];
+        const badge = badges[Math.floor(Math.random() * badges.length)];
+
+        html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-light); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent);">
+                            ${paxName.charAt(0)}${paxName.split(' ')[1].charAt(0)}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #fff; font-size: 1rem;">${paxName}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                                <span>${routeTxt}</span>
+                                <span>•</span>
+                                <span style="background: var(--surface-light); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${badge}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="color: var(--warning); font-size: 1.1rem; display: flex; gap: 2px;">
+                        ${sH}
+                    </div>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; font-style: italic;">
+                    "${comment}"
+                </div>
+            </div>
+        `;
+    });
+    
+    feed.innerHTML = html;
+};
+
 const updateUI = () => {
+    if (typeof renderPassengerReviewsScreen === 'function') renderPassengerReviewsScreen();
+    if (typeof renderAirlineReputationCard === 'function') renderAirlineReputationCard('dash-rating-card');
     if (gameState.employees) {
         const headerBrand = document.querySelector('.header-brand-name');
         if (headerBrand && headerBrand.innerText !== 'Volver') {
@@ -3639,6 +4306,49 @@ const updateUI = () => {
     }
 
     const dashFinanceStatus = document.getElementById('dash-finance-status');
+    if (dashFinanceStatus) {
+        if (profit < 0) {
+            dashFinanceStatus.innerText = 'Pérdidas operativas';
+            dashFinanceStatus.className = 'finance-status-badge status-danger';
+        } else if (profit > 100000) {
+            dashFinanceStatus.innerText = 'Crecimiento sólido';
+            dashFinanceStatus.className = 'finance-status-badge status-good';
+        } else {
+            dashFinanceStatus.innerText = 'Operación Estable';
+            dashFinanceStatus.className = 'finance-status-badge';
+        }
+    }
+
+    const dashRatingValue = document.getElementById('dash-rating-value');
+    if (dashRatingValue) {
+        const ar = gameState.airlineRating || 3.0;
+        dashRatingValue.innerText = ar.toFixed(1);
+        
+        const fullStars = Math.floor(ar);
+        const hasHalfStar = ar - fullStars >= 0.5;
+        let starsHtml = '';
+        for (let i = 0; i < 5; i++) {
+            if (i < fullStars) starsHtml += '<i class="ph-fill ph-star"></i>';
+            else if (i === fullStars && hasHalfStar) starsHtml += '<i class="ph-fill ph-star-half"></i>';
+            else starsHtml += '<i class="ph ph-star"></i>';
+        }
+        document.getElementById('dash-rating-stars').innerHTML = starsHtml;
+        
+        let paxText = '0';
+        if (gameState.dailyRatings) {
+            let totalPaxSum = 0;
+            gameState.dailyRatings.forEach(bucket => totalPaxSum += bucket.totalPax);
+            paxText = formatMoneyShort(totalPaxSum).replace('$', '');
+        }
+        const paxEl = document.getElementById('dash-rating-pax');
+        if(paxEl) paxEl.innerText = paxText;
+        
+        const dashRatingLabel = document.getElementById('dash-rating-label');
+        if (ar >= 4.5) { dashRatingLabel.innerText = 'Excelente'; dashRatingLabel.className = 'delay-score-label grade-a'; }
+        else if (ar >= 3.5) { dashRatingLabel.innerText = 'Muy Bueno'; dashRatingLabel.className = 'delay-score-label grade-b'; }
+        else if (ar >= 2.5) { dashRatingLabel.innerText = 'Aceptable'; dashRatingLabel.className = 'delay-score-label grade-c'; }
+        else { dashRatingLabel.innerText = 'Deficiente'; dashRatingLabel.className = 'delay-score-label grade-d'; }
+    }
     if (dashFinanceStatus) {
         if (totalDebt > gameState.money * 0.5) {
             dashFinanceStatus.innerText = "Riesgo de Deuda";
@@ -3804,12 +4514,13 @@ const getDelaySamples = () => {
     if (gameState.flightHistory) {
         gameState.flightHistory.forEach(h => {
             const delay = h.totalDelayMins || 0;
-            const reason = h.delayReason || (delay > 0 ? 'congestion' : 'none');
+            const isDelayed = delay >= 15 || h.isCanceled;
+            const reason = h.isCanceled ? 'cancel' : (h.delayReason || (delay > 0 ? 'congestion' : 'none'));
             samples.push({
                 id: h.id,
                 delay: delay,
                 reason: reason,
-                isDelayed: delay >= 15,
+                isDelayed: isDelayed,
                 timestamp: h.timestamp || 0
             });
         });
@@ -3930,7 +4641,8 @@ const updateDelayIndexWidget = () => {
             weather: 0,
             plane: 0,
             fuel: 0,
-            congestion: 0
+            congestion: 0,
+            cancel: 0
         };
 
         delayedFlights.forEach(s => {
@@ -3945,7 +4657,8 @@ const updateDelayIndexWidget = () => {
         const weatherPct = Math.round((causeCounts.weather / totalDelayed) * 100);
         const planePct = Math.round((causeCounts.plane / totalDelayed) * 100);
         const fuelPct = Math.round((causeCounts.fuel / totalDelayed) * 100);
-        const congestionPct = 100 - (weatherPct + planePct + fuelPct);
+        const cancelPct = Math.round((causeCounts.cancel / totalDelayed) * 100);
+        const congestionPct = 100 - (weatherPct + planePct + fuelPct + cancelPct);
 
         let barHtml = "";
         let legendHtml = "";
@@ -3954,6 +4667,7 @@ const updateDelayIndexWidget = () => {
             { id: 'weather', name: 'Clima', pct: weatherPct, color: 'var(--warning)', label: 'Clima Adverso' },
             { id: 'plane', name: 'Flota', pct: planePct, color: 'var(--accent)', label: 'Aeronave No Disp.' },
             { id: 'fuel', name: 'Combustible', pct: fuelPct, color: 'var(--danger)', label: 'Falta Combustible' },
+            { id: 'cancel', name: 'Cancelaciones', pct: cancelPct, color: 'var(--danger)', label: 'Vuelos Cancelados' },
             { id: 'congestion', name: 'ATC', pct: congestionPct, color: 'var(--purple)', label: 'Tránsito Aéreo' }
         ];
 
@@ -4143,7 +4857,8 @@ const openPlaneSelector = (freqId, context = 'newRoute', routeId = null) => {
     const dest = AIRPORTS.find(a => a.id === destinationId);
     const dist = calculateDistance(gameState.base.lat, gameState.base.lng, dest.lat, dest.lng);
 
-    const validPlanes = gameState.fleet.filter(plane => plane.range >= dist);
+    // Filter planes by range and explicitly exclude planes in maintenance
+    const validPlanes = gameState.fleet.filter(plane => plane.range >= dist && plane.status !== 'maintenance');
     
     if (validPlanes.length === 0) {
         grid.innerHTML = `<p style="color: var(--text-muted); grid-column: 1 / -1; text-align: center; padding: 40px;">No tenés aviones en tu flota con el rango suficiente (${dist} km) para esta ruta.</p>`;
@@ -4399,14 +5114,166 @@ const finalizeRouteCreation = () => {
     updateUI();
 };
 
+
+
+window.processFlightCancellation = (dispatch, source = 'system') => {
+    const ticketPrice = dispatch.ticketPrice || 150;
+    const pax = dispatch.passengers || (dispatch.planeId ? (gameState.fleet.find(p=>p.id===dispatch.planeId)?.capacity || 150) : 150);
+    const refund = pax * ticketPrice;
+    const compensation = pax * 100;
+    const totalPenalty = refund + compensation;
+    
+    gameState.money -= totalPenalty;
+    if (!gameState.transactions) gameState.transactions = [];
+    gameState.transactions.push({
+        id: 'tx_' + Date.now() + Math.random(),
+        type: 'expense',
+        amount: totalPenalty,
+        description: `Cancelación Vuelo ${dispatch.flightNumberStr || ''} (${source})`,
+        day: gameState.time.day,
+        hour: gameState.time.hour,
+        minute: gameState.time.minute
+    });
+    
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    const schedAbs = dispatch.originalSchedAbs || dispatch.schedAbs || nowAbs;
+    const departureHour = Math.floor((schedAbs % (24 * 60)) / 60);
+    const departureMinute = schedAbs % 60;
+    
+    const route = gameState.routes ? gameState.routes.find(r => r.id === dispatch.routeId) : null;
+    const distance = route ? route.distance : 0;
+    const model = AIRCRAFT_MODELS.find(m => m.id === dispatch.modelId || m.name === dispatch.modelId);
+    const durationMins = distance > 0 && model ? Math.round((distance / getAircraftSpeed(model)) * 60) : 120;
+    
+    const arrAbs = schedAbs + durationMins;
+    const arrivalHour = Math.floor((arrAbs % (24 * 60)) / 60);
+    const arrivalMinute = arrAbs % 60;
+
+    if (!gameState.flightHistory) gameState.flightHistory = [];
+    const histFlight = {
+        ...dispatch,
+        departureHour: dispatch.departureHour !== undefined ? dispatch.departureHour : departureHour,
+        departureMinute: dispatch.departureMinute !== undefined ? dispatch.departureMinute : departureMinute,
+        arrivalHour: dispatch.arrivalHour !== undefined ? dispatch.arrivalHour : arrivalHour,
+        arrivalMinute: dispatch.arrivalMinute !== undefined ? dispatch.arrivalMinute : arrivalMinute,
+        isCanceled: true,
+        totalDelayMins: nowAbs - schedAbs,
+        rating: 0,
+        profit: -totalPenalty,
+        timestamp: Date.now()
+    };
+    gameState.flightHistory.unshift(histFlight);
+    
+    dispatch.status = 'canceled';
+    dispatch.cancelAbs = nowAbs;
+    
+    if (!dispatch.isReturn) {
+        // Outbound canceled. Find the paired return frequency and cancel it too.
+        let retFreq = null;
+        if (route) {
+            retFreq = route.frequencies.find(f => f.pairedWith === dispatch.freqId || f.id === dispatch.freqId); // pairedWith points to outbound
+            if (!retFreq) {
+                // some times pairedWith is on the return, sometimes on the outbound
+                const outFreq = route.frequencies.find(f => f.id === dispatch.freqId);
+                if (outFreq && outFreq.pairedWith) {
+                    retFreq = route.frequencies.find(f => f.id === outFreq.pairedWith);
+                }
+                if (!retFreq) {
+                    // Just find the other one
+                    retFreq = route.frequencies.find(f => f.isReturn && (f.pairedWith === dispatch.freqId || route.frequencies.some(out => out.id === dispatch.freqId && out.pairedWith === f.id)));
+                }
+            }
+        }
+        
+        let retDispatch = gameState.activeDispatches.find(d => d.routeId === dispatch.routeId && d.isReturn && (d.planeId === dispatch.planeId || d.freqId === (retFreq ? retFreq.id : null)));
+        
+        // If return dispatch not in activeDispatches yet, create a dummy one so it renders as canceled and doesn't get spawned later
+        if (!retDispatch && retFreq) {
+            const retParts = retFreq.time.split(':');
+            const rH = parseInt(retParts[0], 10);
+            const rM = parseInt(retParts[1], 10);
+            const rSchedAbs = Math.floor(arrAbs / (24*60)) * 24 * 60 + rH * 60 + rM; // estimate day
+            retDispatch = {
+                id: Math.random().toString(36).substr(2, 9),
+                routeId: route.id,
+                freqId: retFreq.id,
+                destName: gameState.base ? gameState.base.name : 'HUB',
+                planeId: dispatch.planeId,
+                modelId: retFreq.modelId,
+                status: 'canceled',
+                cancelAbs: nowAbs,
+                schedAbs: rSchedAbs,
+                originalSchedAbs: rSchedAbs,
+                isReturn: true,
+                flightNumberStr: (retFreq.flightCode || 'AR') + ' ' + (retFreq.flightNumber || '')
+            };
+            gameState.activeDispatches.push(retDispatch);
+        }
+
+        if (retDispatch) {
+            retDispatch.status = 'canceled';
+            retDispatch.cancelAbs = nowAbs;
+            
+            const retSchedAbs = retDispatch.originalSchedAbs || retDispatch.schedAbs || arrAbs + 60;
+            const retDepHour = Math.floor((retSchedAbs % (24 * 60)) / 60);
+            const retDepMin = retSchedAbs % 60;
+            const retArrAbs = retSchedAbs + durationMins;
+            const retArrHour = Math.floor((retArrAbs % (24 * 60)) / 60);
+            const retArrMin = retArrAbs % 60;
+
+            gameState.flightHistory.unshift({
+                ...retDispatch,
+                departureHour: retDispatch.departureHour !== undefined ? retDispatch.departureHour : retDepHour,
+                departureMinute: retDispatch.departureMinute !== undefined ? retDispatch.departureMinute : retDepMin,
+                arrivalHour: retDispatch.arrivalHour !== undefined ? retDispatch.arrivalHour : retArrHour,
+                arrivalMinute: retDispatch.arrivalMinute !== undefined ? retDispatch.arrivalMinute : retArrMin,
+                isCanceled: true,
+                totalDelayMins: 0,
+                rating: 0,
+                profit: 0,
+                timestamp: Date.now()
+            });
+        }
+        
+        if (dispatch.planeId) {
+            const p = gameState.fleet.find(pl => pl.id === dispatch.planeId);
+            if (p) {
+                p.status = 'idle';
+                p.location = gameState.base ? gameState.base.id : 'HUB';
+            }
+        }
+    } else {
+        // Only return flight was canceled
+        if (dispatch.planeId) {
+            const p = gameState.fleet.find(pl => pl.id === dispatch.planeId);
+            if (p) {
+                p.status = 'idle';
+                p.location = dispatch.originId || (dispatch.routeId ? gameState.routes.find(r=>r.id===dispatch.routeId)?.destinationId : 'DST');
+                
+                const currentLoc = AIRPORTS.find(a => a.id === p.location);
+                const locName = currentLoc?.name || p.location;
+                const ferryDist = currentLoc ? calculateDistance(currentLoc.lat, currentLoc.lng, gameState.base.lat, gameState.base.lng) : 1000;
+                const ferryCost = Math.round(ferryDist * 15);
+                
+                if (confirm(`El tramo de vuelta fue cancelado. El avión ${p.registration} quedará varado en ${locName}. ¿Deseas iniciar un Vuelo Ferry ahora mismo por ${formatMoney(ferryCost)}?`)) {
+                    requestFerryFlightSilent(p.id);
+                } else {
+                    showToast('Aeronave Varada', `El ${p.registration} ha quedado en destino.`, 'warning');
+                }
+            }
+        }
+    }
+    
+    logMsg(`Vuelo a ${dispatch.destName || 'Destino'} cancelado.`);
+    showToast('Vuelo Cancelado', `Se ha cancelado la salida.`, 'info');
+};
+
 const resolveDelayedFlight = (dispatchId, action) => {
     const dispatch = gameState.activeDispatches.find(d => d.id === dispatchId);
     if(!dispatch) return;
     
     if(action === 'cancel') {
-        gameState.activeDispatches = gameState.activeDispatches.filter(d => d.id !== dispatchId);
-        logMsg(`Vuelo a ${dispatch.destName} cancelado.`);
-        showToast('Vuelo Cancelado', `Se ha cancelado la salida.`, 'info');
+        window.processFlightCancellation(dispatch, 'operaciones');
     }
     renderFlights();
 };
@@ -4417,15 +5284,14 @@ window.cancelAllAttentionFlights = () => {
     
     let canceledCount = 0;
     toCancel.forEach(dispatch => {
-        gameState.activeDispatches = gameState.activeDispatches.filter(d => d.id !== dispatch.id);
-        logMsg(`Vuelo a ${dispatch.destName} cancelado.`);
+        window.processFlightCancellation(dispatch, 'operaciones_masivas');
         canceledCount++;
     });
     showToast('Operaciones Canceladas', `Se han cancelado ${canceledCount} operaciones demoradas.`, 'info');
     renderFlights();
 };
 
-window.retryDelayedFlight = (dispatchId) => {
+window.retryDelayedFlight = (dispatchId, forcedPlaneId = null) => {
     const dispatch = gameState.activeDispatches.find(d => d.id === dispatchId);
     if(!dispatch) return;
     
@@ -4460,7 +5326,7 @@ window.retryDelayedFlight = (dispatchId) => {
     }
     
     const newSchedAbs = nowAbs + boardingMins;
-    startBoarding(route, freq, model, dest, newSchedAbs, origSchedAbs, originalReason);
+    startBoarding(route, freq, model, dest, newSchedAbs, origSchedAbs, originalReason, forcedPlaneId);
     if(gameState.currentTab === 'flights') renderFlights();
 };
 
@@ -4628,113 +5494,134 @@ window.addFrequencyToExistingRoute = (routeId) => {
     showToast('Frecuencia Agregada', 'Se ha programado una nueva frecuencia de ida y vuelta.', 'success');
 };
 
+// --- TICKET PRICING LOGIC ---
+window.changeRoutePrice = (routeId, deltaPercent) => {
+    const route = gameState.routes.find(r => r.id === routeId);
+    if (!route) return;
+    if (typeof route.priceMultiplier === 'undefined') route.priceMultiplier = 1.0;
+    
+    route.priceMultiplier += deltaPercent;
+    if (route.priceMultiplier < 0.1) route.priceMultiplier = 0.1; // minimum 10%
+    if (route.priceMultiplier > 5.0) route.priceMultiplier = 5.0; // max 500%
+    
+    saveGame();
+    renderRoutes();
+};
+
+window.setRoutePrice = (routeId, el) => {
+    const val = parseFloat(el.value);
+    if (isNaN(val) || val < 0) return;
+    
+    const route = gameState.routes.find(r => r.id === routeId);
+    if (!route) return;
+    
+    // The baseEco in simulator is approximately 50 + distance * 0.12
+    const baseEco = 50 + (route.distance * 0.12);
+    
+    route.priceMultiplier = val / baseEco;
+    if (route.priceMultiplier < 0.1) route.priceMultiplier = 0.1;
+    if (route.priceMultiplier > 5.0) route.priceMultiplier = 5.0;
+    
+    saveGame();
+    renderRoutes();
+};
+
+const getPricePanelHtml = (route) => {
+    if (typeof route.priceMultiplier === 'undefined') route.priceMultiplier = 1.0;
+    const mult = route.priceMultiplier;
+    const baseEco = 50 + (route.distance * 0.12);
+    const currentPrice = Math.round(baseEco * mult);
+    let statusClass = 'rt-price-status-normal';
+    let statusText = 'Normal';
+    let demandInfo = 'Demanda estable esperada para este precio.';
+    let pctClass = 'normal';
+    if (mult < 0.85) { statusClass = 'rt-price-status-low'; statusText = 'Alta demanda'; demandInfo = 'Precio bajo \u2014 mayor ocupaci\u00f3n esperada'; pctClass = 'low'; }
+    else if (mult > 1.15) { statusClass = 'rt-price-status-high'; statusText = 'Baja demanda'; demandInfo = 'Precio alto \u2014 menor ocupaci\u00f3n esperada'; pctClass = 'high'; }
+    const fillWidth = Math.min(100, Math.max(0, (mult / 2) * 100));
+    let fillColor = '#0a84ff';
+    if (mult < 0.85) fillColor = '#34c759';
+    if (mult > 1.15) fillColor = '#ff453a';
+    const pctText = mult === 1.0 ? 'Promedio de mercado' : (mult > 1.0 ? `+${Math.round((mult-1)*100)}% sobre promedio` : `-${Math.round((1-mult)*100)}% bajo promedio`);
+    return `
+    <div class="rt-price-section">
+        <div class="rt-section-row-header">
+            <div class="rt-section-row-label"><i class="ph ph-tag"></i> Tarifa Clase Turista</div>
+            <span class="rt-price-status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="rt-price-inline-controls">
+            <button class="rt-price-btn" onclick="changeRoutePrice('${route.id}', -0.05)" title="Bajar 5%"><i class="ph ph-minus"></i></button>
+            <div class="rt-price-center">
+                <div class="rt-price-amount"><span class="rt-price-currency">$</span><input type="number" class="rt-price-value" value="${currentPrice}" onchange="setRoutePrice('${route.id}', this)"></div>
+                <div class="rt-price-bar-track"><div class="rt-price-bar-center-mark"></div><div class="rt-price-bar-fill" style="width:${fillWidth}%;background:${fillColor};"></div></div>
+                <div class="rt-price-subtext ${pctClass}">${pctText} &mdash; ${demandInfo}</div>
+            </div>
+            <button class="rt-price-btn" onclick="changeRoutePrice('${route.id}', 0.05)" title="Subir 5%"><i class="ph ph-plus"></i></button>
+        </div>
+    </div>
+    `;
+};
+
 const renderRoutes = () => {
     const view = document.getElementById('view-routes');
     if (!view) return;
 
-    /* ---------------------------------------------------
-       ROUTE DETAIL VIEW
-       --------------------------------------------------- */
+    /* ROUTE DETAIL VIEW */
     if (currentRouteDetailId) {
         if (window.setHeaderBack) window.setHeaderBack(() => closeRouteDetails(), 'a Rutas');
         const route = gameState.routes.find(r => r.id === currentRouteDetailId);
         if (!route) { currentRouteDetailId = null; return renderRoutes(); }
-
         const dest = AIRPORTS.find(a => a.id === route.destinationId) || { id: '???', name: 'Desconocido' };
         const outboundFreqs = (route.frequencies || []).filter(f => !f.isReturn);
         const returnFreqs   = (route.frequencies || []).filter(f => f.isReturn);
-        const ALL_DAYS = ['Lun', 'Mar', 'Mi�', 'Jue', 'Vie', 'S�b', 'Dom'];
+        const ALL_DAYS = ['Lun', 'Mar', 'Mi\xE9', 'Jue', 'Vie', 'S\xE1b', 'Dom'];
         const destCity = dest.name.split(',')[0];
         const baseId   = gameState.base ? gameState.base.id : '---';
 
-        const freqCards = outboundFreqs.map((freq, idx) => {
+        const freqRows = outboundFreqs.map((freq, idx) => {
             const ret = returnFreqs.find(r => r.pairedWith === freq.id || r.id === freq.pairedWith);
-
-            const daysHtml = ALL_DAYS.map(d =>
-                `<span class="rt-day-badge ${freq.days.includes(d) ? 'active' : ''}">${d.substring(0,2)}</span>`
-            ).join('');
-
-            const retDaysHtml = ret ? ALL_DAYS.map(d =>
-                `<span class="rt-day-badge ${ret.days.includes(d) ? 'active' : ''}">${d.substring(0,2)}</span>`
-            ).join('') : '';
-
+            const daysHtml = ALL_DAYS.map(d => `<span class="rt-day-badge ${freq.days.includes(d) ? 'active' : ''}">${d.substring(0,2)}</span>`).join('');
+            const retDaysHtml = ret ? ALL_DAYS.map(d => `<span class="rt-day-badge ${ret.days.includes(d) ? 'active' : ''}">${d.substring(0,2)}</span>`).join('') : '';
             const planesHtml = freq.assignedPlanes.length > 0
-                ? freq.assignedPlanes.map(pid => {
-                    const p = gameState.fleet.find(pl => pl.id === pid);
-                    return p ? `<span class="rt-plane-tag"><i class="ph-light ph-airplane-tilt"></i>${p.registration}</span>` : '';
-                }).join('')
+                ? freq.assignedPlanes.map(pid => { const p = gameState.fleet.find(pl => pl.id === pid); return p ? `<span class="rt-plane-tag"><i class="ph-light ph-airplane-tilt"></i>${p.registration}</span>` : ''; }).join('')
                 : `<span class="rt-no-plane"><i class="ph ph-warning-circle"></i>Sin aeronave asignada</span>`;
-
             const flightCode = freq.flightCode || 'AR';
-            const flightNum  = freq.flightNumber || '';
-
             return `
-            <div class="rt-freq-card" style="animation: rt-fade-up ${0.12 + idx * 0.07}s cubic-bezier(0.2,0.8,0.2,1) both;">
-                <div class="rt-freq-top">
-                    <span class="rt-freq-title">
+            <div class="rt-freq-row" style="animation: rt-fade-up ${0.12 + idx * 0.07}s cubic-bezier(0.2,0.8,0.2,1) both;">
+                <div class="rt-freq-row-header">
+                    <div class="rt-freq-row-title">
                         <span class="rt-freq-num-badge">${idx + 1}</span>
-                        Frecuencia ${idx + 1}
-                        &nbsp;�&nbsp;
-                        <span style="color:#fff;font-family:var(--font-mono);letter-spacing:0.05em;">${flightCode}${flightNum || '----'}</span>
-                    </span>
-                    <button class="rt-btn-danger" onclick="deleteFrequencyFromExistingRoute('${route.id}','${freq.id}')" title="Eliminar">
-                        <i class="ph ph-trash"></i> Eliminar
-                    </button>
+                        <div class="rt-fnum-input-group">
+                            <input class="rt-fnum-code" type="text" value="${flightCode}" maxlength="3" onchange="updateExistingFrequencyFlightCode('${route.id}','${freq.id}',this.value)">
+                            <input class="rt-fnum-num" type="text" value="${freq.flightNumber || ''}" maxlength="4" placeholder="0000" onchange="updateExistingFrequencyFlightNumber('${route.id}','${freq.id}',this.value)">
+                        </div>
+                    </div>
+                    <button class="rt-btn-danger rt-btn-sm" onclick="deleteFrequencyFromExistingRoute('${route.id}','${freq.id}')"><i class="ph ph-trash"></i> Eliminar</button>
                 </div>
-
-                <div class="rt-freq-body">
-                    <div class="rt-freq-legs">
-                        <div class="rt-leg-row">
-                            <div class="rt-leg-dir">
-                                <i class="ph ph-arrow-up-right rt-leg-dir-icon" style="color:#0a84ff;"></i>
-                                <span class="rt-leg-dir-label">IDA</span>
-                            </div>
-                            <div class="rt-fnum-input-group">
-                                <input class="rt-fnum-code" type="text" value="${freq.flightCode || 'AR'}" maxlength="3"
-                                    onchange="updateExistingFrequencyFlightCode('${route.id}','${freq.id}',this.value)"
-                                    title="C�digo aerol�nea">
-                                <input class="rt-fnum-num" type="text" value="${freq.flightNumber || ''}" maxlength="4" placeholder="0000"
-                                    onchange="updateExistingFrequencyFlightNumber('${route.id}','${freq.id}',this.value)"
-                                    title="N�mero de vuelo">
-                            </div>
-                            <span class="rt-leg-separator"></span>
-                            <div class="rt-leg-time">${freq.time}</div>
-                            <span class="rt-leg-separator"></span>
+                <div class="rt-freq-row-body">
+                    <div class="rt-freq-schedule">
+                        <div class="rt-sched-leg">
+                            <span class="rt-sched-dir"><i class="ph ph-arrow-up-right" style="color:#0a84ff;"></i> IDA</span>
+                            <span class="rt-sched-time">${freq.time}</span>
                             <div class="rt-days-group">${daysHtml}</div>
                         </div>
-                        ${ret ? `
-                        <div class="rt-leg-row" style="border-color:rgba(10,132,255,0.08);">
-                            <div class="rt-leg-dir">
-                                <i class="ph ph-arrow-down-left rt-leg-dir-icon" style="color:rgba(10,132,255,0.6);"></i>
-                                <span class="rt-leg-dir-label" style="color:rgba(10,132,255,0.5);">VTA</span>
-                            </div>
-                            <div class="rt-fnum-input-group" style="opacity:0.6;">
-                                <input class="rt-fnum-code" type="text" value="${ret.flightCode || 'AR'}" disabled>
-                                <input class="rt-fnum-num" type="text" value="${ret.flightNumber || ''}" disabled>
-                            </div>
-                            <span class="rt-leg-separator"></span>
-                            <div class="rt-leg-time" style="color:rgba(255,255,255,0.5);">${ret.time}</div>
-                            <span class="rt-leg-separator"></span>
-                            <div class="rt-days-group">${retDaysHtml}</div>
-                        </div>` : ''}
+                        ${ret ? `<div class="rt-sched-leg rt-sched-leg-return"><span class="rt-sched-dir" style="opacity:0.5;"><i class="ph ph-arrow-down-left" style="color:#0a84ff;"></i> VTA</span><span class="rt-sched-time" style="opacity:0.5;">${ret.time}</span><div class="rt-days-group">${retDaysHtml}</div></div>` : ''}
                     </div>
-
-                    <div class="rt-freq-opts">
-                        <div class="rt-opt-col">
-                            <span class="rt-opt-label"><i class="ph ph-coffee"></i> Servicio a Bordo</span>
+                    <div class="rt-freq-row-opts">
+                        <div class="rt-row-opt">
+                            <span class="rt-opt-label"><i class="ph ph-coffee"></i> Catering</span>
                             <select class="rt-select" onchange="updateExistingFrequencyCatering('${route.id}', '${freq.id}', this.value)">
-                                <option value="none"     ${freq.catering === 'none' || !freq.catering ? 'selected' : ''}>Sin Catering ($0)</option>
+                                <option value="none" ${freq.catering === 'none' || !freq.catering ? 'selected' : ''}>Sin Catering</option>
                                 <option value="low_cost" ${freq.catering === 'low_cost' ? 'selected' : ''}>Low Cost (-$5/pax)</option>
-                                <option value="standard" ${freq.catering === 'standard' ? 'selected' : ''}>Est�ndar (-$15/pax)</option>
-                                <option value="luxury"   ${freq.catering === 'luxury'   ? 'selected' : ''}>Lujoso (-$40/pax)</option>
+                                <option value="standard" ${freq.catering === 'standard' ? 'selected' : ''}>Est\u00E1ndar (-$15/pax)</option>
+                                <option value="luxury" ${freq.catering === 'luxury' ? 'selected' : ''}>Lujoso (-$40/pax)</option>
                             </select>
                         </div>
-                        <div class="rt-opt-col">
-                            <span class="rt-opt-label"><i class="ph ph-airplane"></i> Aeronaves asignadas</span>
-                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${planesHtml}</div>
-                            <button class="rt-btn-secondary" onclick="openPlaneSelector('${freq.id}', 'existingRoute', '${route.id}')" style="font-size:0.72rem; padding:4px 8px; justify-content:center;">
-                                <i class="ph ph-pencil"></i> Modificar asignación
-                            </button>
+                        <div class="rt-row-opt">
+                            <span class="rt-opt-label"><i class="ph ph-airplane"></i> Aeronaves</span>
+                            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+                                ${planesHtml}
+                                <button class="rt-btn-secondary rt-btn-sm" onclick="openPlaneSelector('${freq.id}', 'existingRoute', '${route.id}')"><i class="ph ph-pencil"></i> Modificar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4743,126 +5630,91 @@ const renderRoutes = () => {
 
         view.innerHTML = `
             <div class="rt-shell">
-                <!-- Masthead -->
-                <div class="rt-detail-header">
-                    <div class="rt-detail-route">
+                <div class="rt-detail-masthead-flat">
+                    <div class="rt-detail-masthead-route">
                         <div class="rt-detail-iatas">
                             <span>${baseId}</span>
-                            <i class="ph-light ph-airplane-tilt"></i>
+                            <div class="rt-iata-connector"><div class="rt-iata-line"></div><i class="ph-light ph-airplane-tilt rt-iata-arrow"></i><div class="rt-iata-line"></div></div>
                             <span>${dest.id}</span>
                         </div>
-                        <div class="rt-detail-subtitle">${destCity} � ${route.distance} km</div>
+                        <div class="rt-detail-meta-line">
+                            <span class="rt-meta-city">${destCity}</span>
+                            <span class="rt-detail-dist-pill">${route.distance} km</span>
+                        </div>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-                        <button class="rt-btn-danger" onclick="deleteRoute('${route.id}')">
-                            <i class="ph ph-trash"></i> Eliminar Ruta
-                        </button>
-                        <button class="rt-btn-secondary" onclick="addFrequencyToExistingRoute && addFrequencyToExistingRoute('${route.id}') || null" style="font-size:0.72rem;">
-                            <i class="ph ph-plus"></i> Agregar frecuencia
-                        </button>
+                    <div class="rt-detail-masthead-actions">
+                        <button class="rt-btn-secondary" onclick="addFrequencyToExistingRoute && addFrequencyToExistingRoute('${route.id}') || null"><i class="ph ph-plus"></i> Frecuencia</button>
+                        <button class="rt-btn-danger" onclick="deleteRoute('${route.id}')"><i class="ph ph-trash"></i> Eliminar</button>
                     </div>
                 </div>
-
-                <!-- Section header -->
-                <div class="rt-section-header">
-                    <span class="rt-section-label">
-                        ${outboundFreqs.length} Frecuencia${outboundFreqs.length !== 1 ? 's' : ''} Programada${outboundFreqs.length !== 1 ? 's' : ''}
-                    </span>
+                ${getPricePanelHtml(route)}
+                <div class="rt-section-divider">
+                    <span class="rt-section-label">${outboundFreqs.length} Frecuencia${outboundFreqs.length !== 1 ? 's' : ''} Programada${outboundFreqs.length !== 1 ? 's' : ''}</span>
                 </div>
-
-                <!-- Frequency list -->
-                <div class="rt-list">
-                    ${outboundFreqs.length === 0
-                        ? `<div class="rt-empty">
-                                <div class="rt-empty-icon"><i class="ph ph-calendar-blank"></i></div>
-                                <p>Sin frecuencias programadas</p>
-                                <span class="rt-empty-hint">Elimin� esta ruta y cre� una nueva con al menos una frecuencia.</span>
-                           </div>`
-                        : freqCards}
-                </div>
+                ${outboundFreqs.length === 0
+                    ? `<div class="rt-empty"><div class="rt-empty-icon"><i class="ph ph-calendar-blank"></i></div><p>Sin frecuencias programadas</p><span class="rt-empty-hint">Elimin\u00E1 esta ruta y cre\u00E1 una nueva con al menos una frecuencia.</span></div>`
+                    : `<div class="rt-freq-list">${freqRows}</div>`}
             </div>`;
         return;
     }
 
-    /* ---------------------------------------------------
-       ROUTE CREATION WIZARD
-       --------------------------------------------------- */
+    /* ROUTE CREATION WIZARD */
     if (routeCreationState) {
         if (window.setHeaderBack) window.setHeaderBack(() => cancelRouteCreation(), 'Cancelar');
         let destOptions = '<option value="">Seleccionar destino...</option>';
         AIRPORTS.forEach(ap => {
             if (gameState.base && ap.id !== gameState.base.id) {
-                destOptions += `<option value="${ap.id}" ${routeCreationState.destinationId === ap.id ? 'selected' : ''}>${ap.id} � ${ap.name.split(',')[0]}</option>`;
+                destOptions += `<option value="${ap.id}" ${routeCreationState.destinationId === ap.id ? 'selected' : ''}>${ap.id} \u00B7 ${ap.name.split(',')[0]}</option>`;
             }
         });
-
         const dest = AIRPORTS.find(a => a.id === routeCreationState.destinationId);
         const dist = dest ? calculateDistance(gameState.base.lat, gameState.base.lng, dest.lat, dest.lng) : null;
-        const ALL_DAYS = ['Lun', 'Mar', 'Mi�', 'Jue', 'Vie', 'S�b', 'Dom'];
-
+        const ALL_DAYS = ['Lun', 'Mar', 'Mi\xE9', 'Jue', 'Vie', 'S\xE1b', 'Dom'];
         let weatherHtml = '';
         if (routeCreationState.destinationId) {
             const wInfo = getWeatherInfo(routeCreationState.destinationId);
             weatherHtml = `<div class="rt-wiz-info-chip"><i class="ph ph-cloud-sun"></i>${wInfo.icon} ${wInfo.id} en destino</div>`;
         }
-
-        const freqCardsHtml = routeCreationState.frequencies.map((freq, idx) => {
-            const daysHtml = ALL_DAYS.map(d =>
-                `<button class="rt-day-btn ${freq.days.includes(d) ? 'active' : ''}" onclick="updateFrequencyDay('${freq.id}','${d}')">${d.substring(0,2)}</button>`
-            ).join('');
-
+        const freqRowsHtml = routeCreationState.frequencies.map((freq, idx) => {
+            const daysHtml = ALL_DAYS.map(d => `<button class="rt-day-btn ${freq.days.includes(d) ? 'active' : ''}" onclick="updateFrequencyDay('${freq.id}','${d}')">${d.substring(0,2)}</button>`).join('');
             const hasPlanes = freq.assignedPlanes.length > 0;
-            const planeTagsHtml = hasPlanes
-                ? freq.assignedPlanes.map(pid => {
-                    const p = gameState.fleet.find(pl => pl.id === pid);
-                    return p ? `<span class="rt-plane-tag"><i class="ph-light ph-airplane-tilt"></i>${p.registration}</span>` : '';
-                }).join('')
-                : '';
-
+            const planeTagsHtml = hasPlanes ? freq.assignedPlanes.map(pid => { const p = gameState.fleet.find(pl => pl.id === pid); return p ? `<span class="rt-plane-tag"><i class="ph-light ph-airplane-tilt"></i>${p.registration}</span>` : ''; }).join('') : '';
             return `
-                <div class="rt-freq-card" style="animation: rt-fade-up ${0.1 + idx * 0.06}s cubic-bezier(0.2,0.8,0.2,1) both;">
-                    <div class="rt-freq-top">
-                        <span class="rt-freq-title">
+                <div class="rt-freq-row" style="animation: rt-fade-up ${0.1 + idx * 0.06}s cubic-bezier(0.2,0.8,0.2,1) both;">
+                    <div class="rt-freq-row-header">
+                        <div class="rt-freq-row-title">
                             <span class="rt-freq-num-badge">${idx + 1}</span>
-                            Frecuencia ${idx + 1}
-                        </span>
-                        <button class="rt-btn-secondary" onclick="deleteFrequency('${freq.id}')" style="padding:4px 10px; font-size:0.72rem;">
-                            <i class="ph ph-x"></i>
-                        </button>
-                    </div>
-                    <div class="rt-freq-body">
-                        <div class="rt-freq-legs">
-                            <div class="rt-leg-row">
-                                <div class="rt-fnum-input-group">
-                                    <input type="text" class="rt-fnum-code" value="${freq.flightCode || 'AR'}" maxlength="3"
-                                        onchange="updateFrequencyFlightCode('${freq.id}',this.value)">
-                                    <input type="text" class="rt-fnum-num" value="${freq.flightNumber || ''}" maxlength="4" placeholder="1234"
-                                        onchange="updateFrequencyFlightNumber('${freq.id}',this.value)">
-                                </div>
-                                <span class="rt-leg-separator"></span>
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    <span style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);">Salida</span>
-                                    <input type="time" class="rt-select" value="${freq.time}" onchange="updateFrequencyTime('${freq.id}',this.value)" style="padding:5px 8px;font-family:var(--font-mono);width:auto;">
-                                </div>
+                            <div class="rt-fnum-input-group">
+                                <input type="text" class="rt-fnum-code" value="${freq.flightCode || 'AR'}" maxlength="3" onchange="updateFrequencyFlightCode('${freq.id}',this.value)">
+                                <input type="text" class="rt-fnum-num" value="${freq.flightNumber || ''}" maxlength="4" placeholder="1234" onchange="updateFrequencyFlightNumber('${freq.id}',this.value)">
                             </div>
                         </div>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">${daysHtml}</div>
-                        <div class="rt-freq-opts">
-                            <div class="rt-opt-col">
-                                <span class="rt-opt-label"><i class="ph ph-coffee"></i> Servicio a Bordo</span>
+                        <button class="rt-btn-secondary rt-btn-sm" onclick="deleteFrequency('${freq.id}')"><i class="ph ph-x"></i></button>
+                    </div>
+                    <div class="rt-freq-row-body">
+                        <div class="rt-freq-schedule">
+                            <div class="rt-sched-leg">
+                                <span class="rt-sched-dir"><i class="ph ph-arrow-up-right" style="color:#0a84ff;"></i> IDA</span>
+                                <input type="time" class="rt-select rt-sched-time-input" value="${freq.time}" onchange="updateFrequencyTime('${freq.id}',this.value)">
+                                <div style="display:flex;gap:4px;flex-wrap:wrap;">${daysHtml}</div>
+                            </div>
+                        </div>
+                        <div class="rt-freq-row-opts">
+                            <div class="rt-row-opt">
+                                <span class="rt-opt-label"><i class="ph ph-coffee"></i> Catering</span>
                                 <select class="rt-select" onchange="updateFrequencyCatering('${freq.id}', this.value)">
-                                    <option value="none"     ${freq.catering === 'none' || !freq.catering ? 'selected' : ''}>Sin Catering ($0)</option>
+                                    <option value="none" ${freq.catering === 'none' || !freq.catering ? 'selected' : ''}>Sin Catering</option>
                                     <option value="low_cost" ${freq.catering === 'low_cost' ? 'selected' : ''}>Low Cost (-$5/pax)</option>
-                                    <option value="standard" ${freq.catering === 'standard' ? 'selected' : ''}>Est�ndar (-$15/pax)</option>
-                                    <option value="luxury"   ${freq.catering === 'luxury'   ? 'selected' : ''}>Lujoso (-$40/pax)</option>
+                                    <option value="standard" ${freq.catering === 'standard' ? 'selected' : ''}>Est\u00E1ndar (-$15/pax)</option>
+                                    <option value="luxury" ${freq.catering === 'luxury' ? 'selected' : ''}>Lujoso (-$40/pax)</option>
                                 </select>
                             </div>
-                            <div class="rt-opt-col">
+                            <div class="rt-row-opt">
                                 <span class="rt-opt-label"><i class="ph ph-airplane"></i> Aeronaves</span>
-                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${planeTagsHtml}</div>
-                                <button class="rt-btn-secondary" onclick="openPlaneSelector('${freq.id}')" style="justify-content:center;">
-                                    ${hasPlanes ? 'Modificar asignaci�n' : 'Asignar aeronaves'}
-                                </button>
+                                <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+                                    ${planeTagsHtml}
+                                    <button class="rt-btn-secondary rt-btn-sm" onclick="openPlaneSelector('${freq.id}')">${hasPlanes ? 'Modificar' : 'Asignar aeronaves'}</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4871,84 +5723,38 @@ const renderRoutes = () => {
 
         view.innerHTML = `
             <div class="rt-shell">
-                <div class="rt-wizard-card">
-                    <!-- Wizard header -->
-                    <div class="rt-wiz-header">
-                        <div class="rt-wiz-header-icon"><i class="ph ph-map-pin-plus"></i></div>
-                        <div>
-                            <div class="rt-wiz-title">Planificar Nueva Ruta</div>
-                            <div class="rt-wiz-title-sub">Defin� destino, horarios y aeronaves</div>
-                        </div>
-                    </div>
-
-                    <div class="rt-wiz-body">
-                        <!-- Destination selector -->
-                        <div class="rt-wiz-group">
-                            <label class="rt-wiz-label">Aeropuerto de Destino</label>
-                            <select class="rt-select" style="width:100%; font-size:0.9rem; padding:12px;" id="route-destination-new"
-                                onchange="routeCreationState.destinationId = this.value; renderRoutes()">
-                                ${destOptions}
-                            </select>
-                            ${dist || weatherHtml ? `
-                            <div class="rt-wiz-info-row">
-                                ${dist ? `<div class="rt-wiz-info-chip"><i class="ph ph-ruler"></i>${dist} km</div>` : ''}
-                                ${weatherHtml}
-                            </div>` : ''}
-                        </div>
-
-                        ${routeCreationState.destinationId ? `
-                            <!-- Frequencies -->
-                            <div class="rt-section-header" style="margin-top:4px;">
-                                <span class="rt-section-label">Frecuencias Semanales</span>
-                                <button class="rt-btn-secondary" onclick="addFrequencyToRoute()" style="font-size:0.72rem;">
-                                    <i class="ph ph-plus"></i> A�adir
-                                </button>
-                            </div>
-
-                            ${routeCreationState.frequencies.length === 0
-                                ? `<div class="rt-empty" style="padding:28px 20px;">
-                                        <div class="rt-empty-icon"><i class="ph ph-calendar-plus"></i></div>
-                                        <p>A�ad� al menos una frecuencia para operar esta ruta.</p>
-                                   </div>`
-                                : freqCardsHtml
-                            }
-                        ` : `
-                            <div class="rt-empty" style="padding:28px 20px;">
-                                <div class="rt-empty-icon"><i class="ph ph-map-pin-line"></i></div>
-                                <p>Seleccion� un destino para configurar las frecuencias.</p>
-                            </div>
-                        `}
-                    </div>
+                <div class="rt-wiz-flat-header">
+                    <div class="rt-wiz-flat-icon"><i class="ph ph-map-pin-plus"></i></div>
+                    <div><div class="rt-wiz-title">Planificar Nueva Ruta</div><div class="rt-wiz-title-sub">Defin\u00ED destino, horarios y aeronaves</div></div>
                 </div>
-
-                ${routeCreationState.destinationId && routeCreationState.frequencies.length > 0 ? `
-                <div class="rt-wiz-footer" style="border-radius:0 0 16px 16px; border:1px solid rgba(255,255,255,0.07); border-top:none; margin-top:-1px;">
-                    <button class="rt-btn-primary" onclick="finalizeRouteCreation()">
-                        <i class="ph ph-check-circle"></i> Activar Ruta
-                    </button>
-                </div>` : ''}
+                <div class="rt-form-group">
+                    <label class="rt-wiz-label">Aeropuerto de Destino</label>
+                    <select class="rt-select rt-select-lg" id="route-destination-new" onchange="routeCreationState.destinationId = this.value; renderRoutes()">
+                        ${destOptions}
+                    </select>
+                    ${dist || weatherHtml ? `<div class="rt-wiz-info-row">${dist ? `<div class="rt-wiz-info-chip"><i class="ph ph-ruler"></i>${dist} km</div>` : ''}${weatherHtml}</div>` : ''}
+                </div>
+                ${routeCreationState.destinationId ? `
+                    <div class="rt-section-divider" style="margin-top:4px;">
+                        <span class="rt-section-label">Frecuencias Semanales</span>
+                        <button class="rt-btn-secondary" onclick="addFrequencyToRoute()" style="font-size:0.72rem;"><i class="ph ph-plus"></i> A\u00F1adir</button>
+                    </div>
+                    ${routeCreationState.frequencies.length === 0
+                        ? `<div class="rt-empty" style="padding:28px 20px;"><div class="rt-empty-icon"><i class="ph ph-calendar-plus"></i></div><p>A\u00F1ad\u00ED al menos una frecuencia para operar esta ruta.</p></div>`
+                        : `<div class="rt-freq-list">${freqRowsHtml}</div>`}
+                ` : `<div class="rt-empty" style="padding:28px 20px;"><div class="rt-empty-icon"><i class="ph ph-map-pin-line"></i></div><p>Selecci\u00F3n\u00E1 un destino para configurar las frecuencias.</p></div>`}
+                ${routeCreationState.destinationId && routeCreationState.frequencies.length > 0 ? `<div class="rt-wiz-flat-footer"><button class="rt-btn-primary" onclick="finalizeRouteCreation()"><i class="ph ph-check-circle"></i> Activar Ruta</button></div>` : ''}
             </div>`;
         return;
     }
 
-    /* ---------------------------------------------------
-       ROUTES LIST
-       --------------------------------------------------- */
+    /* ROUTES LIST */
     if (window.setHeaderBack) window.setHeaderBack(() => switchTab('flights'), 'a Vuelos');
     const routes = gameState.routes || [];
     const baseId = gameState.base ? gameState.base.id : '---';
-
     let listContent = '';
     if (routes.length === 0) {
-        listContent = `
-            <div class="rt-empty">
-                <div class="rt-empty-icon"><i class="ph ph-map-trifold"></i></div>
-                <p>Sin rutas operativas activas</p>
-                <span class="rt-empty-hint">Cre� tu primera ruta para comenzar a operar vuelos desde tu hub.</span>
-                <button class="rt-btn-primary" onclick="startRouteCreation()" style="margin-top:8px;">
-                    <i class="ph ph-plus"></i> Crear ruta
-                </button>
-            </div>`;
+        listContent = `<div class="rt-empty"><div class="rt-empty-icon"><i class="ph ph-map-trifold"></i></div><p>Sin rutas operativas activas</p><span class="rt-empty-hint">Cre\u00E1 tu primera ruta para comenzar a operar vuelos desde tu hub.</span><button class="rt-btn-primary" onclick="startRouteCreation()" style="margin-top:8px;"><i class="ph ph-plus"></i> Crear ruta</button></div>`;
     } else {
         routes.forEach((route, i) => {
             if (!route) return;
@@ -4958,69 +5764,88 @@ const renderRoutes = () => {
             const hasPlanes = (route.frequencies || []).some(f => !f.isReturn && f.assignedPlanes && f.assignedPlanes.length > 0);
             const statusClass = hasPlanes ? 'rt-chip-status-ok' : 'rt-chip-status-warn';
             const statusLabel = hasPlanes ? 'Operativa' : 'Sin aeronave';
-
             listContent += `
-                <div class="rt-card" onclick="viewRouteDetails('${route.id}')"
-                     style="animation: rt-fade-up ${0.08 + i * 0.05}s cubic-bezier(0.2,0.8,0.2,1) both;">
-                    <div class="rt-card-body">
-                        <div class="rt-route-title-row">
-                            <span class="rt-iata">${baseId}</span>
-                            <div class="rt-iata-connector">
-                                <div class="rt-iata-line"></div>
-                                <i class="ph ph-caret-right rt-iata-arrow"></i>
-                                <div class="rt-iata-line"></div>
-                            </div>
-                            <span class="rt-iata">${dest.id}</span>
-                        </div>
-                        <div class="rt-route-meta">
-                            <span class="rt-meta-city">${destCity}</span>
-                            <div class="rt-meta-dot"></div>
-                            <span class="rt-meta-dist">${route.distance} km</span>
-                        </div>
-                        <div class="rt-chip-row">
-                            <span class="rt-chip rt-chip-freq">
-                                <i class="ph-bold ph-calendar"></i>
-                                ${outboundCount} frec${outboundCount !== 1 ? 's' : ''}
-                            </span>
-                            <span class="rt-chip ${statusClass}">${statusLabel}</span>
-                        </div>
+                <div class="rt-row" onclick="viewRouteDetails('${route.id}')" style="animation: rt-fade-up ${0.08 + i * 0.05}s cubic-bezier(0.2,0.8,0.2,1) both;">
+                    <div class="rt-row-route">
+                        <span class="rt-iata">${baseId}</span>
+                        <div class="rt-iata-connector"><div class="rt-iata-line"></div><i class="ph ph-caret-right rt-iata-arrow"></i><div class="rt-iata-line"></div></div>
+                        <span class="rt-iata">${dest.id}</span>
                     </div>
-                    <div class="rt-card-stub">
-                        <i class="ph-light ph-airplane-tilt rt-card-stub-icon"></i>
-                        <span class="rt-card-stub-label">Ver</span>
+                    <div class="rt-row-meta">
+                        <span class="rt-meta-city">${destCity}</span>
+                        <span class="rt-meta-dist">${route.distance} km</span>
                     </div>
+                    <div class="rt-row-chips">
+                        <span class="rt-chip rt-chip-freq"><i class="ph-bold ph-calendar"></i> ${outboundCount} frec${outboundCount !== 1 ? 's' : ''}</span>
+                        <span class="rt-chip ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="rt-row-caret"><i class="ph ph-caret-right"></i></div>
                 </div>`;
         });
     }
-
     view.innerHTML = `
         <div class="rt-shell">
-            <!-- Command bar -->
-            <div class="rt-command-bar">
-                <div class="rt-command-bar-left">
-                    <div class="rt-command-icon"><i class="ph ph-map-trifold"></i></div>
-                    <div>
-                        <div class="rt-command-title">Rutas Operativas</div>
-                        <div class="rt-command-subtitle">Hub: ${baseId} � Red de destinos activos</div>
-                    </div>
+            <div class="rt-page-header">
+                <div class="rt-page-header-left">
+                    <span class="rt-page-title">Rutas</span>
+                    <span class="rt-page-subtitle">Hub ${baseId} &mdash; ${routes.length} ruta${routes.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div class="rt-command-bar-right">
-                    <span class="rt-count-chip">
-                        <span class="rt-count-num">${routes.length}</span>
-                        ruta${routes.length !== 1 ? 's' : ''}
-                    </span>
-                    ${routes.length > 0 ? `
-                    <button class="rt-btn-primary" onclick="startRouteCreation()">
-                        <i class="ph-bold ph-plus"></i> Nueva Ruta
-                    </button>` : ''}
-                </div>
+                ${routes.length > 0 ? `<button class="rt-btn-primary" onclick="startRouteCreation()"><i class="ph-bold ph-plus"></i> Nueva Ruta</button>` : ''}
             </div>
-
-            <!-- List -->
-            <div class="rt-list" style="margin-top:2px;">
-                ${listContent}
-            </div>
+            <div class="rt-rows-container">${listContent}</div>
         </div>`;
+};
+
+
+const requestFerryFlightSilent = (planeId) => {
+    const plane = gameState.fleet.find(p => p.id === planeId);
+    if (!plane) return;
+    if (plane.status !== 'idle') return;
+    if (plane.location === gameState.base.id) return;
+    
+    const currentLoc = AIRPORTS.find(a => a.id === plane.location);
+    if (!currentLoc) return;
+    
+    const dist = calculateDistance(currentLoc.lat, currentLoc.lng, gameState.base.lat, gameState.base.lng);
+    const cost = Math.round(dist * 15);
+    
+    // Auto ferry incurs cost, but we don't block if money is low, we just let it go negative or take the hit
+    // to prevent planes from being permanently lost without user intervention.
+    gameState.money -= cost;
+    plane.status = 'in_flight';
+    
+    const _m5022 = typeof plane !== 'undefined' && plane ? AIRCRAFT_MODELS.find(m=>m.id===plane.modelId||m.name===plane.modelId) : null;
+    const durationHours = dist / getAircraftSpeed(_m5022);
+    const durationMinutes = Math.round(durationHours * 60);
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    const arrAbs = nowAbs + durationMinutes;
+    
+    gameState.activeDispatches.push({
+        id: Math.random().toString(36).substr(2, 9),
+        routeId: null,
+        freqId: null,
+        destinationId: gameState.base.id,
+        destName: gameState.base.name,
+        planeId: plane.id,
+        modelId: plane.name,
+        status: 'in_flight',
+        delayMins: 0,
+        departureDay: gameState.time.day,
+        departureHour: gameState.time.hour,
+        departureMinute: gameState.time.minute,
+        arrivalDay: Math.floor(arrAbs / (24 * 60)),
+        arrivalHour: Math.floor((arrAbs % (24 * 60)) / 60),
+        arrivalMinute: arrAbs % 60,
+        isFerry: true,
+        actualDepartureAbs: nowAbs,
+        flightNumberStr: 'Ferry (Auto)'
+    });
+    
+    if(!isCatchingUp) {
+        logMsg(`[AUTO-RECOVERY] Vuelo Ferry iniciado automáticamente para el avión ${plane.registration} desde ${currentLoc.name}.`);
+        if(gameState.currentTab === 'flights') renderFlights();
+        if(gameState.currentTab === 'fleet') renderFleet();
+    }
 };
 
 window.requestFerryFlight = (planeId) => {
@@ -5145,7 +5970,33 @@ const renderFlights = () => {
     const activeFl = gameState.activeDispatches.filter(d => d.status === 'in_flight');
     const boardingFl = gameState.activeDispatches.filter(d => d.status === 'boarding');
     const weatherDelayedFl = gameState.activeDispatches.filter(d => d.status === 'delayed_weather');
+    
     const completedFl = gameState.activeDispatches.filter(d => d.status === 'completed');
+    
+    const canceledFl = gameState.activeDispatches.filter(d => d.status === 'canceled');
+    canceledFl.forEach(d => {
+        const plane = gameState.fleet.find(p => p.id === d.planeId);
+        const depAbs = d.schedAbs || d.originalSchedAbs || nowAbs;
+        allFlights.push({
+            type: 'canceled',
+            id: d.id,
+            destId: d.isFerry ? d.destinationId : getDestId(d.routeId),
+            destName: d.destName,
+            planeReg: plane ? plane.registration : '---',
+            planeModel: plane ? plane.name : '---',
+            profit: d.profit || 0,
+            passengers: d.passengers || 0,
+            depTimeStr: formatTime(Math.floor((depAbs % (24 * 60)) / 60), depAbs % 60),
+            arrTimeStr: '--:--',
+            status: 'Cancelado',
+            dayGroup: Math.floor(depAbs / (24 * 60)),
+            sortKey: 5,
+            absTime: depAbs,
+            progress: 100,
+            obj: d
+        });
+    });
+
 
     const calculateArrivalStr = (routeId, depTimeStr, modelId) => {
         if (!depTimeStr || depTimeStr === '--:--') return '--:--';
@@ -5306,9 +6157,10 @@ const renderFlights = () => {
                         const checkAbs = checkDay * 24 * 60 + fH * 60 + fM;
                         if (checkAbs >= nowAbs && checkAbs < minAbs) {
                             const isActive = gameState.activeDispatches.some(d => d.freqId === freq.id && (d.schedAbs === checkAbs || (!d.schedAbs && d.status === 'in_flight' && (d.departureDay * 24 * 60 + d.departureHour * 60 + d.departureMinute) === checkAbs)));
+                            const isDone = gameState.flightHistory && gameState.flightHistory.some(h => h.freqId === freq.id && (h.originalSchedAbs === checkAbs || h.schedAbs === checkAbs));
                             const isDelayed = delayedFlights.some(f => f.freqId === freq.id);
                             
-                            if (!isActive) {
+                            if (!isActive && !isDone) {
                                 minAbs = checkAbs;
                                 nextD = checkDay;
                                 nextHour = fH;
@@ -5457,8 +6309,11 @@ const renderFlights = () => {
         else if (rt.isActiveNow) rt.dayGroup = gameState.time.day;
         if (rt.return && !rt.outbound) {
             const r = gameState.routes.find(ro => ro.id === rt.return.obj.routeId);
+            const nowAbsForHist = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+            const histOut = gameState.flightHistory ? gameState.flightHistory.find(h => !h.isReturn && h.routeId === rt.return.obj.routeId && h.planeReg === rt.return.planeReg && (h.timestamp > nowAbsForHist - 86400000)) : null;
+            const isOutCanceled = histOut && histOut.isCanceled;
             rt.outbound = {
-                type: 'completed',
+                type: isOutCanceled ? 'canceled' : 'completed',
                 id: 'hist_' + rt.return.id,
                 destId: r ? r.destinationId : 'DEST',
                 destName: rt.return.destName,
@@ -5466,23 +6321,26 @@ const renderFlights = () => {
                 planeModel: rt.return.planeModel,
                 depTimeStr: '--:--',
                 arrTimeStr: '--:--',
-                status: 'Completado',
+                status: isOutCanceled ? 'Cancelado' : 'Completado',
                 progress: 100,
                 obj: { isReturn: false }
             };
             window.currentDisplayedFlights.push(rt.outbound);
         } else if (rt.outbound && !rt.return) {
+            const nowAbsForHist2 = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+            const histRet = gameState.flightHistory ? gameState.flightHistory.find(h => h.isReturn && h.routeId === rt.outbound.obj.routeId && h.planeReg === rt.outbound.planeReg && (h.timestamp > nowAbsForHist2 - 86400000)) : null;
+            const isRetCanceled = histRet && histRet.isCanceled;
             rt.return = {
-                type: 'stub',
-                id: 'stub_' + rt.outbound.id,
+                type: isRetCanceled ? 'canceled' : 'stub',
+                id: isRetCanceled ? 'hist_' + rt.outbound.id : 'stub_' + rt.outbound.id,
                 destId: 'BUE',
                 destName: 'Hub',
                 planeReg: rt.outbound.planeReg,
                 planeModel: rt.outbound.planeModel,
                 depTimeStr: '--:--',
                 arrTimeStr: '--:--',
-                status: 'Próximamente',
-                progress: 0,
+                status: isRetCanceled ? 'Cancelado' : 'Próximamente',
+                progress: isRetCanceled ? 100 : 0,
                 obj: { isReturn: true }
             };
             window.currentDisplayedFlights.push(rt.return);
@@ -5493,6 +6351,8 @@ const renderFlights = () => {
             if (rt.outbound.obj) {
                 if (rt.outbound.obj.totalDelayMins !== undefined) {
                     outDelayMins = rt.outbound.obj.totalDelayMins;
+                } else if (rt.outbound.type === 'canceled') {
+                    outDelayMins = 0;
                 } else if (rt.outbound.type === 'delayed' || rt.outbound.type === 'delayed_weather') {
                     const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
                     outDelayMins = Math.max(0, nowAbs - rt.outbound.obj.originalSchedAbs);
@@ -5630,21 +6490,24 @@ const renderFlights = () => {
                         if (mins <= 15) statusColor = '#30d158';
                         else if (mins <= 30) statusColor = '#ffd60a';
                         else if (mins <= 60) statusColor = '#ff9f0a';
-                        else statusColor = '#ff453a';
+                        else statusColor = '#d32f2f';
                     }
                     else if (f.type === 'boarding' || f.type === 'in_flight') {
                         let mins = f.delayMins || 0;
                         if (mins <= 15) statusColor = '#0a84ff';
                         else if (mins <= 30) statusColor = '#ffd60a';
                         else if (mins <= 60) statusColor = '#ff9f0a';
-                        else statusColor = '#ff453a';
+                        else statusColor = '#d32f2f';
                     }
                     else if (f.type === 'completed') {
                         let mins = f.delayMins || (f.obj ? f.obj.totalDelayMins : 0) || 0;
                         if (mins <= 15) statusColor = '#30d158';
                         else if (mins <= 30) statusColor = '#ffd60a';
                         else if (mins <= 60) statusColor = '#ff9f0a';
-                        else statusColor = '#ff453a';
+                        else statusColor = '#d32f2f';
+                    }
+                    else if (f.type === 'canceled') {
+                        statusColor = '#d32f2f';
                     }
 
                     const originCode = f.obj && f.obj.isReturn ? f.destId : (gameState.base ? gameState.base.id : 'HUB');
@@ -5710,14 +6573,14 @@ const renderFlights = () => {
                             if (mins <= 15) return '#30d158';
                             if (mins <= 30) return '#ffd60a';
                             if (mins <= 60) return '#ff9f0a';
-                            return '#ff453a';
+                            return '#d32f2f';
                         }
                         if (f.type === 'boarding' || f.type === 'in_flight') {
                             let mins = f.delayMins || 0;
                             if (mins <= 15) return '#0a84ff';
                             if (mins <= 30) return '#ffd60a';
                             if (mins <= 60) return '#ff9f0a';
-                            return '#ff453a';
+                            return '#d32f2f';
                         }
                         return '#8e8e93';
                     };
@@ -5986,10 +6849,27 @@ const renderHistory = () => {
                     if (mins <= 15) return '#30d158';
                     if (mins <= 30) return '#ffd60a';
                     if (mins <= 60) return '#ff9f0a';
-                    return '#ff453a';
+                    return '#d32f2f';
                 };
                 const outCompletedColor = getStatusColor(outDelayMins);
                 const retCompletedColor = getStatusColor(retDelayMins);
+
+                const getStarsHtml = (ratingVal) => {
+                    if (!ratingVal) return '';
+                    let rHtml = '<div style="color:var(--warning); font-size:0.9rem; margin-top:4px; display: flex; align-items: center; gap: 2px;">';
+                    const fStars = Math.floor(ratingVal);
+                    const hStar = ratingVal - fStars >= 0.5;
+                    for (let i = 0; i < 5; i++) {
+                        if (i < fStars) rHtml += '<i class="ph-fill ph-star"></i>';
+                        else if (i === fStars && hStar) rHtml += '<i class="ph-fill ph-star-half"></i>';
+                        else rHtml += '<i class="ph ph-star"></i>';
+                    }
+                    rHtml += `<span style="color:var(--text-muted); font-size:0.8rem; margin-left:4px;">${ratingVal.toFixed(1)}</span></div>`;
+                    return rHtml;
+                };
+
+                const outStars = out ? getStarsHtml(out.rating) : '';
+                const retStars = ret ? getStarsHtml(ret.rating) : '';
 
                 let outHtml = '';
                 if (out) {
@@ -5998,9 +6878,12 @@ const renderHistory = () => {
                         <div class="flv-leg-top">
                             <div class="flv-leg-tag-group">
                                 <span class="flv-leg-tag">IDA</span>
-                                <div class="flv-leg-status-wrap">
-                                    <span class="flv-status-dot" style="background:${outCompletedColor};"></span>
-                                    <span style="color:${outCompletedColor};">Completado</span>
+                                <div class="flv-leg-status-wrap" style="flex-direction: column; align-items: flex-end;">
+                                    <div style="display:flex; align-items:center; gap:4px;">
+                                        <span class="flv-status-dot" style="background:${out.isCanceled ? '#d32f2f' : outCompletedColor};"></span>
+                                        <span style="color:${out.isCanceled ? '#d32f2f' : outCompletedColor};">${out.isCanceled ? 'Cancelado' : 'Completado'}</span>
+                                    </div>
+                                    ${outStars}
                                 </div>
                             </div>
                         </div>
@@ -6029,9 +6912,12 @@ const renderHistory = () => {
                         <div class="flv-leg-top">
                             <div class="flv-leg-tag-group">
                                 <span class="flv-leg-tag">VUELTA</span>
-                                <div class="flv-leg-status-wrap">
-                                    <span class="flv-status-dot" style="background:${retCompletedColor};"></span>
-                                    <span style="color:${retCompletedColor};">Completado</span>
+                                <div class="flv-leg-status-wrap" style="flex-direction: column; align-items: flex-end;">
+                                    <div style="display:flex; align-items:center; gap:4px;">
+                                        <span class="flv-status-dot" style="background:${ret.isCanceled ? '#d32f2f' : retCompletedColor};"></span>
+                                        <span style="color:${ret.isCanceled ? '#d32f2f' : retCompletedColor};">${ret.isCanceled ? 'Cancelado' : 'Completado'}</span>
+                                    </div>
+                                    ${retStars}
                                 </div>
                             </div>
                         </div>
@@ -6114,8 +7000,8 @@ window.openFlightModal = (flightId, type) => {
         if (histF) {
             flight = {
                 ...histF,
-                type: 'completed',
-                status: 'Completado',
+                type: histF.isCanceled ? 'canceled' : 'completed',
+                status: histF.isCanceled ? 'Cancelado' : 'Completado',
                 depTimeStr: formatTime(histF.departureHour, histF.departureMinute),
                 arrTimeStr: formatTime(histF.arrivalHour, histF.arrivalMinute),
                 delayMins: histF.totalDelayMins || 0,
@@ -6162,19 +7048,19 @@ window.openFlightModal = (flightId, type) => {
         if (delay <= 15) statusColor = '#30d158'; // Green
         else if (delay <= 30) statusColor = '#ffd60a'; // Yellow
         else if (delay <= 60) statusColor = '#ff9f0a'; // Orange
-        else statusColor = '#ff453a'; // Red
+        else statusColor = '#d32f2f'; // Red
     } else if (flight.type === 'boarding' || flight.type === 'in_flight') {
         const delay = flight.delayMins || 0;
         if (delay <= 15) statusColor = '#0a84ff'; // Normal Blue
         else if (delay <= 30) statusColor = '#ffd60a'; // Yellow
         else if (delay <= 60) statusColor = '#ff9f0a'; // Orange
-        else statusColor = '#ff453a'; // Red
+        else statusColor = '#d32f2f'; // Red
     } else if (flight.type === 'completed') {
         const delay = flight.totalDelayMins || (flight.obj ? flight.obj.totalDelayMins : 0) || flight.delayMins || 0;
         if (delay <= 15) statusColor = '#30d158'; // Green
         else if (delay <= 30) statusColor = '#ffd60a'; // Yellow
         else if (delay <= 60) statusColor = '#ff9f0a'; // Orange
-        else statusColor = '#ff453a'; // Red
+        else statusColor = '#d32f2f'; // Red
     } else if (flight.type === 'scheduled' || flight.type === 'stub') {
         statusColor = '#8e8e93';
     }
@@ -6252,7 +7138,7 @@ window.openFlightModal = (flightId, type) => {
         if (!mins || mins === 0) return '';
         if (mins < 0) return `<span style="background: rgba(48,209,88,0.15); color: #30d158; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-left: 6px;">${mins}m</span>`;
         
-        let color = '#ff453a';
+        let color = '#d32f2f';
         let bg = 'rgba(255,69,58,0.15)';
         if (mins <= 15) { color = '#30d158'; bg = 'rgba(48,209,88,0.15)'; }
         else if (mins <= 30) { color = '#ffd60a'; bg = 'rgba(255,214,10,0.15)'; }
@@ -6303,7 +7189,7 @@ window.openFlightModal = (flightId, type) => {
         }
         if (profitEl) {
             profitEl.innerText = flight.profit < 0 ? `-${formatMoney(Math.abs(flight.profit))}` : `+${formatMoney(flight.profit || 0)}`;
-            profitEl.style.color = flight.profit < 0 ? '#ff453a' : '#22c55e';
+            profitEl.style.color = flight.profit < 0 ? '#d32f2f' : '#22c55e';
         }
     } else {
         if (paxEl) paxEl.innerText = "A confirmar";
@@ -6358,9 +7244,7 @@ window.cancelFlightFromModal = (flightId, type) => {
         if (plane) plane.status = 'idle';
     }
 
-    gameState.activeDispatches = gameState.activeDispatches.filter(d => d.id !== flightId);
-    logMsg(`Vuelo a ${dispatch.destName} cancelado por el usuario.`);
-    showToast('Vuelo Cancelado', `Se ha cancelado la operación.`, 'info');
+    window.processFlightCancellation(dispatch, 'modal');
     
     closeFlightModal();
     renderFlights();
@@ -6417,17 +7301,26 @@ const renderPlanner = () => {
         `<button class="planner-day-btn ${plannerCurrentDay === d ? 'active' : ''}" onclick="plannerCurrentDay='${d}'; renderPlanner()">${d}</button>`
     ).join('');
     
-    if (plannerUnsavedChanges) {
-        dayBtnsHtml += `<div style="width: 1px; height: 24px; background: var(--border-subtle); margin: 0 4px;"></div>`;
-        dayBtnsHtml += `<button class="btn btn-danger-subtle btn-sm" onclick="cancelPlannerChanges()" style="padding: 6px 12px; font-size: 0.85rem;"><i class="ph ph-x"></i> Cancelar</button>`;
-        dayBtnsHtml += `<button class="btn btn-primary btn-sm" onclick="savePlannerChanges()" style="padding: 6px 12px; font-size: 0.85rem;"><i class="ph ph-check"></i> Guardar</button>`;
+    const actionsContainer = document.getElementById('planner-actions');
+    if (actionsContainer) {
+        if (plannerUnsavedChanges) {
+            actionsContainer.innerHTML = `
+                <button class="btn btn-danger-subtle btn-sm" onclick="cancelPlannerChanges()" style="padding: 6px 12px; font-size: 0.85rem;"><i class="ph ph-x"></i> Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="savePlannerChanges()" style="padding: 6px 12px; font-size: 0.85rem;"><i class="ph ph-check"></i> Guardar</button>
+            `;
+        } else {
+            actionsContainer.innerHTML = '';
+        }
     }
     
     daySelector.innerHTML = dayBtnsHtml;
 
-    let headerHtml = '<div class="planner-row-label-header">Ruta / Frecuencias</div>';
-    for (let i = 0; i < 24; i++) {
-        headerHtml += `<div class="planner-time-col">${i.toString().padStart(2, '0')}:00</div>`;
+    let headerHtml = '<div class="planner-row-label-header">Ruta</div>';
+    for (let i = 0; i < 48; i++) {
+        const hourLabel = (i % 24).toString().padStart(2, '0');
+        const isNewDay = i === 24;
+        const extraStyle = isNewDay ? 'border-left: 2px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.03);' : '';
+        headerHtml += `<div class="planner-time-col" style="${extraStyle}">${hourLabel}:00</div>`;
     }
     header.innerHTML = headerHtml;
 
@@ -6438,32 +7331,63 @@ const renderPlanner = () => {
         return;
     }
 
-    plannerDraftRoutes.forEach(route => {
-        const routeFreqs = (route.frequencies || []).filter(f => f.days.includes(plannerCurrentDay));
+    const nextDayIdx = (ALL_DAYS.indexOf(plannerCurrentDay) + 1) % 7;
+    const plannerNextDay = ALL_DAYS[nextDayIdx];
 
-        const dest = AIRPORTS.find(d => d.id === route.destinationId);
-        const destName = dest ? dest.name.split(',')[0] : route.destinationId;
+    const allFlightsToday = [];
+    plannerDraftRoutes.forEach(r => {
+        (r.frequencies || []).forEach(f => {
+            const isToday = f.days.includes(plannerCurrentDay);
+            const isTomorrow = f.days.includes(plannerNextDay);
+            if (!isToday && !isTomorrow) return;
+
+            const _m = AIRCRAFT_MODELS.find(m => m.id === f.modelId || m.name === f.modelId);
+            const durHours = r.distance / getAircraftSpeed(_m);
+            const parts = f.time.split(':');
+            const baseMins = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            
+            if (isToday) {
+                const startMins = baseMins;
+                allFlightsToday.push({ id: f.id, planes: f.assignedPlanes || [], startMins, endMins: startMins + Math.round(durHours * 60) });
+            }
+            if (isTomorrow) {
+                const startMins = baseMins + 24 * 60;
+                allFlightsToday.push({ id: f.id, planes: f.assignedPlanes || [], startMins, endMins: startMins + Math.round(durHours * 60) });
+            }
+        });
+    });
+
+    plannerDraftRoutes.forEach(route => {
+        const routeFreqs = [];
+        (route.frequencies || []).forEach(f => {
+            if (f.days.includes(plannerCurrentDay)) {
+                routeFreqs.push({ ...f, offsetMins: 0 });
+            }
+            if (f.days.includes(plannerNextDay)) {
+                routeFreqs.push({ ...f, offsetMins: 24 * 60 });
+            }
+        });
 
         const row = document.createElement('div');
         row.className = 'planner-row';
 
         const label = document.createElement('div');
         label.className = 'planner-row-label';
-        label.innerHTML = `<h4>EZE - ${destName}</h4><span>${route.distance} NM</span>`;
+        label.innerHTML = `<h4>EZE - ${route.destinationId}</h4><span>${route.distance} NM</span>`;
         row.appendChild(label);
 
         const track = document.createElement('div');
         track.className = 'planner-track';
-        
+        track.style.background = 'repeating-linear-gradient(to right, rgba(255, 255, 255, 0.03) 0, transparent 1px), linear-gradient(to right, transparent calc(50% - 1px), rgba(255,255,255,0.2) 50%, transparent calc(50% + 1px))';
+        track.style.backgroundSize = 'calc(100% / 48) 100%, 100% 100%';
+
         if (routeFreqs.length === 0) {
-            track.style.display = 'flex';
-            track.style.alignItems = 'center';
-            track.style.justifyContent = 'center';
-            track.style.background = 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01) 10px, transparent 10px, transparent 20px)';
             track.innerHTML = `
-                <button class="btn btn-secondary btn-sm" onclick="addFrequencyFromPlanner('${route.id}', '${plannerCurrentDay}')" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255,255,255,0.15); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">
-                    <i class="ph ph-plus-circle"></i> Programar Vuelo
-                </button>
+                <div style="width: 100%; display: flex; align-items: center; justify-content: center; opacity: 0.5;">
+                    <button class="btn btn-secondary btn-sm" onclick="addFrequencyFromPlanner('${route.id}', '${plannerCurrentDay}')" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255,255,255,0.15); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;">
+                        <i class="ph ph-plus-circle"></i> Programar Vuelo
+                    </button>
+                </div>
             `;
         } else {
             routeFreqs.forEach(freq => {
@@ -6473,17 +7397,44 @@ const renderPlanner = () => {
                 const timeParts = freq.time.split(':');
                 const h = parseInt(timeParts[0]);
                 const m = parseInt(timeParts[1]);
-                const totalMinutes = h * 60 + m;
-                const leftPercent = (totalMinutes / (24 * 60)) * 100;
+                const totalMinutes = h * 60 + m + freq.offsetMins;
+                const leftPercent = (totalMinutes / (48 * 60)) * 100;
 
                 const _m6471 = AIRCRAFT_MODELS.find(m => m.id === freq.modelId || m.name === freq.modelId);
                 const durationHours = route.distance / getAircraftSpeed(_m6471);
-                const widthPercent = (durationHours / 24) * 100;
+                const widthPercent = (durationHours / 48) * 100;
+                
+                const endMinutes = totalMinutes + Math.round(durationHours * 60);
+
+                const pairId = freq.isReturn && freq.pairedWith ? freq.pairedWith : freq.id;
+                let hash = 0;
+                for (let i = 0; i < pairId.length; i++) {
+                    hash = pairId.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const hue = Math.abs(hash) % 360;
+                block.style.setProperty('--flight-color', `linear-gradient(135deg, hsla(${hue}, 80%, 55%, 0.85) 0%, hsla(${hue}, 80%, 45%, 0.6) 100%)`);
+                block.style.setProperty('--flight-border', `hsla(${hue}, 80%, 45%, 0.6)`);
+
+                const isConflict = allFlightsToday.some(other => {
+                    if (other.id === freq.id && other.startMins === totalMinutes) return false;
+                    const sharedPlane = (freq.assignedPlanes || []).some(p => other.planes.includes(p));
+                    if (!sharedPlane) return false;
+                    return (totalMinutes < other.endMins && other.startMins < endMinutes);
+                });
+                if (isConflict) block.classList.add('planner-flight-conflict');
 
                 block.style.left = `${leftPercent}%`;
                 block.style.width = `${widthPercent}%`;
-                block.innerHTML = `<div class="planner-flight-text">${freq.flightCode || 'AR'}${freq.flightNumber || ''}</div>`;
-                block.title = `${freq.isReturn ? 'Regreso' : 'Ida'} - Sale: ${freq.time}`;
+                
+                const endH = Math.floor(endMinutes / 60) % 24;
+                const endM = endMinutes % 60;
+                const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} - ${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                const fCode = `${freq.flightCode || 'AR'}${freq.flightNumber || ''}`;
+                
+                const getFlightHtml = (code, tStr) => `<div class="planner-flight-text"><span>${code}</span><span class="time">${tStr}</span></div>`;
+                
+                block.innerHTML = getFlightHtml(fCode, timeStr);
+                block.title = `${freq.isReturn ? 'Regreso' : 'Ida'} - Sale: ${freq.time} | Llega: ${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
                 block.setAttribute('data-freq-id', freq.id);
                 if (freq.isReturn && freq.pairedWith) {
@@ -6499,48 +7450,56 @@ const renderPlanner = () => {
                     block.classList.add('highlight-paired');
                     const pairedId = block.getAttribute('data-paired-id');
                     if (pairedId) {
-                        const pairedBlock = track.querySelector(`[data-freq-id="${pairedId}"]`);
-                        if (pairedBlock) pairedBlock.classList.add('highlight-paired');
+                        const pairedBlocks = track.querySelectorAll(`[data-freq-id="${pairedId}"]`);
+                        pairedBlocks.forEach(pb => pb.classList.add('highlight-paired'));
                     }
                 });
                 block.addEventListener('pointerleave', () => {
                     block.classList.remove('highlight-paired');
                     const pairedId = block.getAttribute('data-paired-id');
                     if (pairedId) {
-                        const pairedBlock = track.querySelector(`[data-freq-id="${pairedId}"]`);
-                        if (pairedBlock) pairedBlock.classList.remove('highlight-paired');
+                        const pairedBlocks = track.querySelectorAll(`[data-freq-id="${pairedId}"]`);
+                        pairedBlocks.forEach(pb => pb.classList.remove('highlight-paired'));
                     }
                 });
 
                 let isDragging = false;
                 let longPressTimer = null;
                 let startX = 0;
+                let startY = 0;
                 let startLeftPercent = 0;
                 let isLongPressed = false;
+                let hasScrolled = false;
 
-                block.addEventListener('pointerdown', (e) => {
-                    startX = e.clientX;
+                const handleDown = (clientX, clientY) => {
+                    startX = clientX;
+                    startY = clientY;
                     startLeftPercent = leftPercent;
                     isLongPressed = false;
+                    hasScrolled = false;
                     
                     longPressTimer = setTimeout(() => {
-                        isLongPressed = true;
-                        isDragging = true;
-                        block.classList.add('draggable');
-                        block.setPointerCapture(e.pointerId);
-                    }, 400); 
-                });
+                        if (!hasScrolled) {
+                            isLongPressed = true;
+                            isDragging = true;
+                            block.classList.add('draggable');
+                        }
+                    }, 400);
+                };
 
-                block.addEventListener('pointermove', (e) => {
-                    if (!isDragging) {
-                        if (Math.abs(e.clientX - startX) > 10 && !isLongPressed) {
+                const handleMove = (clientX, clientY, e) => {
+                    if (!isLongPressed) {
+                        if (Math.abs(clientX - startX) > 10 || Math.abs(clientY - startY) > 10) {
                             clearTimeout(longPressTimer);
+                            hasScrolled = true;
                         }
                         return;
                     }
                     
+                    e.preventDefault(); 
+                    
                     const trackWidth = track.getBoundingClientRect().width;
-                    const deltaX = e.clientX - startX;
+                    const deltaX = clientX - startX;
                     let newLeftPercent = startLeftPercent + (deltaX / trackWidth) * 100;
                     
                     if (newLeftPercent < 0) newLeftPercent = 0;
@@ -6548,40 +7507,51 @@ const renderPlanner = () => {
 
                     block.style.left = `${newLeftPercent}%`;
                     
-                    const newTotalMinutes = Math.round((newLeftPercent / 100) * 24 * 60);
-                    const newH = Math.floor(newTotalMinutes / 60);
-                    const newM = newTotalMinutes % 60;
-                    const previewTime = `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
-                    block.innerHTML = `<div class="planner-flight-text">${previewTime}</div>`;
-                });
+                    const newTotalMinutes = Math.round((newLeftPercent / 100) * 48 * 60);
+                    let actualMins = newTotalMinutes - freq.offsetMins;
+                    
+                    const newH = Math.floor(actualMins / 60) % 24;
+                    const newM = (actualMins % 60 + 60) % 60;
+                    const prevEndMins = actualMins + Math.round(durationHours * 60);
+                    const prevEndH = Math.floor(prevEndMins / 60) % 24;
+                    const prevEndM = (prevEndMins % 60 + 60) % 60;
+                    
+                    const previewTime = `${Math.abs(newH).toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')} - ${Math.abs(prevEndH).toString().padStart(2, '0')}:${prevEndM.toString().padStart(2, '0')}`;
+                    block.innerHTML = getFlightHtml(fCode, previewTime);
+                };
 
-                const stopDrag = (e) => {
+                const handleUp = () => {
                     clearTimeout(longPressTimer);
                     if (!isDragging) {
-                        if (!isLongPressed) {
+                        if (!isLongPressed && !hasScrolled) {
                             openPlannerFlightModal(route.id, freq.id);
                         }
                         return;
                     }
                     isDragging = false;
                     block.classList.remove('draggable');
-                    block.releasePointerCapture(e.pointerId);
 
                     const currentLeft = parseFloat(block.style.left);
-                    const finalTotalMinutes = Math.round((currentLeft / 100) * 24 * 60);
+                    const finalTotalMinutes = Math.round((currentLeft / 100) * 48 * 60);
                     
-                    const snappedMinutes = Math.round(finalTotalMinutes / 5) * 5;
-                    const newH = Math.floor(snappedMinutes / 60);
-                    const newM = snappedMinutes % 60;
+                    let actualMins = finalTotalMinutes - freq.offsetMins;
+                    const snappedMinutes = Math.round(actualMins / 5) * 5;
+                    
+                    let newH = Math.floor(snappedMinutes / 60);
+                    let newM = snappedMinutes % 60;
+                    
+                    if (newH < 0) newH += 24;
+                    if (newH >= 24) newH -= 24;
                     
                     const finalTimeStr = `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
                     
-                    if (freq.time !== finalTimeStr) {
-                        freq.time = finalTimeStr;
+                    const freqRef = route.frequencies.find(f => f.id === freq.id);
+                    if (freqRef && freqRef.time !== finalTimeStr) {
+                        freqRef.time = finalTimeStr;
                         plannerUnsavedChanges = true;
 
-                        if (!freq.isReturn) {
-                            const returnFreq = route.frequencies.find(f => f.pairedWith === freq.id || f.id === freq.pairedWith);
+                        if (!freqRef.isReturn) {
+                            const returnFreq = route.frequencies.find(f => f.pairedWith === freqRef.id || f.id === freqRef.pairedWith);
                             if (returnFreq) {
                                 const durationMins = Math.round(durationHours * 60);
                                 const totalReturnMins = snappedMinutes + durationMins + 60; 
@@ -6589,8 +7559,8 @@ const renderPlanner = () => {
                                 const retM = totalReturnMins % 60;
                                 returnFreq.time = `${retH.toString().padStart(2, '0')}:${retM.toString().padStart(2, '0')}`;
                             }
-                        } else if (freq.isReturn && freq.pairedWith) {
-                            const outFreq = route.frequencies.find(f => f.id === freq.pairedWith);
+                        } else if (freqRef.isReturn && freqRef.pairedWith) {
+                            const outFreq = route.frequencies.find(f => f.id === freqRef.pairedWith);
                             if (outFreq) {
                                 const durationMins = Math.round(durationHours * 60);
                                 let outTotalMins = snappedMinutes - 60 - durationMins;
@@ -6603,12 +7573,31 @@ const renderPlanner = () => {
                         renderPlanner(); 
                     } else {
                         block.style.left = `${leftPercent}%`;
-                        block.innerHTML = `<div class="planner-flight-text">${freq.flightCode || 'AR'}${freq.flightNumber || ''}</div>`;
+                        block.innerHTML = getFlightHtml(fCode, timeStr);
                     }
                 };
 
-                block.addEventListener('pointerup', stopDrag);
-                block.addEventListener('pointercancel', stopDrag);
+                block.addEventListener('touchstart', (e) => handleDown(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+                block.addEventListener('touchmove', (e) => {
+                    if (isLongPressed) e.preventDefault();
+                    handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
+                }, { passive: false });
+                block.addEventListener('touchend', handleUp);
+                block.addEventListener('touchcancel', handleUp);
+
+                block.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    handleDown(e.clientX, e.clientY);
+                    
+                    const onMouseMove = (ev) => handleMove(ev.clientX, ev.clientY, ev);
+                    const onMouseUp = () => {
+                        handleUp();
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
 
                 track.appendChild(block);
             });
@@ -7203,6 +8192,7 @@ window.openUsedAircraftDetail = (usedId) => {
                 ...model, 
                 id: Math.random().toString(36).substr(2, 9), 
                 registration: registration,
+                flightHours: 0,
                 customLivery: null,
                 savedColor: used.color,
                 location: gameState.base ? gameState.base.id : 'EZE',
@@ -7712,7 +8702,7 @@ const renderAirline = () => {
         '#30d158': 'color-green',
         '#ffd60a': 'color-yellow',
         '#ff9f0a': 'color-orange',
-        '#ff453a': 'color-red',
+        '#d32f2f': 'color-red',
         '#bf5af2': 'color-purple'
     };
     const activeColorClass = colorBtnMap[selectedColor];
@@ -7759,23 +8749,13 @@ const renderAirline = () => {
     }
     
     let ratingLabel = 'Aceptable';
-    if (rating >= 4.5) ratingLabel = 'Excelente nivel de servicio';
+    if (rating >= 4.5) ratingLabel = 'Excelente nivel de bienestar';
     else if (rating >= 3.5) ratingLabel = 'Buen ambiente laboral';
     else if (rating >= 2.5) ratingLabel = 'Operaciones inestables';
     else ratingLabel = 'Clima laboral crítico';
     
-    // 1. Reputation Card
-    const reputationBox = document.getElementById('airline-reputation-box');
-    if (reputationBox) {
-        reputationBox.innerHTML = `
-            <h3 class="bento-title"><i class="ph-fill ph-star" style="color: #fbbf24;"></i> Reputación Global</h3>
-            <div class="reputation-score-wrap">
-                <div class="reputation-score">${rating.toFixed(1)}</div>
-                <div class="reputation-stars">${starsHtml}</div>
-            </div>
-            <div class="text-sm text-muted" style="margin-top: 10px;">${ratingLabel}</div>
-        `;
-    }
+    // 1. Global Airline Rating Card
+    renderAirlineReputationCard('airline-reputation-box');
 
     // Check for staffing shortages
     const minReqs = calculateMinimumEmployees();
@@ -7792,7 +8772,7 @@ const renderAirline = () => {
     const hrSummaryBox = document.getElementById('airline-hr-summary-box');
     if (hrSummaryBox) {
         let satisfactionColor = '#30d158'; // Green
-        if (avgSat < 40) satisfactionColor = '#ff453a'; // Red
+        if (avgSat < 40) satisfactionColor = '#d32f2f'; // Red
         else if (avgSat < 75) satisfactionColor = '#ff9f0a'; // Orange
 
         let alertBadgeHtml = shortage ? `
@@ -8028,7 +9008,7 @@ const renderEmployees = () => {
         let satColor = '#30d158'; // Green
         let satText = 'Motivados';
         if (displaySat < 40) {
-            satColor = '#ff453a'; // Red
+            satColor = '#d32f2f'; // Red
             satText = 'Descontentos';
         } else if (displaySat < 75) {
             satColor = '#ff9f0a'; // Orange
@@ -8833,3 +9813,388 @@ window.renderStats = () => {
     safe('stat-total-employees', gameState.employees && gameState.employees.staff ? Object.values(gameState.employees.staff).reduce((sum, n) => sum + n, 0) : 0);
 };
 
+// --- MAINTENANCE SYSTEM ---
+
+window.renderMaintenance = () => {
+    const container = document.getElementById('maintenance-list');
+    if (!container) return;
+
+    if (!gameState.fleet || gameState.fleet.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay aeronaves en la flota.</div>';
+        return;
+    }
+    
+    // Sort from worst condition to best (based on closest check)
+    const sortedFleet = [...gameState.fleet].sort((a, b) => {
+        const pctA = Math.max((a.hoursSinceACheck||0)/250, (a.hoursSinceCCheck||0)/1500, (a.hoursSinceDCheck||0)/5000);
+        const pctB = Math.max((b.hoursSinceACheck||0)/250, (b.hoursSinceCCheck||0)/1500, (b.hoursSinceDCheck||0)/5000);
+        return pctB - pctA;
+    });
+
+    let html = '';
+    sortedFleet.forEach(plane => {
+        const aPct = Math.min(100, Math.round(((plane.hoursSinceACheck || 0) / 250) * 100));
+        const cPct = Math.min(100, Math.round(((plane.hoursSinceCCheck || 0) / 1500) * 100));
+        const dPct = Math.min(100, Math.round(((plane.hoursSinceDCheck || 0) / 5000) * 100));
+        
+        const maxPct = Math.max(aPct, cPct, dPct);
+        let colorClass = '#30d158';
+        if (maxPct >= 95) colorClass = '#ff453a';
+        else if (maxPct >= 75) colorClass = '#ff9f0a';
+        
+        let reqBadge = '';
+        if (maxPct >= 100) reqBadge = '<div class="maint-status-badge" style="background:#ff453a; color:#fff;">MANTENIMIENTO REQUERIDO</div>';
+        
+        html += `
+        <div class="maint-card ${maxPct >= 100 ? 'critical' : ''}" onclick="openMaintenanceDetail('${plane.id}')">
+            <div class="maint-card-header">
+                <span class="maint-ac-name">${plane.name}</span>
+                <span class="maint-ac-reg">${plane.registration}</span>
+            </div>
+            <div class="maint-progress-container" style="margin-top: 10px; height: 8px;">
+                <div class="maint-progress-bar" style="width: ${maxPct}%; background-color: ${colorClass};"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                <span>A: ${aPct}%</span>
+                <span>C: ${cPct}%</span>
+                <span>D: ${dPct}%</span>
+            </div>
+            ${reqBadge}
+            ${plane.status === 'maintenance' ? '<div class="maint-status-badge" style="background:#0a84ff; color:#fff; animation:none;">EN MANTENIMIENTO</div>' : ''}
+            ${plane.status === 'grounded' ? '<div class="maint-status-badge" style="background:#ff453a; color:#fff; animation:none;">GROUNDED (D-Check Excedido)</div>' : ''}
+        </div>`;
+    });
+    container.innerHTML = html;
+};
+
+window.openMaintenanceDetail = (planeId) => {
+    const plane = gameState.fleet.find(p => p.id === planeId);
+    if (!plane) return;
+
+    const isAvailable = !(plane.status === 'in_flight' || plane.status === 'boarding' || plane.status === 'delayed_weather' || plane.status === 'maintenance');
+
+    let viewDetail = document.getElementById('view-maintenance-detail');
+    if (!viewDetail) {
+        viewDetail = document.createElement('div');
+        viewDetail.id = 'view-maintenance-detail';
+        viewDetail.className = 'view';
+        viewDetail.innerHTML = `
+            <header class="section-header">
+                <h2><i class="ph ph-airplane-tilt"></i> Centro de Mantenimiento</h2>
+                <p class="text-sm text-muted">Gestión avanzada de flota</p>
+            </header>
+            <div class="maint-detail-container" id="maintenance-detail-content" style="padding: 16px;"></div>
+        `;
+        document.querySelector('.app-main').appendChild(viewDetail);
+    }
+
+    const body = document.getElementById('maintenance-detail-content');
+    if (!body) return;
+
+    const modelDef = AIRCRAFT_MODELS.find(m => m.id === plane.model);
+    const mFactor = modelDef ? (modelDef.maintFactor || 1.0) : 1.0;
+    const baseVal = modelDef ? modelDef.price : 10000000;
+
+    const aHrs = plane.hoursSinceACheck || 0;
+    const cHrs = plane.hoursSinceCCheck || 0;
+    const dHrs = plane.hoursSinceDCheck || 0;
+
+    const aPct = Math.min(100, (aHrs / 250) * 100);
+    const cPct = Math.min(100, (cHrs / 1500) * 100);
+    const dPct = Math.min(100, (dHrs / 5000) * 100);
+
+    const costA = Math.round((baseVal * 0.0005) * mFactor * Math.max(1, (aPct/100)*1.5));
+    const costC = Math.round((baseVal * 0.005) * mFactor * Math.max(1, (cPct/100)*1.5));
+    const costD = Math.round((baseVal * 0.05) * mFactor * Math.max(1, (dPct/100)*1.5));
+
+    const canA = isAvailable && gameState.money >= costA;
+    const canC = isAvailable && gameState.money >= costC;
+    const canD = isAvailable && gameState.money >= costD;
+
+    let warningHtml = '';
+    if (!isAvailable && plane.status !== 'grounded') {
+        warningHtml = `
+            <div class="maint-warning">
+                <i class="ph ph-warning"></i> <strong>Aeronave no disponible:</strong> Actualmente en estado "${plane.status}".
+            </div>
+        `;
+    } else if (plane.status === 'grounded') {
+        warningHtml = `
+            <div class="maint-warning critical">
+                <i class="ph ph-warning"></i> <strong>Aeronave Grounded:</strong> Excedió sus horas de D-Check. Requiere mantenimiento pesado inmediato.
+            </div>
+        `;
+    }
+
+    const renderBar = (pct, label, hours, max) => {
+        let col = pct >= 95 ? '#ff453a' : pct >= 75 ? '#ff9f0a' : '#30d158';
+        return `
+        <div class="maint-check-row">
+            <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+                <strong>${label}</strong>
+                <span style="color: var(--text-muted);">${Math.floor(hours)} / ${max} hrs</span>
+            </div>
+            <div class="maint-progress-container">
+                <div class="maint-progress-bar" style="width: ${pct}%; background-color: ${col};"></div>
+            </div>
+        </div>`;
+    };
+
+    body.innerHTML = `
+        <div class="glass-panel" style="margin-bottom: 24px; padding: 24px;">
+            <div style="font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; background: linear-gradient(45deg, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${plane.name}</div>
+            <div style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 24px;">
+                Matrícula: <strong>${plane.registration}</strong> • Horas Totales: ${Math.floor(plane.flightHours || 0)}
+            </div>
+            
+            ${renderBar(aPct, 'A-Check (Inspección Ligera)', aHrs, 250)}
+            ${renderBar(cPct, 'C-Check (Inspección Detallada)', cHrs, 1500)}
+            ${renderBar(dPct, 'D-Check (Overhaul / Revisión Pesada)', dHrs, 5000)}
+        </div>
+        
+        ${warningHtml}
+
+        <h3 style="margin-bottom: 16px; margin-top: 16px; font-weight: 600;">Opciones de Mantenimiento</h3>
+        
+        <div class="maint-option glass-panel ${canA ? '' : 'disabled'}" onclick="${canA ? `performMaintenance('${plane.id}', 'A')` : ''}">
+            <div class="maint-opt-content">
+                <span class="maint-option-title">A-Check</span>
+                <span class="maint-option-desc">Inspección de sistemas. Toma 12 hrs simuladas. Resetea horas de A-Check.</span>
+            </div>
+            <div class="maint-option-cost">$${formatMoney(costA)}</div>
+        </div>
+
+        <div class="maint-option glass-panel ${canC ? '' : 'disabled'}" onclick="${canC ? `performMaintenance('${plane.id}', 'C')` : ''}">
+            <div class="maint-opt-content">
+                <span class="maint-option-title">C-Check</span>
+                <span class="maint-option-desc">Inspección profunda. Toma 3 días simulados. Resetea A y C-Check.</span>
+            </div>
+            <div class="maint-option-cost">$${formatMoney(costC)}</div>
+        </div>
+
+        <div class="maint-option glass-panel ${canD ? '' : 'disabled'}" onclick="${canD ? `performMaintenance('${plane.id}', 'D')` : ''}">
+            <div class="maint-opt-content">
+                <span class="maint-option-title">D-Check</span>
+                <span class="maint-option-desc">Desmontaje total. Toma 2 semanas simuladas. Resetea TODOS los checks y quita estado Grounded.</span>
+            </div>
+            <div class="maint-option-cost" style="color: #ff9f0a;">$${formatMoney(costD)}</div>
+        </div>
+    `;
+
+    switchTab('maintenance-detail');
+};
+
+window.performMaintenance = (planeId, type) => {
+    const plane = gameState.fleet.find(p => p.id === planeId);
+    if (!plane) return;
+
+    const modelDef = AIRCRAFT_MODELS.find(m => m.id === plane.model);
+    const mFactor = modelDef ? (modelDef.maintFactor || 1.0) : 1.0;
+    const baseVal = modelDef ? modelDef.price : 10000000;
+
+    const aHrs = plane.hoursSinceACheck || 0;
+    const cHrs = plane.hoursSinceCCheck || 0;
+    const dHrs = plane.hoursSinceDCheck || 0;
+
+    const aPct = Math.min(100, (aHrs / 250) * 100);
+    const cPct = Math.min(100, (cHrs / 1500) * 100);
+    const dPct = Math.min(100, (dHrs / 5000) * 100);
+
+    let cost = 0;
+    let durationMins = 0;
+
+    if (type === 'A') {
+        cost = Math.round((baseVal * 0.0005) * mFactor * Math.max(1, (aPct/100)*1.5));
+        durationMins = 12 * 60;
+    } else if (type === 'C') {
+        cost = Math.round((baseVal * 0.005) * mFactor * Math.max(1, (cPct/100)*1.5));
+        durationMins = 3 * 24 * 60;
+    } else if (type === 'D') {
+        cost = Math.round((baseVal * 0.05) * mFactor * Math.max(1, (dPct/100)*1.5));
+        durationMins = 14 * 24 * 60;
+    }
+
+    if (gameState.money < cost) {
+        showToast('Fondos Insuficientes', 'No tienes suficiente dinero para este mantenimiento.', 'error');
+        return;
+    }
+
+    gameState.money -= cost;
+    
+    if (type === 'A') {
+        plane.hoursSinceACheck = 0;
+    } else if (type === 'C') {
+        plane.hoursSinceACheck = 0;
+        plane.hoursSinceCCheck = 0;
+    } else if (type === 'D') {
+        plane.hoursSinceACheck = 0;
+        plane.hoursSinceCCheck = 0;
+        plane.hoursSinceDCheck = 0;
+    }
+
+    const nowAbs = gameState.time.day * 24 * 60 + gameState.time.hour * 60 + gameState.time.minute;
+    plane.status = 'maintenance';
+    plane.readyAbs = nowAbs + durationMins;
+
+    // Reset condition
+    plane.condition = 100;
+
+    updateTopBar();
+    showToast('Mantenimiento Iniciado', `El avión estará listo en ${Math.floor(durationMins / 60 / 24)} días y ${Math.floor((durationMins/60)%24)} hrs.`, 'success');
+    
+    if (window.setHeaderBack) window.setHeaderBack(() => switchTab('maintenance'), 'a Mantenimiento');
+    renderMaintenance();
+    switchTab('maintenance');
+};
+
+
+
+const closePassengerRatingModal = () => {
+    const modal = document.getElementById('passenger-rating-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+
+
+const openPassengerRatingModal = () => {
+    const modal = document.getElementById('passenger-rating-modal');
+    if (!modal) return;
+    
+    // Header data
+    const globalScoreEl = document.getElementById('prm-global-score');
+    const globalStarsEl = document.getElementById('prm-global-stars');
+    const globalPaxEl = document.getElementById('prm-global-pax');
+    
+    const ar = gameState.airlineRating || 3.0;
+    if (globalScoreEl) globalScoreEl.innerText = ar.toFixed(1);
+    
+    if (globalStarsEl) {
+        const fStars = Math.floor(ar);
+        const hStar = ar - fStars >= 0.5;
+        let gStarsHtml = '';
+        for(let i=0; i<5; i++) {
+            if (i < fStars) gStarsHtml += '<i class="ph-fill ph-star"></i>';
+            else if (i === fStars && hStar) gStarsHtml += '<i class="ph-fill ph-star-half"></i>';
+            else gStarsHtml += '<i class="ph ph-star"></i>';
+        }
+        globalStarsEl.innerHTML = gStarsHtml;
+    }
+    
+    if (globalPaxEl) {
+        let totalPaxSum = 0;
+        if (gameState.dailyRatings) {
+            gameState.dailyRatings.forEach(bucket => totalPaxSum += bucket.totalPax);
+        }
+        globalPaxEl.innerText = formatMoneyShort(totalPaxSum).replace('$', '');
+    }
+    
+    // Procedural Reviews from recent flights
+    const container = document.getElementById('prm-reviews-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!gameState.flightHistory || gameState.flightHistory.length === 0) {
+        container.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding: 20px;">No hay reseñas disponibles todavía. Espera a que aterricen más vuelos.</div>`;
+    } else {
+        // Take last 10 flights
+        const recentFlights = gameState.flightHistory.slice(-10).reverse();
+        
+        const firstNames = ["Carlos", "María", "José", "Laura", "Diego", "Ana", "Fernando", "Lucía", "Jorge", "Sofía", "Martín", "Valentina", "Juan", "Camila", "Miguel", "Julieta"];
+        const lastNames = ["Gómez", "Rodríguez", "López", "Fernández", "Pérez", "Martínez", "González", "Sánchez", "Díaz", "Romero", "Álvarez", "Ruiz", "Torres", "Suárez"];
+        
+        let reviewsHtml = '';
+        
+        recentFlights.forEach(flight => {
+            if (!flight.rating) return;
+            const flightScore = flight.rating;
+            
+            // Randomly generate 1 or 2 reviews per flight
+            const numReviews = Math.random() > 0.6 ? 2 : 1;
+            
+            for(let j=0; j<numReviews; j++) {
+                const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const paxName = `${fn} ${ln}`;
+                
+                // Variate score slightly around flightScore
+                let paxScore = flightScore + (Math.random() * 0.4 - 0.2);
+                paxScore = Math.max(1.0, Math.min(5.0, paxScore));
+                
+                let comment = '';
+                if (paxScore >= 4.5) {
+                    const comments = [
+                        "¡Excelente viaje! Llegamos a tiempo y la atención fue de primera. Volveré a volar con ellos.",
+                        "Muy buen vuelo, superó mis expectativas. El personal muy amable.",
+                        "Impecable. Todo en horario y el avión en perfectas condiciones.",
+                        "Una experiencia fantástica de principio a fin. Muy recomendable."
+                    ];
+                    comment = comments[Math.floor(Math.random() * comments.length)];
+                } else if (paxScore >= 3.5) {
+                    const comments = [
+                        "Buen vuelo en general. Podría mejorar un poco la comodidad, pero bien.",
+                        "Todo correcto. Cumplieron con el horario y el servicio fue adecuado.",
+                        "Un viaje normal, sin problemas. El precio me pareció justo.",
+                        "Aceptable. Nada espectacular, pero llegué a destino sin contratiempos."
+                    ];
+                    comment = comments[Math.floor(Math.random() * comments.length)];
+                } else if (paxScore >= 2.5) {
+                    const comments = [
+                        "El vuelo estuvo regular. Tuvimos algo de espera antes de embarcar.",
+                        "No me convenció mucho. El avión se veía un poco viejo y el servicio fue escaso.",
+                        "Bastante mejorable. La relación calidad-precio no es la mejor.",
+                        "Llegamos, que es lo importante. Pero la comodidad dejó bastante que desear."
+                    ];
+                    comment = comments[Math.floor(Math.random() * comments.length)];
+                } else {
+                    const comments = [
+                        "Pésima experiencia. Retrasos injustificados y mala atención.",
+                        "Una estafa total. Pagué demasiado por un servicio mediocre.",
+                        "El peor vuelo que he tenido. El avión incómodo y llegamos tardísimo.",
+                        "Muy insatisfecho. No volvería a elegir esta aerolínea bajo ninguna circunstancia."
+                    ];
+                    comment = comments[Math.floor(Math.random() * comments.length)];
+                }
+                
+                // Stars HTML
+                const fS = Math.floor(paxScore);
+                const hS = paxScore - fS >= 0.5;
+                let sH = '';
+                for(let k=0; k<5; k++) {
+                    if (k < fS) sH += '<i class="ph-fill ph-star"></i>';
+                    else if (k === fS && hS) sH += '<i class="ph-fill ph-star-half"></i>';
+                    else sH += '<i class="ph ph-star"></i>';
+                }
+                
+                // Route text
+                const dest = AIRPORTS.find(a => a.id === flight.destinationId);
+                const routeTxt = gameState.base ? `${gameState.base.id} ✈ ${dest ? dest.id : '?'}` : 'Vuelo';
+
+                reviewsHtml += `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-weight: 600; color: #fff; font-size: 0.95rem;">${paxName}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);"><i class="ph ph-airplane-tilt"></i> Ruta: ${routeTxt}</div>
+                            </div>
+                            <div style="color: var(--warning); font-size: 1rem;">
+                                ${sH}
+                            </div>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; font-style: italic;">
+                            "${comment}"
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        if (reviewsHtml === '') {
+            container.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding: 20px;">No hay reseñas disponibles todavía. Espera a que aterricen más vuelos.</div>`;
+        } else {
+            container.innerHTML = reviewsHtml;
+        }
+    }
+    
+    modal.classList.remove('hidden');
+};

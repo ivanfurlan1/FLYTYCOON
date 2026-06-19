@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -218,6 +218,12 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Tarjeta de Satisfaccion -->
+                    <div class="bento-box bento-rating-card airline-reputation-card" id="dash-rating-card" onclick="switchTab('passenger-reviews')" style="cursor: pointer; transition: all 0.2s;">
+                        <div class="bento-drag-handle" title="Mantener y arrastrar para reordenar"><i class="ph-bold ph-dots-six-vertical"></i></div>
+                        <!-- Rendered dynamically -->
                     </div>
 
                     <!-- Tarjeta de Flota y Operaciones -->
@@ -599,11 +605,16 @@
             <!-- PLANIFICADOR -->
             <div id="view-planner" class="view">
                 <div class="planner-header">
-                    <div class="planner-title-area">
-                        <h2><i class="ph ph-calendar" style="color:var(--accent);"></i> Planificador de Operaciones</h2>
-                        <p>Deslizá los vuelos horizontalmente para reajustar los horarios.</p>
+                    <div class="planner-title-area" style="display: flex; justify-content: space-between; width: 100%; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h2><i class="ph ph-calendar" style="color:var(--accent);"></i> Planificador de Operaciones</h2>
+                            <p>Deslizá los vuelos horizontalmente para reajustar los horarios.</p>
+                        </div>
+                        <div id="planner-actions" style="display: flex; gap: 8px;">
+                            <!-- Save/Cancel buttons injected via JS -->
+                        </div>
                     </div>
-                    <div class="planner-day-selector" id="planner-day-selector">
+                    <div class="planner-day-selector" id="planner-day-selector" style="width: 100%; justify-content: space-between;">
                         <!-- Injected via JS -->
                     </div>
                 </div>
@@ -674,7 +685,7 @@
                 <!-- Bento Grid layout for statistics and actions -->
                 <div class="airline-bento-grid slide-up" style="margin-top: 20px;">
                     <!-- Reputation Box -->
-                    <div class="bento-box airline-reputation-card" id="airline-reputation-box">
+                    <div class="bento-box airline-reputation-card" id="airline-reputation-box" onclick="switchTab('passenger-reviews')" style="cursor: pointer; transition: all 0.2s;">
                         <!-- Rendered dynamically -->
                     </div>
 
@@ -750,6 +761,18 @@
                             <div class="menu-option-info">
                                 <span class="menu-option-title">Tienda de Mejoras</span>
                                 <span class="menu-option-desc">Adquirí licencias y expansiones</span>
+                            </div>
+                            <i class="ph ph-caret-right menu-option-arrow"></i>
+                        </button>
+
+                        <!-- Mantenimiento -->
+                        <button class="menu-option-card" onclick="switchTab('maintenance')">
+                            <div class="menu-option-icon" style="background: rgba(255,149,0,0.15); border-color: rgba(255,149,0,0.3);">
+                                <i class="ph ph-wrench" style="color: #ff9500;"></i>
+                            </div>
+                            <div class="menu-option-info">
+                                <span class="menu-option-title">Mantenimiento</span>
+                                <span class="menu-option-desc">Revisión y reparación de la flota</span>
                             </div>
                             <i class="ph ph-caret-right menu-option-arrow"></i>
                         </button>
@@ -1039,6 +1062,28 @@
                 </div><!-- /stats-screen -->
             </div><!-- /view-stats -->
 
+            <!-- MANTENIMIENTO -->
+            <div id="view-maintenance" class="view">
+                <header class="section-header">
+                    <h2><i class="ph ph-wrench"></i> Mantenimiento de Flota</h2>
+                    <p class="text-sm text-muted">Asegurá la operatividad de tus aeronaves según horas de vuelo.</p>
+                </header>
+                <div id="maintenance-list" class="maintenance-grid">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+
+            <!-- MANTENIMIENTO DETAIL -->
+            <div id="view-maintenance-detail" class="view">
+                <header class="section-header">
+                    <h2><i class="ph ph-airplane-tilt"></i> Detalles de Aeronave</h2>
+                    <p class="text-sm text-muted">Gestión de mantenimiento</p>
+                </header>
+                <div class="maint-detail-container" id="maintenance-detail-content" style="padding: 16px;">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+
             <!-- TIENDA / MEJORAS -->
             <div id="view-store" class="view">
                 <div class="store-screen fade-in">
@@ -1181,11 +1226,13 @@
                             <input type="color" id="livery-brush-color" class="livery-color-input" value="#ef4444">
                         </div>
                         <div class="livery-tool-group" style="flex:1;">
-                            <label class="text-xs text-muted">Tamaño (<span id="livery-brush-size-val">10</span>px)</label>
-                            <input type="range" id="livery-brush-size" min="2" max="100" value="10" oninput="document.getElementById('livery-brush-size-val').innerText = this.value">
+                            <label class="text-xs text-muted">Grosor (<span id="livery-brush-size-val">20</span>px)</label>
+                            <input type="range" id="livery-brush-size" min="5" max="200" value="20" oninput="document.getElementById('livery-brush-size-val').innerText = this.value">
                         </div>
                     </div>
-                    <p class="text-xs text-muted" style="margin-top:0.5rem;"><i class="ph ph-info"></i> Mantené presionado y arrastrá sobre el modelo para pintar.</p>
+                    <p id="livery-paint-status" class="text-xs text-muted" style="margin-top:0.5rem;display:none;"><i class="ph ph-paint-brush"></i> Pintando: <b id="livery-paint-section">—</b></p>
+                    <p class="text-xs text-muted" style="margin-top:0.25rem;"><i class="ph ph-info"></i> Activá <b>Pintar</b> y arrastrá el pincel sobre el avión.</p>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:0.5rem;width:100%;" onclick="liveryEditor.resetColors()"><i class="ph ph-arrow-counter-clockwise"></i> Resetear colores</button>
                 </div>
 
                 <div class="livery-tool-section">
@@ -1250,6 +1297,59 @@
 
 
     <!-- AIRCRAFT DETAIL VIEW REPLACED BY FULLSCREEN VIEW -->
+
+            <!-- PASSENGER REVIEWS FULL SCREEN VIEW -->
+            <div id="view-passenger-reviews" class="view">
+                <div class="store-screen fade-in" style="padding-bottom: 80px;">
+                    <!-- Hero header -->
+                    <div class="store-hero-header" style="background: linear-gradient(135deg, rgba(234,179,8,0.1) 0%, rgba(202,138,4,0.05) 100%); border: 1px solid rgba(234,179,8,0.2);">
+                        <div class="store-hero-left">
+                            <h2 class="store-main-title"><i class="ph-fill ph-star" style="color: var(--warning);"></i> Reseñas de Pasajeros</h2>
+                            <p class="store-subtitle">Feedback detallado de los clientes sobre el servicio, la puntualidad y el estado de tu flota.</p>
+                        </div>
+                        <div class="store-hero-right">
+                            <div class="store-balance-badge" style="background: rgba(234,179,8,0.1); border-color: rgba(234,179,8,0.3);">
+                                <span id="prv-global-score" style="font-size: 1.6rem; font-weight: bold; color: #fff; margin-right: 8px;">0.0</span>
+                                <div id="prv-global-stars" style="color: var(--warning); font-size: 1.2rem; display: flex; align-items: center; gap: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Summary Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                        <!-- PROS -->
+                        <div class="glass-panel" style="padding: 20px; border-top: 3px solid #30d158;">
+                            <h3 style="display: flex; align-items: center; gap: 8px; color: #30d158; margin-bottom: 16px; font-size: 1.1rem;">
+                                <i class="ph-bold ph-thumbs-up"></i> Lo más destacado
+                            </h3>
+                            <ul id="prv-pros-list" style="margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Pros dynamically injected -->
+                            </ul>
+                        </div>
+                        <!-- CONS -->
+                        <div class="glass-panel" style="padding: 20px; border-top: 3px solid #ff453a;">
+                            <h3 style="display: flex; align-items: center; gap: 8px; color: #ff453a; margin-bottom: 16px; font-size: 1.1rem;">
+                                <i class="ph-bold ph-thumbs-down"></i> Puntos de mejora
+                            </h3>
+                            <ul id="prv-cons-list" style="margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Cons dynamically injected -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Reviews Feed -->
+                    <div class="glass-panel" style="padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0; font-size: 1.2rem;"><i class="ph ph-chats-teardrop"></i> Feed de Comentarios</h3>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);"><span id="prv-total-pax">0</span> pasajeros recientes</div>
+                        </div>
+                        
+                        <div id="prv-reviews-feed" style="display: flex; flex-direction: column; gap: 16px;">
+                            <!-- Reviews injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
 
     <!-- FLIGHT DETAIL MODAL -->
     <div id="flight-detail-modal" class="flight-detail-modal hidden">
@@ -1333,6 +1433,8 @@
             
             <div id="fd-actions" class="ticket-actions hidden">
                 <!-- Actions injected dynamically -->
+            </div>
+        </div>
     </div>
 
     <!-- BANNER DE EDICIÓN BENTO -->
@@ -1353,3 +1455,4 @@
     </script>
 </body>
 </html>
+
