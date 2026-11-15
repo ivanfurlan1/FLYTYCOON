@@ -827,20 +827,46 @@ function drawPlanetWeather(p, timeSec) {
         const shadowIntensity = cl.growth * (cl.isStorm ? 0.35 : (w.rainIntensity * 0.25));
         if (shadowIntensity <= 0.01) continue;
 
-        // A. Sombra difusa proyectada suavemente en la superficie directamente bajo la tormenta
-        const groundX = p.x + Math.cos(cl.angle) * surfaceR;
-        const groundY = p.y + Math.sin(cl.angle) * surfaceR;
-        const shadowRadius = cl.width * 0.45;
-
-        const gShadow = ctx.createRadialGradient(groundX, groundY, 4, groundX, groundY, shadowRadius);
-        gShadow.addColorStop(0.00, `rgba(18, 22, 34, ${shadowIntensity * 0.55})`);
-        gShadow.addColorStop(0.55, `rgba(18, 22, 34, ${shadowIntensity * 0.28})`);
-        gShadow.addColorStop(1.00, 'rgba(18, 22, 34, 0.0)');
-
-        ctx.fillStyle = gShadow;
+        // A. Sombra difusa adaptada a la curvatura del terreno (arco rasante sin círculo sobresaliendo al cielo)
+        ctx.save();
+        const halfSpanSh = Math.min(0.32, cl.angularSpan * 0.48);
+        const stepsSh = 10;
+        const shGrad = ctx.createRadialGradient(
+            p.x + Math.cos(cl.angle) * surfaceR,
+            p.y + Math.sin(cl.angle) * surfaceR,
+            2,
+            p.x + Math.cos(cl.angle) * surfaceR,
+            p.y + Math.sin(cl.angle) * surfaceR,
+            cl.width * 0.48
+        );
+        shGrad.addColorStop(0.00, `rgba(14, 18, 30, ${shadowIntensity * 0.46})`);
+        shGrad.addColorStop(0.60, `rgba(14, 18, 30, ${shadowIntensity * 0.18})`);
+        shGrad.addColorStop(1.00, 'rgba(14, 18, 30, 0.0)');
+        ctx.fillStyle = shGrad;
         ctx.beginPath();
-        ctx.arc(groundX, groundY, shadowRadius, 0, Math.PI * 2);
+        for (let i = 0; i <= stepsSh; i++) {
+            const u = (i / stepsSh) * 2 - 1;
+            const ang = cl.angle + u * halfSpanSh;
+            const rTop = (typeof getSurfaceRadius === 'function' && p.heights && p.heights.length > 0)
+                ? getSurfaceRadius(p, ang)
+                : p.radius;
+            const vx = p.x + Math.cos(ang) * (rTop + 1.5);
+            const vy = p.y + Math.sin(ang) * (rTop + 1.5);
+            if (i === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
+        }
+        for (let i = stepsSh; i >= 0; i--) {
+            const u = (i / stepsSh) * 2 - 1;
+            const ang = cl.angle + u * halfSpanSh;
+            const rTop = (typeof getSurfaceRadius === 'function' && p.heights && p.heights.length > 0)
+                ? getSurfaceRadius(p, ang)
+                : p.radius;
+            const depth = (1 - u * u) * 26 + 4;
+            ctx.lineTo(p.x + Math.cos(ang) * (rTop - depth), p.y + Math.sin(ang) * (rTop - depth));
+        }
+        ctx.closePath();
         ctx.fill();
+        ctx.restore();
 
         // B. Estelas de lluvia finas y dinámicas en caída (delicadas líneas atmosféricas, NADA de conos ni polígonos sólidos)
         const streakCount = Math.floor(cl.width / 45);
@@ -1169,4 +1195,86 @@ function drawPlanetWeather(p, timeSec) {
     }
 
     ctx.restore();
+}
+
+/**
+ * Calcula de forma continua y suave la cobertura nubosa sobre el observador,
+ * la intensidad local de tormenta y la oclusión solar al estar bajo las nubes.
+ * No tiene bordes duros ni transiciones rectas: integra densidad óptica con smoothstep
+ * tanto en ángulo azimutal como en altitud respecto a cada nube.
+ */
+function getLocalCloudOvercast(planet, obsX, obsY) {
+    const w = planet && planet.weather;
+    if (!w || !w.hasClouds || !w.clouds || w.clouds.length === 0) {
+        return { overcast: 0, storm: 0, sunOcclusion: 0 };
+    }
+
+    const dx = obsX - planet.x;
+    const dy = obsY - planet.y;
+    const dist = Math.hypot(dx, dy);
+    const obsAlt = dist - planet.radius;
+    const atmoDepth = Math.max(120, planet.atmoRadius - planet.radius);
+
+    // Si el observador está por encima de toda la capa nubosa, el cielo superior está despejado
+    if (obsAlt > atmoDepth * 0.42) {
+        return { overcast: 0, storm: 0, sunOcclusion: 0 };
+    }
+
+    const obsAngle = Math.atan2(dy, dx);
+    const lightAng = (planet.lightAngle !== undefined) ? planet.lightAngle : -Math.PI * 0.35;
+    const sunDelta = wxWrapAngle(lightAng - obsAngle);
+    const sunAboveHorizon = Math.cos(sunDelta) > -0.18;
+    const sinSunDelta = Math.sin(sunDelta);
+
+    let rawSky = 0;
+    let rawSun = 0;
+    let rawStorm = 0;
+
+    for (let i = 0; i < w.clouds.length; i++) {
+        const cl = w.clouds[i];
+        if (!cl || cl.growth <= 0.01) continue;
+
+        // Transición vertical suave al atravesar la capa de nubes
+        const underFactor = wxSmoothstep(cl.alt + cl.height * 0.65, cl.alt - cl.height * 0.35, obsAlt);
+        if (underFactor <= 0.005) continue;
+
+        let morphWeight = 0.70;
+        if (cl.morphKey === 'supercell_storm') morphWeight = 1.15;
+        else if (cl.morphKey === 'cumulus_congestus') morphWeight = 0.92;
+        else if (cl.morphKey === 'stratocumulus_deck') morphWeight = 0.82;
+        else if (cl.morphKey === 'fluffy_cluster') morphWeight = 0.62;
+        else if (cl.morphKey === 'cirrus_streamers') morphWeight = 0.32;
+
+        const baseDensity = cl.growth * (cl.baseAlpha || 0.85) * morphWeight * underFactor;
+
+        // Contribución a la bóveda celeste (cono amplio y suave para evitar cortes rectos)
+        const dAng = Math.abs(wxWrapAngle(obsAngle - cl.angle));
+        const skyRadius = cl.angularSpan * 0.85 + 0.14;
+        if (dAng < skyRadius) {
+            const angWeight = Math.pow(wxSmoothstep(skyRadius, 0, dAng), 1.25);
+            rawSky += baseDensity * angWeight;
+
+            const stormTerm = cl.isStorm ? (cl.stormPower || 0.85) : (w.stormIntensity * 0.55);
+            rawStorm += cl.growth * stormTerm * underFactor * angWeight;
+        }
+
+        // Contribución a la oclusión directa del Sol según su ángulo cenital
+        if (sunAboveHorizon) {
+            const altDiff = Math.max(0, cl.alt - obsAlt);
+            const sunHitAngle = obsAngle + sinSunDelta * (altDiff / Math.max(200, planet.radius + cl.alt));
+            const dSunAng = Math.abs(wxWrapAngle(sunHitAngle - cl.angle));
+            const sunRadius = cl.angularSpan * 0.62 + 0.045;
+            if (dSunAng < sunRadius) {
+                const sunWeight = wxSmoothstep(sunRadius, cl.angularSpan * 0.14, dSunAng);
+                rawSun += baseDensity * sunWeight;
+            }
+        }
+    }
+
+    // Saturación óptica continua (ley de Beer-Lambert suave)
+    const overcast = wxClamp(1 - Math.exp(-rawSky * 0.82), 0, 1);
+    const sunOcclusion = wxClamp(1 - Math.exp(-rawSun * 1.15), 0, 1);
+    const storm = wxClamp(rawStorm / Math.max(0.6, rawSky + 0.35), 0, 1) * wxSmoothstep(0.12, 0.52, overcast);
+
+    return { overcast, storm, sunOcclusion };
 }

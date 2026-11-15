@@ -7169,13 +7169,43 @@ function closeRocketBuilder() {
 }
 
 // --- RENDERIZADO DEL COHETE PERSONALIZADO EN VUELO (CENTRADO EN CoM) ---
+let _customRocketNightCanvas = null;
+let _customRocketNightCtx = null;
+
+function _renderCustomRocketParts(targetCtx, sortedParts, com, scale) {
+    for (const p of sortedParts) {
+        const def = ROCKET_PARTS_CATALOG[p.partDefId];
+        if (!def) continue;
+
+        const sz = getPartSize(p, def);
+        const fx = -(p.y - com.y) * scale;
+        const fy = (p.x - com.x) * scale;
+
+        targetCtx.save();
+        targetCtx.translate(fx, fy);
+        targetCtx.scale(scale, scale);
+        targetCtx.rotate(Math.PI / 2 + ((p.rotation || 0) * Math.PI) / 180);
+        if (p.flipped) targetCtx.scale(-1, 1);
+
+        def.draw(targetCtx, sz.width, sz.height, p);
+        targetCtx.restore();
+    }
+
+    // Dibujar transiciones de ancho y carenados interetapa automáticos en vuelo
+    targetCtx.save();
+    targetCtx.scale(scale, scale);
+    targetCtx.rotate(Math.PI / 2);
+    targetCtx.translate(-com.x, -com.y);
+    drawWidthTransitions(targetCtx, sortedParts);
+    drawInterstageFairings(targetCtx, sortedParts);
+    targetCtx.restore();
+}
+
 function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
     if (!s || !s.customRocket || !s.customRocket.customParts) return;
 
     const parts = s.customRocket.customParts;
     const com = s.customRocket.com || { x: 0, y: 0 };
-
-    ctx.save();
     const scale = (sScale || 1.0) * FLIGHT_SCALE;
 
     const Z_MAP = { structures: 1, tanks: 2, engines: 3, capsules: 4, aero: 5, solar: 6, rcs: 7, fairings: 9 };
@@ -7187,33 +7217,86 @@ function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
         return zA - zB;
     });
 
+    const night = Math.max(0, Math.min(1, localNight || 0));
+
+    // De día (o espacio iluminado), render directo sin capa intermedia
+    if (night <= 0.005 || typeof document === 'undefined') {
+        ctx.save();
+        _renderCustomRocketParts(ctx, sortedParts, com, scale);
+        ctx.restore();
+        return;
+    }
+
+    // Calcular caja envolvente real en coordenadas de vuelo para evitar recortes
+    let fMinX = Infinity, fMaxX = -Infinity, fMinY = Infinity, fMaxY = -Infinity;
     for (const p of sortedParts) {
         const def = ROCKET_PARTS_CATALOG[p.partDefId];
         if (!def) continue;
-
         const sz = getPartSize(p, def);
         const fx = -(p.y - com.y) * scale;
         const fy = (p.x - com.x) * scale;
-
-        ctx.save();
-        ctx.translate(fx, fy);
-        ctx.scale(scale, scale);
-        ctx.rotate(Math.PI / 2 + ((p.rotation || 0) * Math.PI) / 180);
-        if (p.flipped) ctx.scale(-1, 1);
-
-        def.draw(ctx, sz.width, sz.height, p);
-        ctx.restore();
+        const r = Math.hypot(sz.width, sz.height) * 0.55 * scale + 14;
+        if (fx - r < fMinX) fMinX = fx - r;
+        if (fx + r > fMaxX) fMaxX = fx + r;
+        if (fy - r < fMinY) fMinY = fy - r;
+        if (fy + r > fMaxY) fMaxY = fy + r;
+    }
+    if (!isFinite(fMinX)) {
+        fMinX = -80 * scale; fMaxX = 80 * scale;
+        fMinY = -80 * scale; fMaxY = 80 * scale;
     }
 
-    // Dibujar transiciones de ancho y carenados interetapa automáticos en vuelo
-    ctx.save();
-    ctx.scale(scale, scale);
-    ctx.rotate(Math.PI / 2);
-    ctx.translate(-com.x, -com.y);
-    drawWidthTransitions(ctx, parts);
-    drawInterstageFairings(ctx, parts);
-    ctx.restore();
+    const boxW = Math.max(8, fMaxX - fMinX);
+    const boxH = Math.max(8, fMaxY - fMinY);
+    const camZoom = (typeof camera !== 'undefined' && camera.zoom) ? camera.zoom : 1.0;
+    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1.0;
+    let offScale = Math.max(1.5, Math.min(4.0, camZoom * dpr * 1.25));
+    const maxDim = 2048;
+    if (boxW * offScale > maxDim || boxH * offScale > maxDim) {
+        offScale = Math.min(offScale, maxDim / Math.max(boxW, boxH));
+    }
+    const cw = Math.max(1, Math.ceil(boxW * offScale));
+    const ch = Math.max(1, Math.ceil(boxH * offScale));
 
+    if (!_customRocketNightCanvas) {
+        _customRocketNightCanvas = document.createElement('canvas');
+        _customRocketNightCtx = _customRocketNightCanvas.getContext('2d');
+    }
+    if (!_customRocketNightCtx) {
+        ctx.save();
+        _renderCustomRocketParts(ctx, sortedParts, com, scale);
+        ctx.restore();
+        return;
+    }
+
+    if (_customRocketNightCanvas.width !== cw || _customRocketNightCanvas.height !== ch) {
+        _customRocketNightCanvas.width = cw;
+        _customRocketNightCanvas.height = ch;
+    } else {
+        _customRocketNightCtx.clearRect(0, 0, cw, ch);
+    }
+
+    _customRocketNightCtx.save();
+    _customRocketNightCtx.scale(offScale, offScale);
+    _customRocketNightCtx.translate(-fMinX, -fMinY);
+
+    _renderCustomRocketParts(_customRocketNightCtx, sortedParts, com, scale);
+
+    // Sombreado nocturno orgánico (luz lunar azulada en cara superior -> sombra profunda en cara inferior)
+    _customRocketNightCtx.save();
+    _customRocketNightCtx.globalCompositeOperation = 'source-atop';
+    const nightGrad = _customRocketNightCtx.createLinearGradient(0, fMinY, 0, fMaxY);
+    nightGrad.addColorStop(0.0, `rgba(22, 32, 52, ${(0.64 * night).toFixed(3)})`);
+    nightGrad.addColorStop(0.45, `rgba(14, 21, 37, ${(0.72 * night).toFixed(3)})`);
+    nightGrad.addColorStop(1.0, `rgba(7, 11, 22, ${(0.80 * night).toFixed(3)})`);
+    _customRocketNightCtx.fillStyle = nightGrad;
+    _customRocketNightCtx.fillRect(fMinX, fMinY, boxW, boxH);
+    _customRocketNightCtx.restore();
+
+    _customRocketNightCtx.restore();
+
+    ctx.save();
+    ctx.drawImage(_customRocketNightCanvas, fMinX, fMinY, boxW, boxH);
     ctx.restore();
 }
 

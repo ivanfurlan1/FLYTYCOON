@@ -113,7 +113,17 @@ function render(timeSec) {
         // Hacia el cenit (arriba), la atmósfera se abre radiantemente de día o se sumerge en la noche cósmica.
         const dayFactor = solarState ? clamp(solarState.dayFactor, 0, 1) : 0;
         const nightFactor = solarState ? clamp(solarState.nightFactor, 0, 1) : 0;
-        const topSkyRGB = lerpRGB(camera.skyColor, DEEP_SPACE_RGB, lerp(0.18, 0.92, nightFactor));
+        const cloudOvercast = clamp((ship && ship.cloudOvercast) ? ship.cloudOvercast : 0, 0, 1) * atmoW;
+        const cloudStorm = clamp((ship && ship.cloudStorm) ? ship.cloudStorm : 0, 0, 1) * atmoW;
+        let topSkyRGB = lerpRGB(camera.skyColor, DEEP_SPACE_RGB, lerp(0.18, 0.92, nightFactor));
+        if (cloudOvercast > 0.01 && dayFactor > 0.01) {
+            const overcastCeiling = [
+                Math.max(2, Math.round(camera.skyColor[0] * (0.72 - cloudStorm * 0.14))),
+                Math.max(3, Math.round(camera.skyColor[1] * (0.74 - cloudStorm * 0.14))),
+                Math.max(4, Math.round(camera.skyColor[2] * (0.78 - cloudStorm * 0.12)))
+            ];
+            topSkyRGB = lerpRGB(topSkyRGB, overcastCeiling, cloudOvercast * dayFactor * 0.62);
+        }
 
         const skyGrad = ctx.createLinearGradient(
             screenW * 0.5, screenH,
@@ -129,7 +139,7 @@ function render(timeSec) {
         // Resplandor crepuscular dinámico en el horizonte durante el amanecer / atardecer
         if (solarState && solarState.twilightFactor > 0.02) {
             const sunsetCol = col.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-            const twIntensity = solarState.twilightFactor * atmoW;
+            const twIntensity = solarState.twilightFactor * atmoW * (1 - cloudOvercast * (0.55 + cloudStorm * 0.25));
             const twGrad = ctx.createRadialGradient(
                 screenW * 0.5, screenH * 0.98, 20,
                 screenW * 0.5, screenH * 0.98, screenW * 0.88
@@ -145,7 +155,7 @@ function render(timeSec) {
         // Luminiscencia aérea nocturna sutil (Airglow / Brillo químico fino en el horizonte sin velar la noche)
         if (solarState && solarState.nightFactor > 0.05) {
             const airglowCol = col.nightAirglow || arch.nightAirglow || [56, 189, 248];
-            const airglowAlpha = (col.nightAirglowAlpha || 0.45) * solarState.nightFactor * atmoW * 0.09;
+            const airglowAlpha = (col.nightAirglowAlpha || 0.45) * solarState.nightFactor * atmoW * 0.09 * (1 - cloudOvercast * 0.72);
             const agGrad = ctx.createLinearGradient(
                 screenW * 0.5, screenH,
                 screenW * 0.5, screenH * 0.72
@@ -169,10 +179,13 @@ function render(timeSec) {
     }
 
     // 2. Campo Estelar, Nebulosas y Polvo de Alta Velocidad
-    // Dispersión de Rayleigh: la atmósfera diurna dispersa la luz y apaga las estrellas tenues;
-    // de noche o en el espacio las estrellas brillan al 100% con nitidez cristalina.
+    // Dispersión de Rayleigh y ocultación subterránea dentro de mundos huecos:
+    const cavBlend = (typeof ship !== 'undefined' && ship.cavernDepthBlend) ? ship.cavernDepthBlend : 0;
     const dayScatter = (hasAtmo && solarState) ? (solarState.dayFactor * ship.currentAtmoWeight) : 0;
-    const starDimming = lerp(1.0, 0.08, Math.pow(dayScatter, 0.85));
+    const cloudStarVeil = (hasAtmo && typeof ship !== 'undefined')
+        ? (1 - clamp((ship.cloudOvercast || 0) * ship.currentAtmoWeight * 0.90, 0, 0.92))
+        : 1.0;
+    const starDimming = lerp(1.0, 0.08, Math.pow(dayScatter, 0.85)) * clamp(1 - cavBlend * 0.98, 0, 1) * cloudStarVeil;
 
     ctx.save();
     ctx.translate(screenW * 0.5, screenH * 0.5);
@@ -180,7 +193,7 @@ function render(timeSec) {
     ctx.translate(-screenW * 0.5, -screenH * 0.5);
 
     // Banda Galáctica / Vía Láctea sutil en el fondo cósmico profundo (paralaje acotado sin reinicios ni saltos)
-    const galacticAlpha = lerp(0.16, 0.015, Math.pow(dayScatter, 0.75));
+    const galacticAlpha = lerp(0.16, 0.015, Math.pow(dayScatter, 0.75)) * clamp(1 - cavBlend, 0, 1) * cloudStarVeil;
     if (galacticAlpha > 0.01) {
         ctx.save();
         const mwShiftX = clamp(camera.x * 0.00012, -140, 140);
@@ -208,7 +221,7 @@ function render(timeSec) {
         const ny = ((neb.y - camera.y * neb.parallax) % nebSpan + nebSpan) % nebSpan - nebMargin;
         if (nx < -neb.r * 1.6 || nx > screenW + neb.r * 1.6 || ny < -neb.r * 1.6 || ny > screenH + neb.r * 1.6) continue;
 
-        const nebAlphaMult = lerp(1.0, 0.18, dayScatter);
+        const nebAlphaMult = lerp(1.0, 0.18, dayScatter) * cloudStarVeil;
         const tilt = (neb.x * 0.013 + neb.y * 0.007) % Math.PI;
 
         // Lóbulo principal elíptico inclinado (aspecto gaseoso orgánico, nunca un círculo plano)
@@ -360,9 +373,11 @@ function render(timeSec) {
         // 7. Iluminación Realista de la Llama sobre el Suelo (Sin círculos gigantes)
         drawDynamicGroundGlow(nearby);
 
-        // 8. Nubes Atmosféricas Planetarias (Troposfera y Estratosfera)
-        for (const p of nearby) {
-            drawPlanetCloudBands(p, timeSec);
+        // 8. Nubes Atmosféricas Planetarias (se ocultan al descender al núcleo de cavernas)
+        if (!ship.cavernDepthBlend || ship.cavernDepthBlend < 0.88) {
+            for (const p of nearby) {
+                drawPlanetCloudBands(p, timeSec);
+            }
         }
 
         // 9. Faros Volumétricos de Exploración
@@ -453,6 +468,11 @@ function render(timeSec) {
         // 21.2 Bases Planetarias Modulares y Plataformas de Aterrizaje
         if (typeof drawBases === 'function') {
             drawBases(timeSec);
+        }
+
+        // 21.3 Máquinas Extractoras de Recursos Planetarios (Nv.1 - Nv.4)
+        if (typeof drawExtractors === 'function') {
+            drawExtractors(timeSec);
         }
 
         // 21.5 Deflexión de la Llama del Cohete contra la Superficie
@@ -727,18 +747,22 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         curSunRGB = lerpRGB(curSunRGB, nightSunRGB, clamp((night - 0.05) / 0.75, 0, 1));
     }
 
+    const sunOcc = clamp((typeof ship !== 'undefined' && ship.sunCloudOcclusion ? ship.sunCloudOcclusion : 0) * smoothstep(0.05, 0.35, atmoBlend), 0, 1);
+    const cloudOv = clamp((typeof ship !== 'undefined' && ship.cloudOvercast ? ship.cloudOvercast : 0) * smoothstep(0.05, 0.35, atmoBlend), 0, 1);
+    const sunVeil = clamp(Math.max(sunOcc, cloudOv * 0.72), 0, 1);
+
     ctx.save();
     ctx.globalAlpha = nightDim;
 
-    // 2. Halos concéntricos amplios de difusión (Transición cromática suave hacia el atardecer)
-    const haloRadius = lerp(90, 310 * (sunVis.haloMult || 1.0), atmoBlend);
+    // 2. Halos concéntricos amplios de difusión (Transición cromática suave hacia el atardecer y difusión nubosa)
+    const haloRadius = lerp(90, 310 * (sunVis.haloMult || 1.0), atmoBlend) * lerp(1.0, 1.42, sunVeil);
     const hGrad = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, haloRadius);
     
     if (atmoBlend > 0.08) {
         const haloInner = lerpRGB([255, 252, 235], sunsetCol, Math.pow(twilight, 0.75));
         const haloMid = lerpRGB([254, 243, 199], sunsetCol, Math.pow(twilight, 0.68));
         const haloOuter = lerpRGB([244, 162, 97], sunsetCol, Math.pow(twilight, 0.58));
-        const alphaScale = atmoBlend * (day * 0.44 + twilight * 0.48 + 0.04);
+        const alphaScale = atmoBlend * (day * 0.44 + twilight * 0.48 + 0.04) * lerp(1.0, 0.34, sunVeil);
 
         hGrad.addColorStop(0.00, rgbStr(haloInner, alphaScale));
         hGrad.addColorStop(0.35, rgbStr(haloMid, alphaScale * 0.45));
@@ -757,10 +781,11 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
     ctx.fill();
 
     // 2.5. Anillo de Parhelio Prismático en mundos criogénicos
-    if (sunVis.hasIceRing && atmoBlend > 0.15) {
+    const ringVeil = 1 - smoothstep(0.10, 0.65, sunVeil);
+    if (sunVis.hasIceRing && atmoBlend > 0.15 && ringVeil > 0.01) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = `rgba(186, 230, 253, ${0.25 * atmoBlend})`;
+        ctx.strokeStyle = `rgba(186, 230, 253, ${0.25 * atmoBlend * ringVeil})`;
         ctx.lineWidth = 2.2;
         ctx.beginPath();
         ctx.arc(sunX, sunY, haloRadius * 0.68, 0, Math.PI * 2);
@@ -769,8 +794,9 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
     }
 
     // 3. Destello Anamórfico Estelar en el Espacio Profundo (Lens Flare Cinemático)
-    if (atmoBlend < 0.35) {
-        const flareAlpha = (1.0 - atmoBlend / 0.35) * 0.45;
+    const flareVeil = 1 - smoothstep(0.05, 0.50, sunVeil);
+    if (atmoBlend < 0.35 && flareVeil > 0.01) {
+        const flareAlpha = (1.0 - atmoBlend / 0.35) * 0.45 * flareVeil;
         const flareWidth = Math.min(screenW, screenH) * 0.42;
         const flareGrad = ctx.createLinearGradient(sunX - flareWidth, sunY, sunX + flareWidth, sunY);
         flareGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
@@ -787,11 +813,12 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
     }
 
     // 4. Rayos Crepusculares Volumétricos Suaves (God Rays sin bordes duros)
-    if (atmoBlend > 0.12 && (day > 0.05 || twilight > 0.02)) {
+    const rayCloudMult = smoothstep(0.92, 0.28, sunVeil);
+    if (atmoBlend > 0.12 && (day > 0.05 || twilight > 0.02) && rayCloudMult > 0.01) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const numRays = 7;
-        const rayBlendFactor = clamp((atmoBlend - 0.12) / 0.38, 0, 1);
+        const rayBlendFactor = clamp((atmoBlend - 0.12) / 0.38, 0, 1) * rayCloudMult;
         const rayColor = lerpRGB([255, 250, 235], sunsetCol, Math.pow(twilight, 0.72));
 
         for (let r = 0; r < numRays; r++) {
@@ -829,10 +856,11 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
     const dxCenter = screenW * 0.5 - sunX;
     const dyCenter = screenH * 0.5 - sunY;
     const sunScreenDist = Math.hypot(dxCenter, dyCenter);
-    if (sunScreenDist < Math.max(screenW, screenH) * 0.85) {
+    const ghostVeil = 1 - smoothstep(0.05, 0.55, sunVeil);
+    if (sunScreenDist < Math.max(screenW, screenH) * 0.85 && ghostVeil > 0.01) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const ghostAlpha = (0.055 + 0.04 * twilight) * (1 - sunScreenDist / (Math.max(screenW, screenH) * 0.9));
+        const ghostAlpha = (0.055 + 0.04 * twilight) * (1 - sunScreenDist / (Math.max(screenW, screenH) * 0.9)) * ghostVeil;
         const ghosts = [
             { t: 0.45, r: 16, col: [254, 240, 138] },
             { t: 0.82, r: 28, col: sunsetCol },
@@ -855,7 +883,7 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         ctx.restore();
     }
 
-    // 5. Disco Solar Fotométrico (Fotosfera con oscurecimiento de limbo y corona suave)
+    // 5. Disco Solar Fotométrico (Fotosfera con oscurecimiento de limbo y veladura nubosa)
     const baseDiskR = (sunVis.type === 'alto_sunset') ? 38 : (sunVis.type === 'copper' ? 32 : 28);
     const sunR = lerp(22, baseDiskR, atmoBlend);
     const diskRGB = atmoBlend > 0.15 ? curSunRGB : [255, 253, 245];
@@ -863,22 +891,24 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
     // Corona interior difusa
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const innerCorona = ctx.createRadialGradient(sunX, sunY, sunR * 0.85, sunX, sunY, sunR * 1.9);
-    innerCorona.addColorStop(0, rgbStr(diskRGB, 0.55));
-    innerCorona.addColorStop(0.5, rgbStr(sunsetCol, 0.18));
+    const innerCorona = ctx.createRadialGradient(sunX, sunY, sunR * 0.85, sunX, sunY, sunR * lerp(1.9, 2.4, sunVeil));
+    innerCorona.addColorStop(0, rgbStr(diskRGB, lerp(0.55, 0.10, sunVeil)));
+    innerCorona.addColorStop(0.5, rgbStr(sunsetCol, lerp(0.18, 0.04, sunVeil)));
     innerCorona.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = innerCorona;
     ctx.beginPath();
-    ctx.arc(sunX, sunY, sunR * 1.9, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, sunR * lerp(1.9, 2.4, sunVeil), 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Fotosfera con limb-darkening realista
+    // Fotosfera con limb-darkening realista y atenuación orgánica detrás de las nubes
+    const discAlpha = lerp(1.0, 0.12, Math.pow(sunVeil, 0.85));
+    const coreRGB = lerpRGB([255, 255, 255], diskRGB, sunVeil * 0.85);
     const diskGrad = ctx.createRadialGradient(sunX - sunR * 0.12, sunY - sunR * 0.12, sunR * 0.05, sunX, sunY, sunR);
-    diskGrad.addColorStop(0.00, '#ffffff');
-    diskGrad.addColorStop(0.68, rgbStr(lerpRGB([255, 255, 255], diskRGB, 0.55), 0.98));
-    diskGrad.addColorStop(0.92, rgbStr(diskRGB, 0.96));
-    diskGrad.addColorStop(1.00, rgbStr(lerpRGB(diskRGB, sunsetCol, 0.45), 0.85));
+    diskGrad.addColorStop(0.00, rgbStr(coreRGB, discAlpha));
+    diskGrad.addColorStop(0.68, rgbStr(lerpRGB([255, 255, 255], diskRGB, 0.55), 0.98 * discAlpha));
+    diskGrad.addColorStop(0.92, rgbStr(diskRGB, lerp(0.96, 0.55, sunVeil) * discAlpha));
+    diskGrad.addColorStop(1.00, rgbStr(lerpRGB(diskRGB, sunsetCol, 0.45), lerp(0.85, 0.22, sunVeil) * discAlpha));
     ctx.fillStyle = diskGrad;
     ctx.beginPath();
     ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
@@ -903,10 +933,15 @@ function drawAtmosphericDepthFog(pNear, atmoW, timeSec) {
     const dayW = solar ? solar.dayFactor : 1.0;
     const twiW = solar ? solar.twilightFactor : 0.0;
     const nightW = solar ? solar.nightFactor : 0.0;
+    const cloudOv = clamp((ship && ship.cloudOvercast) ? ship.cloudOvercast : 0, 0, 1);
 
     // Fusión cromática de la niebla según el ciclo solar
     let curFog = lerpRGB(baseFogCol, [255, 252, 245], 0.35); // Día brillante
     if (twiW > 0.01) curFog = lerpRGB(curFog, sunsetCol, twiW * 0.65);
+    if (cloudOv > 0.01 && (dayW + twiW) > 0.01) {
+        const overcastMist = lerpRGB(camera.skyColor || [60, 75, 95], baseFogCol, 0.35);
+        curFog = lerpRGB(curFog, overcastMist, cloudOv * 0.68 * clamp(dayW + twiW, 0, 1));
+    }
     if (nightW > 0.01) curFog = lerpRGB(curFog, nightSky, nightW * 0.88);
 
     // En la noche la niebla es tenue y oscura para preservar el negro profundo nocturno
@@ -923,17 +958,50 @@ function drawAtmosphericDepthFog(pNear, atmoW, timeSec) {
 }
 
 /**
+ * Calcula el rango angular visible [kMin..kMax] y el paso adaptativo (stride) sobre p.heights
+ * para renderizar con máxima resolución en superficie (stride=1) y costo O(1) constante en cualquier escala.
+ */
+function getPlanetRenderArc(p, maxPoints = 320) {
+    const total = (p && p.heights && p.heights.length) ? p.heights.length : 360;
+    const dTheta = (Math.PI * 2) / total;
+    const screenR = p.radius * camera.zoom;
+    const maxScreenDim = Math.max(screenW || 1280, screenH || 720);
+
+    // Si el planeta entra completo o casi completo en pantalla, dibujamos los 360° con stride uniforme
+    if (screenR < maxScreenDim * 0.85) {
+        const stride = Math.max(1, Math.floor(total / maxPoints));
+        return { total, dTheta, partialArc: false, kMin: 0, kMax: total, stride };
+    }
+
+    const camAngle = Math.atan2(camera.y - p.y, camera.x - p.x);
+    const halfViewWorld = (Math.hypot(screenW || 1280, screenH || 720) * 0.5) / Math.max(0.004, camera.zoom) + 360;
+    const refR = Math.max(300, p.maxSurfaceRadius || p.radius);
+    const halfArc = clamp((halfViewWorld * 1.48) / refR, 0.018, Math.PI * 0.92);
+
+    let kMin = Math.floor((camAngle - halfArc) / dTheta);
+    let kMax = Math.ceil((camAngle + halfArc) / dTheta);
+    const spanK = Math.max(1, kMax - kMin);
+    const stride = spanK <= maxPoints ? 1 : Math.max(1, Math.ceil(spanK / maxPoints));
+    if (stride > 1) {
+        kMin = Math.floor(kMin / stride) * stride;
+        kMax = Math.ceil(kMax / stride) * stride;
+    }
+    return { total, dTheta, partialArc: true, kMin, kMax, stride };
+}
+
+/**
  * Renderiza capas de siluetas de cordilleras y dunas en la lejanía (Paralaje atmosférico cinemático)
  * con perspectiva aérea real, desvanecimiento en la bruma del horizonte y opacidad gradual.
  */
 function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     if (!p.hasBackgroundRidges) return;
+    if (typeof ship !== 'undefined' && (ship.cavernDepthBlend || 0) > 0.88) return;
     const distCam = Math.hypot(camera.x - p.x, camera.y - p.y) - p.radius;
     const maxRidgeDist = Math.max(2400, (p.atmoRadius - p.radius) * 0.80);
     if (distCam > maxRidgeDist) return;
 
-    const atmoW = clamp(1 - distCam / maxRidgeDist, 0, 1);
-    if (atmoW <= 0.02) return;
+    const atmoW = smoothstep(maxRidgeDist, maxRidgeDist * 0.42, distCam);
+    if (atmoW <= 0.01) return;
 
     const sizeSqrt = Math.sqrt(p.radius / 2600);
     let relief = (arch.reliefAmplitude || 1.3) * sizeSqrt;
@@ -953,6 +1021,9 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     const antiSunY = p.y - Math.sin(p.lightAngle) * p.radius;
 
     ctx.save();
+    if (atmoW < 0.999) {
+        ctx.globalAlpha *= atmoW;
+    }
 
     const camAngle = Math.atan2(camera.y - p.y, camera.x - p.x);
     const halfViewWorld = (Math.hypot(screenW, screenH) * 0.5) / Math.max(0.01, camera.zoom);
@@ -983,6 +1054,16 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
         const fA = freqA * freqScale;
         const fB = freqB * freqScale;
         const fC = freqC * freqScale;
+        if (arch.classId === 'megalithic') {
+            const rawM = Math.sin(theta * fA + phase) * 0.75 + Math.cos(theta * fB + phase * 1.2) * 0.35;
+            return Math.round(rawM * 2.5) / 2.5;
+        }
+        if (arch.classId === 'living') {
+            return Math.abs(Math.sin(theta * fA * 0.8 + phase)) * 1.1 + Math.sin(theta * fB + phase) * 0.25 - 0.35;
+        }
+        if (arch.classId === 'shattered' || arch.classId === 'cometary') {
+            return Math.pow(1 - Math.abs(Math.sin(theta * fA + phase)), 2.2) * 2.2 - 0.65 + Math.sin(theta * fC) * 0.25;
+        }
         if (isDunes) {
             return Math.sin(theta * fA + phase) * 0.6 + Math.sin(theta * fB + phase * 1.4) * 0.3 + Math.cos(theta * fC) * 0.1;
         }
@@ -993,12 +1074,26 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     }
 
     function buildAndDrawRidgeLayer(freqA, freqB, freqC, phase, amp, baseH, grad, rimHighlightAlpha) {
+        const hasProv = !!(p.provinces && p.provinces.length > 0 && typeof getPlanetProvinceAtAngle === 'function');
         ctx.beginPath();
         let first = true;
         for (let k = kMin; k <= kMax; k += stride) {
             const theta = k * gridStep;
-            const wave = sampleRidgeWave(theta, freqA, freqB, freqC, phase) * amp;
-            const r = p.radius + Math.max(6, wave * relief + baseH);
+            let bgMult = 1.0;
+            if (hasProv) {
+                const pv = getPlanetProvinceAtAngle(p, theta);
+                if (pv && pv.spec && pv.spec.bgRidgeMult !== undefined) {
+                    bgMult = pv.spec.bgRidgeMult;
+                }
+            }
+            const surfLift = (p.heights && p.heights.length > 0 && typeof sampleHeightArray === 'function')
+                ? clamp((sampleHeightArray(p.heights, theta, p.radius) - p.radius) * 0.28, -24, 160)
+                : 0;
+            const wave = sampleRidgeWave(theta, freqA, freqB, freqC, phase) * amp * bgMult;
+            const rawAlt = wave * relief + baseH * (0.65 + 0.35 * bgMult) + surfLift;
+            // Fondo suave sin escalón duro plano en depresiones
+            const smoothAlt = rawAlt > 4 ? rawAlt : 4 + Math.atan((rawAlt - 4) * 0.08) * 14;
+            const r = p.radius + smoothAlt;
             const vx = p.x + Math.cos(theta) * r;
             const vy = p.y + Math.sin(theta) * r;
             if (first) {
@@ -1026,60 +1121,89 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
         ctx.fill();
     }
 
+    // Perspectiva aérea opaca: las cordilleras bloquean completamente el fondo estelar/espacial,
+    // simulando la dispersión atmosférica y neblina mediante mezcla de color y velos de bruma entre capas.
+    const atmoHaze = lerpRGB(skyCol, hazeCol, 0.38);
+    const twilightHaze = lerpRGB(atmoHaze, sunsetCol, 0.28);
+    const nightSkyBase = colors.nightSkyRGB || arch.nightSkyRGB || [5, 8, 18];
+    const nightAtmo = lerpRGB(nightSkyBase, nightCol, 0.35);
+    const valleyMistCol = lerpRGB(skyCol, hazeCol, 0.55);
+
     // --- CAPA 3: CORDILLERA REMOTA FIJA EN LA GEOLOGÍA DEL PLANETA ---
-    const farCol = lerpRGB(skyCol, crustCol, 0.28);
-    const nightFarCol = lerpRGB(nightCol, crustCol, 0.15);
+    const farCol = lerpRGB(atmoHaze, crustCol, 0.16);
+    const twiFarCol = lerpRGB(twilightHaze, crustCol, 0.20);
+    const nightFarCol = lerpRGB(nightAtmo, crustCol, 0.12);
+    const nightDeepFarCol = lerpRGB(nightAtmo, crustCol, 0.07);
     const ridgeGrad3 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-    ridgeGrad3.addColorStop(0.00, rgbStr(farCol, 0.48 * atmoW));
-    ridgeGrad3.addColorStop(0.35, rgbStr(farCol, 0.42 * atmoW));
-    ridgeGrad3.addColorStop(0.55, rgbStr(lerpRGB(farCol, nightFarCol, 0.45), 0.30 * atmoW));
-    ridgeGrad3.addColorStop(0.75, rgbStr(nightFarCol, 0.22 * atmoW));
-    ridgeGrad3.addColorStop(1.00, rgbStr(nightFarCol, 0.12 * atmoW));
+    ridgeGrad3.addColorStop(0.00, rgbStr(farCol, 1.0));
+    ridgeGrad3.addColorStop(0.35, rgbStr(farCol, 1.0));
+    ridgeGrad3.addColorStop(0.55, rgbStr(twiFarCol, 1.0));
+    ridgeGrad3.addColorStop(0.75, rgbStr(nightFarCol, 1.0));
+    ridgeGrad3.addColorStop(1.00, rgbStr(nightDeepFarCol, 1.0));
     buildAndDrawRidgeLayer(7, 15, 31, seed, 72, 54, ridgeGrad3, 0.16);
 
-    // Velo de bruma entre la cordillera remota y la intermedia
-    const hazeR3 = p.radius + 42 * relief;
-    const hazeGrad3 = ctx.createRadialGradient(p.x, p.y, p.radius, p.x, p.y, hazeR3 + 38);
-    hazeGrad3.addColorStop(0, rgbStr(hazeCol, 0.32 * atmoW));
-    hazeGrad3.addColorStop(0.60, rgbStr(hazeCol, 0.12 * atmoW));
-    hazeGrad3.addColorStop(1, 'rgba(0,0,0,0)');
+    // Velo de bruma entre la cordillera remota y la intermedia (desvanecido en ambos extremos para evitar bordes circulares en cañones)
+    const minSurfR = Math.max(200, (p.minSurfaceRadius || p.radius) - 18);
+    const hazeR3 = Math.max(p.radius + 42 * relief, minSurfR + 60);
+    const hazeGrad3 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR3 + 42);
+    hazeGrad3.addColorStop(0.00, 'rgba(0,0,0,0)');
+    hazeGrad3.addColorStop(0.28, rgbStr(valleyMistCol, 0.34));
+    hazeGrad3.addColorStop(0.65, rgbStr(valleyMistCol, 0.15));
+    hazeGrad3.addColorStop(1.00, 'rgba(0,0,0,0)');
     ctx.fillStyle = hazeGrad3;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, hazeR3 + 38, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, hazeR3 + 42, 0, Math.PI * 2);
     ctx.fill();
 
     // --- CAPA 2: MACIZO INTERMEDIO FIJO ---
-    const midCol = lerpRGB(skyCol, crustCol, 0.58);
-    const nightMidCol = lerpRGB(nightCol, crustCol, 0.35);
+    const midCol = lerpRGB(atmoHaze, crustCol, 0.44);
+    const twiMidCol = lerpRGB(twilightHaze, crustCol, 0.46);
+    const nightMidCol = lerpRGB(nightAtmo, crustCol, 0.30);
+    const nightDeepMidCol = lerpRGB(nightAtmo, crustCol, 0.22);
     const ridgeGrad2 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-    ridgeGrad2.addColorStop(0.00, rgbStr(midCol, 0.74 * atmoW));
-    ridgeGrad2.addColorStop(0.35, rgbStr(midCol, 0.66 * atmoW));
-    ridgeGrad2.addColorStop(0.55, rgbStr(lerpRGB(midCol, nightMidCol, 0.45), 0.50 * atmoW));
-    ridgeGrad2.addColorStop(0.75, rgbStr(nightMidCol, 0.36 * atmoW));
-    ridgeGrad2.addColorStop(1.00, rgbStr(nightMidCol, 0.22 * atmoW));
+    ridgeGrad2.addColorStop(0.00, rgbStr(midCol, 1.0));
+    ridgeGrad2.addColorStop(0.35, rgbStr(midCol, 1.0));
+    ridgeGrad2.addColorStop(0.55, rgbStr(twiMidCol, 1.0));
+    ridgeGrad2.addColorStop(0.75, rgbStr(nightMidCol, 1.0));
+    ridgeGrad2.addColorStop(1.00, rgbStr(nightDeepMidCol, 1.0));
     buildAndDrawRidgeLayer(11, 23, 43, seed * 2.2, 48, 30, ridgeGrad2, 0.24);
 
     // Bruma ligera de valle entre macizo intermedio y colinas próximas
-    const hazeR2 = p.radius + 24 * relief;
-    const hazeGrad2 = ctx.createRadialGradient(p.x, p.y, p.radius, p.x, p.y, hazeR2 + 24);
-    hazeGrad2.addColorStop(0, rgbStr(hazeCol, 0.20 * atmoW));
-    hazeGrad2.addColorStop(0.65, rgbStr(hazeCol, 0.06 * atmoW));
-    hazeGrad2.addColorStop(1, 'rgba(0,0,0,0)');
+    const hazeR2 = Math.max(p.radius + 24 * relief, minSurfR + 40);
+    const hazeGrad2 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR2 + 28);
+    hazeGrad2.addColorStop(0.00, 'rgba(0,0,0,0)');
+    hazeGrad2.addColorStop(0.32, rgbStr(valleyMistCol, 0.24));
+    hazeGrad2.addColorStop(0.70, rgbStr(valleyMistCol, 0.09));
+    hazeGrad2.addColorStop(1.00, 'rgba(0,0,0,0)');
     ctx.fillStyle = hazeGrad2;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, hazeR2 + 24, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, hazeR2 + 28, 0, Math.PI * 2);
     ctx.fill();
 
     // --- CAPA 1: COLINAS DE FONDO PRÓXIMAS FIJAS ---
-    const nearCol = lerpRGB(skyCol, crustCol, 0.82);
-    const nightNearCol = lerpRGB(nightCol, crustCol, 0.55);
+    const nearCol = lerpRGB(atmoHaze, crustCol, 0.74);
+    const twiNearCol = lerpRGB(twilightHaze, crustCol, 0.72);
+    const nightNearCol = lerpRGB(nightAtmo, crustCol, 0.50);
+    const nightDeepNearCol = lerpRGB(nightAtmo, crustCol, 0.38);
     const ridgeGrad1 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-    ridgeGrad1.addColorStop(0.00, rgbStr(nearCol, 0.90 * atmoW));
-    ridgeGrad1.addColorStop(0.35, rgbStr(nearCol, 0.84 * atmoW));
-    ridgeGrad1.addColorStop(0.55, rgbStr(lerpRGB(nearCol, nightNearCol, 0.45), 0.64 * atmoW));
-    ridgeGrad1.addColorStop(0.75, rgbStr(nightNearCol, 0.48 * atmoW));
-    ridgeGrad1.addColorStop(1.00, rgbStr(nightNearCol, 0.32 * atmoW));
+    ridgeGrad1.addColorStop(0.00, rgbStr(nearCol, 1.0));
+    ridgeGrad1.addColorStop(0.35, rgbStr(nearCol, 1.0));
+    ridgeGrad1.addColorStop(0.55, rgbStr(twiNearCol, 1.0));
+    ridgeGrad1.addColorStop(0.75, rgbStr(nightNearCol, 1.0));
+    ridgeGrad1.addColorStop(1.00, rgbStr(nightDeepNearCol, 1.0));
     buildAndDrawRidgeLayer(17, 31, 59, seed * 3.4, 30, 16, ridgeGrad1, 0.32);
+
+    // Bruma suave en la base de las colinas próximas para separarlas del primer plano
+    const hazeR1 = Math.max(p.radius + 14 * relief, minSurfR + 26);
+    const hazeGrad1 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR1 + 18);
+    hazeGrad1.addColorStop(0.00, 'rgba(0,0,0,0)');
+    hazeGrad1.addColorStop(0.35, rgbStr(valleyMistCol, 0.14));
+    hazeGrad1.addColorStop(0.75, rgbStr(valleyMistCol, 0.04));
+    hazeGrad1.addColorStop(1.00, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hazeGrad1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, hazeR1 + 18, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
 }
@@ -1284,8 +1408,11 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
         Math.min(255, Math.round(litCol[2] * 1.28 + 24))
     ];
 
-    // 1. Base del Cuerpo Planetario Sólido: Núcleo y Manto Geológicos (Sin degradados invasivos en el centro)
-    const coreGrad = ctx.createRadialGradient(p.x, p.y, p.radius * 0.10, p.x, p.y, p.radius * 1.02);
+    const maxR = p.maxSurfaceRadius || p.radius;
+    const mapR = maxR * 1.04;
+
+    // 1. Base del Cuerpo Planetario Sólido: Núcleo y Manto Geológicos (radio extendido a maxR para no cortar montañas)
+    const coreGrad = ctx.createRadialGradient(p.x, p.y, p.radius * 0.10, p.x, p.y, maxR * 1.04);
     coreGrad.addColorStop(0.00, rgbStr(coreCol, 1));
     coreGrad.addColorStop(0.55, rgbStr(crustCol, 1));
     coreGrad.addColorStop(0.88, rgbStr(topsoilCol, 1));
@@ -1294,9 +1421,9 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
     ctx.fill();
 
     // 2. Iluminación Solar Diurna 3D Volumétrica (Curvatura esférica con isolíneas curvas naturales, nunca líneas rectas)
-    const lx = p.x + Math.cos(p.lightAngle) * p.radius * 0.40;
-    const ly = p.y + Math.sin(p.lightAngle) * p.radius * 0.40;
-    const sphDayGrad = ctx.createRadialGradient(lx, ly, p.radius * 0.05, lx, ly, p.radius * 1.25);
+    const lx = p.x + Math.cos(p.lightAngle) * maxR * 0.40;
+    const ly = p.y + Math.sin(p.lightAngle) * maxR * 0.40;
+    const sphDayGrad = ctx.createRadialGradient(lx, ly, maxR * 0.05, lx, ly, maxR * 1.25);
     sphDayGrad.addColorStop(0.00, rgbStr(brightLitCol, 0.95));
     sphDayGrad.addColorStop(0.35, rgbStr(litCol, 0.70));
     sphDayGrad.addColorStop(0.68, rgbStr(crustCol, 0.35));
@@ -1305,51 +1432,51 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
     ctx.fillStyle = sphDayGrad;
     ctx.fill();
 
-    // 2.5. Curvatura Normal Esférica (Atenuación volumétrica en el limbo)
-    const sphGrad = ctx.createRadialGradient(lx, ly, p.radius * 0.05, p.x, p.y, p.radius * 1.01);
-    sphGrad.addColorStop(0.00, 'rgba(255,255,255,0.20)');
-    sphGrad.addColorStop(0.45, 'rgba(255,255,255,0.0)');
-    sphGrad.addColorStop(0.85, 'rgba(0,0,0,0.12)');
-    sphGrad.addColorStop(1.00, 'rgba(0,0,0,0.40)');
+    // 2.5. Curvatura Normal Esférica (Atenuación volumétrica en el limbo, ajustada a maxR)
+    const sphGrad = ctx.createRadialGradient(lx, ly, maxR * 0.05, p.x, p.y, maxR * 1.04);
+    sphGrad.addColorStop(0.00, 'rgba(255,255,255,0.18)');
+    sphGrad.addColorStop(0.48, 'rgba(255,255,255,0.0)');
+    sphGrad.addColorStop(0.86, 'rgba(0,0,0,0.10)');
+    sphGrad.addColorStop(1.00, 'rgba(0,0,0,0.34)');
     ctx.fillStyle = sphGrad;
     ctx.fill();
 
-    // 3. TEXTURIZADO ESFÉRICO 3D PRE-RENDERIZADO POR FAMILIA DE PLANETAS
+    // 3. TEXTURIZADO ESFÉRICO 3D PRE-RENDERIZADO POR FAMILIA DE PLANETAS (se desvanece en vuelo bajo para evitar círculos/píxeles estirados)
     const isVolcanic = (arch.classId === 'volcanic' || arch.id.includes('caldera') || arch.id.includes('magma'));
     const isNearest = (ship.nearestPlanet && ship.nearestPlanet.id === p.id);
-    const bakedMaps = (typeof PlanetSurfaceBake !== 'undefined')
+    const distCamSurf = Math.hypot(camera.x - p.x, camera.y - p.y) - p.radius;
+    const macroFade = clamp(1 - smoothstep(0.14, 0.42, camera.zoom), 0, 1) * smoothstep(220, Math.max(1200, p.radius * 0.14), distCamSurf);
+    const bakedMaps = (macroFade > 0.03 && typeof PlanetSurfaceBake !== 'undefined')
         ? PlanetSurfaceBake.getSurfaceMaps(p, isNearest)
         : null;
 
-    if (bakedMaps && bakedMaps.albedo) {
-        // Dibujado estático y sin costuras (1.04x para cubrir crestas y cordilleras sobre p.radius)
-        const mapR = p.radius * 1.04;
+    if (bakedMaps && bakedMaps.albedo && macroFade > 0.03) {
         ctx.save();
-        ctx.globalAlpha = 0.94;
+        ctx.globalAlpha = 0.94 * macroFade;
         ctx.drawImage(bakedMaps.albedo, p.x - mapR, p.y - mapR, mapR * 2, mapR * 2);
         ctx.restore();
     }
 
     // 4.5. CAPA MAESTRA DE ILUMINACIÓN SOLAR Y SOMBRA NOCTURNA ESFÉRICA 3D
     // A. Realce solar esférico diurno sobre formaciones y continentes iluminados
-    const dayShine = ctx.createRadialGradient(lx, ly, p.radius * 0.08, p.x, p.y, p.radius * 1.08);
+    const dayShine = ctx.createRadialGradient(lx, ly, maxR * 0.08, p.x, p.y, maxR * 1.08);
     dayShine.addColorStop(0.00, 'rgba(255, 255, 255, 0.26)');
     dayShine.addColorStop(0.28, 'rgba(255, 250, 240, 0.14)');
     dayShine.addColorStop(0.55, 'rgba(255, 245, 225, 0.03)');
     dayShine.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
     dayShine.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius * 1.05, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, maxR * 1.05, 0, Math.PI * 2);
     ctx.fillStyle = dayShine;
     ctx.fill();
 
-    // B. Sombra nocturna esférica con terminador curvo 3D (Cero líneas rectas divisorias, cero velo naranja sobre el planeta)
-    const darkFocusX = p.x - Math.cos(p.lightAngle) * (p.radius * 0.60);
-    const darkFocusY = p.y - Math.sin(p.lightAngle) * (p.radius * 0.60);
-    const shadowRad = p.radius * 1.60;
+    // B. Sombra nocturna esférica con terminador curvo 3D
+    const darkFocusX = p.x - Math.cos(p.lightAngle) * (maxR * 0.60);
+    const darkFocusY = p.y - Math.sin(p.lightAngle) * (maxR * 0.60);
+    const shadowRad = maxR * 1.60;
 
     const globeShadow = ctx.createRadialGradient(
-        darkFocusX, darkFocusY, p.radius * 0.10,
+        darkFocusX, darkFocusY, maxR * 0.10,
         darkFocusX, darkFocusY, shadowRad
     );
     globeShadow.addColorStop(0.00, rgbStr(deepNightCol, 0.94));
@@ -1359,19 +1486,18 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
     globeShadow.addColorStop(0.92, 'rgba(0, 0, 0, 0)');
     globeShadow.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius * 1.05, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, maxR * 1.05, 0, Math.PI * 2);
     ctx.fillStyle = globeShadow;
     ctx.fill();
 
-    // C. Emisión nocturna que resplandece en la oscuridad (magma, bioluminiscencia, uraninita y cristales)
-    if (bakedMaps && bakedMaps.emissive) {
-        const mapR = p.radius * 1.04;
+    // C. Emisión nocturna que resplandece en la oscuridad (magma, bioluminiscencia, uraninita, fallas y cristales)
+    if (bakedMaps && bakedMaps.emissive && macroFade > 0.03) {
         const pulse = isVolcanic
             ? (0.72 + 0.28 * Math.sin(timeSec * 2.6 + (p.surfaceSeed || 0) * 10))
             : (0.62 + 0.30 * Math.sin(timeSec * 1.8 + (p.surfaceSeed || 0) * 10));
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = pulse * 0.85;
+        ctx.globalAlpha = pulse * 0.85 * macroFade;
         ctx.drawImage(bakedMaps.emissive, p.x - mapR, p.y - mapR, mapR * 2, mapR * 2);
         ctx.restore();
     }
@@ -1463,84 +1589,189 @@ function drawSuperVolcanoPlumes(p, timeSec, colors, arch) {
 function drawHollowPlanetCaverns(p, timeSec, colors, arch) {
     if (!p.isHollow) return;
     const rimCol = colors.rimColor || arch.rimColor || [233, 213, 255];
-    const accentCol = colors.accentColor || arch.accentColor || [168, 85, 247];
-    const coreCol = colors.coreColor || arch.coreColor || [16, 12, 28];
+    const accentCol = p.cavernGlowColor || colors.accentColor || arch.accentColor || [56, 189, 248];
+    const coreCol = colors.coreColor || arch.coreColor || [14, 12, 26];
     const crustCol = colors.crustColor || arch.crustColor || [38, 24, 60];
+    const maxR = p.maxSurfaceRadius || p.radius;
 
-    // 1. Renderizado de las Bocas del Abismo en la corteza exterior
+    // 1. Señalización atmosférica y bruma luminosa en las Bocas del Abismo (visibles desde órbita y superficie)
     if (p.caveEntrances && p.caveEntrances.length > 0) {
         ctx.save();
         for (const cave of p.caveEntrances) {
-            const bx = p.x + Math.cos(cave.centerAngle) * (p.radius - 8);
-            const by = p.y + Math.sin(cave.centerAngle) * (p.radius - 8);
-            const mouthR = cave.span * p.radius * 0.65;
+            const sr = getSurfaceRadius(p, cave.centerAngle);
+            const bx = p.x + Math.cos(cave.centerAngle) * sr;
+            const by = p.y + Math.sin(cave.centerAngle) * sr;
+            const mouthR = cave.span * p.radius * 0.58;
 
-            // Pozo de penumbra que absorbe la luz hacia el interior
-            const mouthGrad = ctx.createRadialGradient(bx, by, 4, bx, by, mouthR);
-            mouthGrad.addColorStop(0.0, 'rgba(4, 2, 8, 0.98)');
-            mouthGrad.addColorStop(0.55, rgbStr(coreCol, 0.90));
-            mouthGrad.addColorStop(0.85, rgbStr(crustCol, 0.50));
-            mouthGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
-            ctx.fillStyle = mouthGrad;
-            ctx.beginPath();
-            ctx.arc(bx, by, mouthR, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Halo bioluminiscente / esporas que emanan de la cueva
             ctx.globalCompositeOperation = 'lighter';
-            const mistPulse = 1.0 + Math.sin(timeSec * 2.0 + cave.centerAngle) * 0.18;
-            const mistGrad = ctx.createRadialGradient(bx, by, 2, bx, by, mouthR * 1.25 * mistPulse);
-            mistGrad.addColorStop(0.0, rgbStr(accentCol, 0.45));
-            mistGrad.addColorStop(0.4, rgbStr(rimCol, 0.20));
+            const mistPulse = 1.0 + Math.sin(timeSec * 2.2 + cave.centerAngle) * 0.16;
+            const mistGrad = ctx.createRadialGradient(bx, by, 4, bx, by, mouthR * 1.45 * mistPulse);
+            mistGrad.addColorStop(0.0, rgbStr(accentCol, 0.42));
+            mistGrad.addColorStop(0.45, rgbStr(rimCol, 0.16));
             mistGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
             ctx.fillStyle = mistGrad;
             ctx.beginPath();
-            ctx.arc(bx, by, mouthR * 1.25 * mistPulse, 0, Math.PI * 2);
+            ctx.arc(bx, by, mouthR * 1.45 * mistPulse, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
     }
 
-    // 2. Renderizado de la Cámara Interior Subterránea (visible cuando la cámara o nave están dentro o cerca)
-    const distCam = Math.hypot(camera.x - p.x, camera.y - p.y);
-    if (distCam < p.radius + 800 && p.cavernCeilingHeights && p.cavernFloorHeights) {
-        ctx.save();
-        const total = p.cavernCeilingHeights.length;
-        const step = camera.zoom > 0.65 ? 2 : 4;
+    // Cámara Interior Subterránea Completa (visible tanto en superficie como al despegar y hacer zoom out en órbita)
+    if (p.cavernCeilingHeights && p.cavernFloorHeights) {
+        const total = p.heights.length;
+        const step = Math.max(1, Math.floor(total / (camera.zoom > 0.55 ? 420 : 280)));
 
-        // Bóveda rocosa del techo interior de la caverna (con estalactitas colosales)
+        ctx.save();
+        // Recortar estrictamente al contorno exterior p.heights para que las gargantas abiertas empalmen sin fugas con el cielo exterior
         ctx.beginPath();
         for (let i = 0; i <= total; i += step) {
             const idx = i % total;
             const theta = (idx / total) * Math.PI * 2;
-            const rCeil = p.cavernCeilingHeights[idx];
-            const vx = p.x + Math.cos(theta) * rCeil;
-            const vy = p.y + Math.sin(theta) * rCeil;
+            const r = p.heights[idx];
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
             if (i === 0) ctx.moveTo(vx, vy);
             else ctx.lineTo(vx, vy);
         }
-        for (let i = total; i >= 0; i -= step) {
-            const idx = i % total;
-            const theta = (idx / total) * Math.PI * 2;
-            const rExt = p.heights[idx] - 6;
-            const vx = p.x + Math.cos(theta) * rExt;
-            const vy = p.y + Math.sin(theta) * rExt;
-            ctx.lineTo(vx, vy);
+        ctx.closePath();
+        ctx.clip();
+
+        // A. Bóveda hueca (incluyendo el embudo abierto de cada entrada de cueva)
+        const ceilTotal = p.cavernCeilingHeights.length;
+        const ceilStep = Math.max(1, Math.floor(ceilTotal / 320));
+        ctx.beginPath();
+        for (let i = 0; i <= ceilTotal; i += ceilStep) {
+            const idx = i % ceilTotal;
+            const theta = (idx / ceilTotal) * Math.PI * 2;
+            const bounds = (typeof getHollowBoundsAt === 'function')
+                ? getHollowBoundsAt(p, theta)
+                : { effectiveCeilingR: p.cavernCeilingHeights[idx] };
+            const vx = p.x + Math.cos(theta) * bounds.effectiveCeilingR;
+            const vy = p.y + Math.sin(theta) * bounds.effectiveCeilingR;
+            if (i === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
         }
         ctx.closePath();
-        ctx.fillStyle = rgbStr(crustCol, 0.88);
+
+        const voidGrad = ctx.createRadialGradient(p.x, p.y, Math.max(10, p.interiorCoreRadius * 0.4), p.x, p.y, p.radius * 0.98);
+        voidGrad.addColorStop(0.00, rgbStr(accentCol, 0.48));
+        voidGrad.addColorStop(0.24, rgbStr(lerpRGB(coreCol, accentCol, 0.22), 0.96));
+        voidGrad.addColorStop(0.58, rgbStr(lerpRGB(coreCol, [2, 4, 10], 0.82), 0.99));
+        voidGrad.addColorStop(0.88, 'rgba(3, 5, 13, 0.99)');
+        voidGrad.addColorStop(1.00, 'rgba(2, 3, 9, 0.99)');
+        ctx.fillStyle = voidGrad;
         ctx.fill();
 
-        // Contorno iluminado suave del techo de la caverna
-        ctx.strokeStyle = rgbStr(accentCol, 0.22);
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
+        // Paredes rocosas escalonadas y haces de luz en cada boca de cueva
+        if (p.caveEntrances && p.caveEntrances.length > 0) {
+            for (const cave of p.caveEntrances) {
+                const halfMouth = cave.span * 0.56;
+                const angL = cave.centerAngle - halfMouth;
+                const angR = cave.centerAngle + halfMouth;
+                const extL = getSurfaceRadius(p, angL);
+                const extR = getSurfaceRadius(p, angR);
+                const ceilL = getCavernCeilingRadius(p, angL);
+                const ceilR = getCavernCeilingRadius(p, angR);
 
-        // Suelo rocoso interior de la caverna (con estalagmitas)
+                // Haz de luz tenue saliendo desde la cámara hacia la boca
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const shaftGrad = ctx.createRadialGradient(
+                    p.x + Math.cos(cave.centerAngle) * (p.radius * 0.65),
+                    p.y + Math.sin(cave.centerAngle) * (p.radius * 0.65),
+                    10,
+                    p.x + Math.cos(cave.centerAngle) * (p.radius * 0.98),
+                    p.y + Math.sin(cave.centerAngle) * (p.radius * 0.98),
+                    cave.span * p.radius * 0.95
+                );
+                shaftGrad.addColorStop(0.0, rgbStr(accentCol, 0.22));
+                shaftGrad.addColorStop(0.6, rgbStr(rimCol, 0.08));
+                shaftGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                ctx.fillStyle = shaftGrad;
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(angL) * ceilL, p.y + Math.sin(angL) * ceilL);
+                ctx.lineTo(p.x + Math.cos(angL) * (extL + 40), p.y + Math.sin(angL) * (extL + 40));
+                ctx.lineTo(p.x + Math.cos(angR) * (extR + 40), p.y + Math.sin(angR) * (extR + 40));
+                ctx.lineTo(p.x + Math.cos(angR) * ceilR, p.y + Math.sin(angR) * ceilR);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // Bordes de acantilado iluminados en ambas paredes de entrada
+                for (const sideAng of [angL, angR]) {
+                    const sExt = getSurfaceRadius(p, sideAng);
+                    const sCeil = getCavernCeilingRadius(p, sideAng);
+                    const x0 = p.x + Math.cos(sideAng) * sExt;
+                    const y0 = p.y + Math.sin(sideAng) * sExt;
+                    const x1 = p.x + Math.cos(sideAng) * sCeil;
+                    const y1 = p.y + Math.sin(sideAng) * sCeil;
+                    ctx.strokeStyle = rgbStr(rimCol, 0.72);
+                    ctx.lineWidth = Math.max(2.4, 3.8 / Math.max(0.15, camera.zoom * 3));
+                    ctx.beginPath();
+                    ctx.moveTo(x0, y0);
+                    ctx.lineTo(x1, y1);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // B. Borde interior rocoso del techo de la caverna (salvo en bocas abiertas)
         ctx.beginPath();
+        let drawingCeil = false;
         for (let i = 0; i <= total; i += step) {
             const idx = i % total;
             const theta = (idx / total) * Math.PI * 2;
+            const bounds = getHollowBoundsAt(p, theta);
+            if (!bounds.isThroatOpen) {
+                const vx = p.x + Math.cos(theta) * bounds.effectiveCeilingR;
+                const vy = p.y + Math.sin(theta) * bounds.effectiveCeilingR;
+                if (!drawingCeil) { ctx.moveTo(vx, vy); drawingCeil = true; }
+                else ctx.lineTo(vx, vy);
+            } else {
+                drawingCeil = false;
+            }
+        }
+        ctx.strokeStyle = rgbStr(accentCol, 0.78);
+        ctx.lineWidth = 3.6;
+        ctx.stroke();
+
+        // C. Núcleo Solar Interno y corona luminosa abisal
+        if (p.interiorCoreRadius > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const coreR = p.interiorCoreRadius * (1.0 + Math.sin(timeSec * 2.8) * 0.07);
+            const coreGrad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, coreR * 3.0);
+            coreGrad.addColorStop(0.00, '#ffffff');
+            coreGrad.addColorStop(0.18, rgbStr(rimCol, 0.95));
+            coreGrad.addColorStop(0.45, rgbStr(accentCol, 0.55));
+            coreGrad.addColorStop(0.75, rgbStr(accentCol, 0.16));
+            coreGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, coreR * 3.0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rayos radiales suaves del núcleo interno
+            const rayCount = 8;
+            ctx.strokeStyle = rgbStr(rimCol, 0.22);
+            ctx.lineWidth = Math.max(4, coreR * 0.14);
+            for (let rIdx = 0; rIdx < rayCount; rIdx++) {
+                const rAng = timeSec * 0.12 + (rIdx / rayCount) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(rAng) * (coreR * 0.6), p.y + Math.sin(rAng) * (coreR * 0.6));
+                ctx.lineTo(p.x + Math.cos(rAng) * (coreR * 2.5), p.y + Math.sin(rAng) * (coreR * 2.5));
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // D. Suelo Interior Subterráneo y Lagos de Caverna
+        const fTotal = p.cavernFloorHeights.length;
+        ctx.beginPath();
+        for (let i = 0; i <= fTotal; i += step) {
+            const idx = i % fTotal;
+            const theta = (idx / fTotal) * Math.PI * 2;
             const rFl = p.cavernFloorHeights[idx];
             const vx = p.x + Math.cos(theta) * rFl;
             const vy = p.y + Math.sin(theta) * rFl;
@@ -1548,41 +1779,125 @@ function drawHollowPlanetCaverns(p, timeSec, colors, arch) {
             else ctx.lineTo(vx, vy);
         }
         ctx.closePath();
-        ctx.fillStyle = rgbStr(coreCol, 0.95);
+        const floorGrad = ctx.createRadialGradient(p.x, p.y, p.radius * 0.16, p.x, p.y, p.radius * 0.52);
+        floorGrad.addColorStop(0.0, rgbStr(lerpRGB(coreCol, [2, 3, 8], 0.5), 0.96));
+        floorGrad.addColorStop(0.75, rgbStr(crustCol, 0.98));
+        floorGrad.addColorStop(1.0, rgbStr(lerpRGB(crustCol, accentCol, 0.25), 0.98));
+        ctx.fillStyle = floorGrad;
         ctx.fill();
-        ctx.strokeStyle = rgbStr(rimCol, 0.35);
-        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = rgbStr(accentCol, 0.55);
+        ctx.lineWidth = 2.2;
         ctx.stroke();
 
-        // Núcleo Cósmico de Éter Flotante en el Centro de la Caverna
-        if (p.interiorCoreRadius > 0) {
-            ctx.globalCompositeOperation = 'lighter';
-            const coreR = p.interiorCoreRadius * (1.0 + Math.sin(timeSec * 3.0) * 0.08);
-            const corePulseGrad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, coreR * 1.8);
-            corePulseGrad.addColorStop(0.0, '#ffffff');
-            corePulseGrad.addColorStop(0.25, rgbStr(rimCol, 0.90));
-            corePulseGrad.addColorStop(0.65, rgbStr(accentCol, 0.45));
-            corePulseGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
-            ctx.fillStyle = corePulseGrad;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, coreR * 1.8, 0, Math.PI * 2);
-            ctx.fill();
+        // Lagos subterráneos en el suelo de la caverna
+        if (p.cavernLakes && p.cavernLakes.length > 0) {
+            for (const lk of p.cavernLakes) {
+                const lCol = lk.liquidType === 'magma' ? [251, 146, 60] : (lk.liquidType === 'liquid_crystal' ? [167, 243, 208] : accentCol);
+                const stepsL = 18;
+                ctx.beginPath();
+                for (let s = 0; s <= stepsL; s++) {
+                    const th = lk.centerAngle + ((s / stepsL) * 2 - 1) * lk.span;
+                    const vx = p.x + Math.cos(th) * lk.waterLevel;
+                    const vy = p.y + Math.sin(th) * lk.waterLevel;
+                    if (s === 0) ctx.moveTo(vx, vy);
+                    else ctx.lineTo(vx, vy);
+                }
+                for (let s = stepsL; s >= 0; s--) {
+                    const th = lk.centerAngle + ((s / stepsL) * 2 - 1) * lk.span;
+                    const rf = getCavernFloorRadius(p, th) - 2;
+                    ctx.lineTo(p.x + Math.cos(th) * rf, p.y + Math.sin(th) * rf);
+                }
+                ctx.closePath();
+                ctx.fillStyle = rgbStr(lCol, 0.72);
+                ctx.fill();
+                ctx.strokeStyle = rgbStr(rimCol, 0.8);
+                ctx.lineWidth = 1.6;
+                ctx.stroke();
+            }
         }
 
-        // Niebla luminiscente suspendida en el vacío interior de la cueva
+        // E. Formaciones subterráneas (estalactitas, lianas, cristales colgantes, estalagmitas y hongos abisales)
+        if (p.cavernProps && p.cavernProps.length > 0) {
+            for (const cp of p.cavernProps) {
+                const baseR = cp.onCeiling ? getCavernCeilingRadius(p, cp.angle) : getCavernFloorRadius(p, cp.angle);
+                const tipOffset = cp.onCeiling ? -cp.height : cp.height;
+                const bx = p.x + Math.cos(cp.angle) * baseR;
+                const by = p.y + Math.sin(cp.angle) * baseR;
+                if (Math.hypot(bx - camera.x, by - camera.y) > (Math.max(screenW, screenH) / Math.max(0.12, camera.zoom)) * 0.9 + 200) continue;
+
+                ctx.save();
+                ctx.translate(bx, by);
+                ctx.rotate(cp.angle + Math.PI / 2);
+                if (cp.onCeiling) ctx.scale(1, -1);
+
+                if (cp.propType === 'cavern_vine') {
+                    const sway = Math.sin(timeSec * 1.6 + cp.seed * 12) * 5;
+                    ctx.strokeStyle = rgbStr(accentCol, 0.75);
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(sway, -cp.height * 0.5, sway * 1.4, -cp.height);
+                    ctx.stroke();
+                    ctx.fillStyle = rgbStr(rimCol, 0.95);
+                    ctx.beginPath();
+                    ctx.arc(sway * 1.4, -cp.height, 3.2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (cp.propType === 'cavern_mushroom') {
+                    ctx.strokeStyle = rgbStr(crustCol, 0.9);
+                    ctx.lineWidth = cp.width * 0.28;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 2);
+                    ctx.lineTo(0, -cp.height * 0.72);
+                    ctx.stroke();
+                    ctx.fillStyle = rgbStr(accentCol, 0.88);
+                    ctx.beginPath();
+                    ctx.ellipse(0, -cp.height * 0.74, cp.width * 0.85, cp.height * 0.28, 0, Math.PI, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = rgbStr(rimCol, 0.85);
+                    ctx.lineWidth = 1.3;
+                    ctx.stroke();
+                } else {
+                    // Estalactita, estalagmita o cristal de techo
+                    const isCrystal = (cp.propType === 'ceiling_crystal');
+                    ctx.fillStyle = rgbStr(isCrystal ? accentCol : crustCol, isCrystal ? 0.82 : 0.95);
+                    ctx.strokeStyle = rgbStr(isCrystal ? rimCol : accentCol, 0.55);
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(-cp.width * 0.5, 4);
+                    ctx.lineTo(0, -cp.height);
+                    ctx.lineTo(cp.width * 0.5, 4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // F. Islas flotantes interiores y nodos de Éter subterráneos
+        if (p.cavernFloatingIslands && p.cavernFloatingIslands.length > 0) {
+            drawFloatingIslandsList(p, p.cavernFloatingIslands, timeSec, colors, arch);
+        }
+        if (p.cavernNodes && p.cavernNodes.length > 0) {
+            for (const cNode of p.cavernNodes) {
+                if (!cNode.harvested) drawEtherNode(p, cNode, timeSec);
+            }
+        }
+
+        // G. Niebla luminiscente suspendida en el vacío interior de la cueva
         ctx.globalCompositeOperation = 'lighter';
         for (let m = 0; m < 6; m++) {
             const mAng = timeSec * 0.15 + (m / 6) * Math.PI * 2;
-            const mDist = (p.radius * 0.65) + Math.sin(timeSec * 0.4 + m) * (p.radius * 0.08);
+            const mDist = (p.radius * 0.64) + Math.sin(timeSec * 0.4 + m) * (p.radius * 0.08);
             const mx = p.x + Math.cos(mAng) * mDist;
             const my = p.y + Math.sin(mAng) * mDist;
-            const mGrad = ctx.createRadialGradient(mx, my, 2, mx, my, 120);
-            mGrad.addColorStop(0.0, rgbStr(accentCol, 0.12));
-            mGrad.addColorStop(0.7, rgbStr(rimCol, 0.04));
+            const mGrad = ctx.createRadialGradient(mx, my, 2, mx, my, 130);
+            mGrad.addColorStop(0.0, rgbStr(accentCol, 0.14));
+            mGrad.addColorStop(0.7, rgbStr(rimCol, 0.05));
             mGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
             ctx.fillStyle = mGrad;
             ctx.beginPath();
-            ctx.arc(mx, my, 120, 0, Math.PI * 2);
+            ctx.arc(mx, my, 130, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -1591,10 +1906,406 @@ function drawHollowPlanetCaverns(p, timeSec, colors, arch) {
 }
 
 /**
+ * Cola doble iónica y de polvo para Cometas Activos (vista orbital y cinemática)
+ */
+function drawCometTail(p, timeSec, colors, arch) {
+    if (!p.isComet) return;
+    const antiSunAngle = (p.lightAngle || 0) + Math.PI;
+    const tailLen = Math.max(p.radius * 6.5, 4800);
+    const accentCol = colors.accentColor || arch.accentColor || [125, 211, 252];
+    const rimCol = colors.rimColor || arch.rimColor || [240, 249, 255];
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(antiSunAngle);
+    ctx.globalCompositeOperation = 'lighter';
+
+    // Cola iónica azul/cian recta
+    const ionGrad = ctx.createLinearGradient(0, 0, tailLen, 0);
+    ionGrad.addColorStop(0.00, rgbStr(accentCol, 0.36));
+    ionGrad.addColorStop(0.35, rgbStr(accentCol, 0.14));
+    ionGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
+    ctx.fillStyle = ionGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.radius * 0.65);
+    ctx.quadraticCurveTo(tailLen * 0.5, -p.radius * 1.15 + Math.sin(timeSec * 0.9) * 35, tailLen, -p.radius * 1.8);
+    ctx.lineTo(tailLen, p.radius * 1.8);
+    ctx.quadraticCurveTo(tailLen * 0.5, p.radius * 1.15 + Math.sin(timeSec * 0.9) * 35, 0, p.radius * 0.65);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cola de polvo luminoso ligeramente curvada
+    const dustGrad = ctx.createLinearGradient(0, 0, tailLen * 0.78, 0);
+    dustGrad.addColorStop(0.00, rgbStr(rimCol, 0.24));
+    dustGrad.addColorStop(0.45, rgbStr(rimCol, 0.08));
+    dustGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
+    ctx.fillStyle = dustGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -p.radius * 0.45);
+    ctx.quadraticCurveTo(tailLen * 0.4, p.radius * 0.8, tailLen * 0.78, p.radius * 2.5);
+    ctx.lineTo(tailLen * 0.78, p.radius * 0.4);
+    ctx.quadraticCurveTo(tailLen * 0.35, -p.radius * 0.1, 0, p.radius * 0.45);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+}
+
+/**
+ * Plataformas e islas flotantes (aéreas, balsas coralinas/témpanos oceánicos o losas de caverna)
+ */
+function drawFloatingIslandsList(p, list, timeSec, colors, arch) {
+    if (!list || list.length === 0) return;
+    const litCol = colors.litColor || arch.litColor || [148, 163, 184];
+    const crustCol = colors.crustColor || arch.crustColor || [51, 65, 85];
+    const rimCol = colors.rimColor || arch.rimColor || [248, 250, 252];
+
+    for (const isl of list) {
+        const steps = 12;
+        ctx.save();
+        ctx.beginPath();
+        for (let s = 0; s <= steps; s++) {
+            const u = (s / steps) * 2 - 1;
+            const th = isl.angle + u * isl.span;
+            const rTop = isl.topRadius - Math.pow(Math.abs(u), 2.2) * (isl.thickness * 0.25);
+            const vx = p.x + Math.cos(th) * rTop;
+            const vy = p.y + Math.sin(th) * rTop;
+            if (s === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
+        }
+        for (let s = steps; s >= 0; s--) {
+            const u = (s / steps) * 2 - 1;
+            const th = isl.angle + u * isl.span;
+            const keelWave = Math.sin(u * Math.PI * 2 + isl.seed * 7) * (isl.thickness * 0.14);
+            const rBot = isl.bottomRadius + Math.pow(Math.abs(u), 1.4) * (isl.thickness * 0.55) + keelWave;
+            ctx.lineTo(p.x + Math.cos(th) * rBot, p.y + Math.sin(th) * rBot);
+        }
+        ctx.closePath();
+
+        const cx = p.x + Math.cos(isl.angle) * isl.topRadius;
+        const cy = p.y + Math.sin(isl.angle) * isl.topRadius;
+        const bx = p.x + Math.cos(isl.angle) * isl.bottomRadius;
+        const by = p.y + Math.sin(isl.angle) * isl.bottomRadius;
+        const islGrad = ctx.createLinearGradient(cx, cy, bx, by);
+        const gc = isl.glowColor || [56, 189, 248];
+        if (isl.style === 'ice_shelf') {
+            islGrad.addColorStop(0.0, '#f0f9ff');
+            islGrad.addColorStop(0.45, '#7dd3fc');
+            islGrad.addColorStop(1.0, '#0369a1');
+        } else if (isl.style === 'coral_raft') {
+            islGrad.addColorStop(0.0, rgbStr(litCol, 0.96));
+            islGrad.addColorStop(0.55, rgbStr(gc, 0.85));
+            islGrad.addColorStop(1.0, rgbStr(crustCol, 0.95));
+        } else {
+            islGrad.addColorStop(0.0, rgbStr(litCol, 0.98));
+            islGrad.addColorStop(0.55, rgbStr(crustCol, 0.98));
+            islGrad.addColorStop(1.0, rgbStr(gc, 0.82));
+        }
+        ctx.fillStyle = islGrad;
+        ctx.fill();
+
+        // Contorno luminoso inferior y superior + estratos internos para mayor volumen
+        ctx.save();
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(2, 6, 18, 0.28)';
+        ctx.lineWidth = 1.8;
+        const midLineR = (isl.topRadius + isl.bottomRadius) * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, midLineR, isl.angle - isl.span, isl.angle + isl.span);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.strokeStyle = rgbStr(rimCol, 0.78);
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        if (isl.style === 'shattered_rock' || isl.style === 'monolith_platform' || isl.style === 'crystal_platform' || isl.style === 'cavern_slab') {
+            ctx.globalCompositeOperation = 'lighter';
+            const pulse = 0.45 + 0.25 * Math.sin(timeSec * 2.2 + isl.seed * 9);
+            const gGlow = ctx.createRadialGradient(bx, by, 2, bx, by, isl.thickness * 1.4);
+            gGlow.addColorStop(0, rgbStr(gc, pulse));
+            gGlow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gGlow;
+            ctx.beginPath();
+            ctx.arc(bx, by, isl.thickness * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+/**
+ * Géiseres activos eruptivos y bolsillos visibles de anomalía gravitatoria
+ */
+function drawPlanetPhenomena(p, timeSec, colors, arch) {
+    if (!p.phenomena || p.phenomena.length === 0) return;
+    if (typeof ship !== 'undefined' && (ship.cavernDepthBlend || 0) > 0.88) return;
+
+    for (const ph of p.phenomena) {
+        if (ph.type === 'geyser') {
+            const sr = getSurfaceRadius(p, ph.angle);
+            const gx = p.x + Math.cos(ph.angle) * sr;
+            const gy = p.y + Math.sin(ph.angle) * sr;
+            if (Math.hypot(gx - camera.x, gy - camera.y) > (Math.max(screenW, screenH) / Math.max(0.12, camera.zoom)) * 0.9 + 400) continue;
+
+            const intensity = (typeof getGeyserIntensity === 'function') ? getGeyserIntensity(ph, timeSec) : 0;
+            const col = ph.geyserType === 'spore' ? [163, 230, 53]
+                : (ph.geyserType === 'plasma' ? [251, 146, 60]
+                : (ph.geyserType === 'cryo' ? [125, 211, 252] : [226, 232, 240]));
+
+            ctx.save();
+            ctx.translate(gx, gy);
+            ctx.rotate(ph.angle + Math.PI / 2);
+
+            // Cráter respiradero
+            ctx.fillStyle = rgbStr(colors.coreColor || [30, 41, 59], 0.95);
+            ctx.beginPath();
+            ctx.moveTo(-12, 3);
+            ctx.lineTo(-7, -7);
+            ctx.lineTo(7, -7);
+            ctx.lineTo(12, 3);
+            ctx.closePath();
+            ctx.fill();
+
+            if (intensity > 0.04) {
+                ctx.globalCompositeOperation = 'lighter';
+                const jetH = ph.reachHeight * intensity;
+                const jetGrad = ctx.createLinearGradient(0, -6, 0, -jetH);
+                jetGrad.addColorStop(0.0, rgbStr(col, 0.78 * intensity));
+                jetGrad.addColorStop(0.45, rgbStr(col, 0.35 * intensity));
+                jetGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                ctx.fillStyle = jetGrad;
+                const wTop = 18 + 26 * intensity;
+                ctx.beginPath();
+                ctx.moveTo(-6, -6);
+                ctx.lineTo(-wTop, -jetH);
+                ctx.lineTo(wTop, -jetH);
+                ctx.lineTo(6, -6);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        } else if (ph.type === 'gravity_anomaly') {
+            const ax = p.x + Math.cos(ph.angle) * ph.radiusPos;
+            const ay = p.y + Math.sin(ph.angle) * ph.radiusPos;
+            if (Math.hypot(ax - camera.x, ay - camera.y) > (Math.max(screenW, screenH) / Math.max(0.12, camera.zoom)) * 0.9 + 350) continue;
+
+            ctx.save();
+            ctx.translate(ax, ay);
+            ctx.globalCompositeOperation = 'lighter';
+            const pulse = 0.75 + 0.25 * Math.sin(timeSec * 3.0 + ph.phase);
+            const rGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, ph.effectRadius);
+            rGrad.addColorStop(0.0, rgbStr(ph.color, 0.28 * pulse));
+            rGrad.addColorStop(0.65, rgbStr(ph.color, 0.12 * pulse));
+            rGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.fillStyle = rGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, ph.effectRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = rgbStr(ph.color, 0.55);
+            ctx.lineWidth = 1.4;
+            ctx.setLineDash([10, 8]);
+            ctx.rotate(timeSec * (ph.anomalyMode === 'vortex' ? 1.2 : -0.45));
+            ctx.beginPath();
+            ctx.arc(0, 0, ph.effectRadius * (0.62 + 0.08 * Math.sin(timeSec * 2 + ph.phase)), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+}
+
+/**
  * Renderizado Orbital Simplificado (LOD de Zoom Lejano):
  * Reemplaza texturas y detalles de superficie por una representación limpia y liviana
  * enfocada en la lectura de órbitas, atmósfera, anillos y posición relativa.
  */
+/**
+ * Renderiza efectos orbitales y atmosféricos exclusivos de mundos singulares, magnetares y gigantes de diamante.
+ */
+function drawExoticPlanetAura(p, timeSec, colors, arch, drawR, invZoom) {
+    const cls = arch?.classId;
+    const isSing = !!(p.isSingularity || arch?.isSingularity);
+    const isMag = !!(p.isMagnetar || arch?.isMagnetar);
+    const isEyeball = !!(p.isEyeballWorld || arch?.isEyeballWorld);
+    const isDiamond = arch?.id === 'diamond_rain_giant';
+    const hasAurora = !p.isMoonlet && (p.atmoDensity || 1.0) > 0.35 && (cls === 'cryogenic' || cls === 'temporal' || (cls === 'terrestrial' && ((p.surfaceSeed || 0) > 0.45)));
+    const isHostileMiasma = (cls === 'volcanic' || cls === 'toxic');
+
+    if (!isSing && !isMag && !isEyeball && !isDiamond && !hasAurora && !isHostileMiasma) return;
+
+    const accentCol = colors.accentColor || arch.accentColor || [192, 132, 252];
+    const rimCol = colors.rimColor || arch.rimColor || [251, 146, 60];
+
+    ctx.save();
+
+    // 1. Halo oscuro opresivo para singularidades (absorbe la luz de fondo)
+    if (isSing) {
+        const voidGrad = ctx.createRadialGradient(p.x, p.y, drawR * 0.92, p.x, p.y, drawR * 1.45);
+        voidGrad.addColorStop(0.0, 'rgba(2, 1, 6, 0.88)');
+        voidGrad.addColorStop(0.55, 'rgba(6, 2, 16, 0.42)');
+        voidGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = voidGrad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, drawR * 1.45, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = 'lighter';
+
+    if (isSing) {
+        const pulse = 1 + Math.sin(timeSec * 2.4) * 0.04;
+        const innerR = drawR * 1.06;
+        const outerR = drawR * 2.05 * pulse;
+        const accGrad = ctx.createRadialGradient(p.x, p.y, innerR * 0.92, p.x, p.y, outerR);
+        accGrad.addColorStop(0.0, 'rgba(0,0,0,0)');
+        accGrad.addColorStop(0.14, rgbStr(rimCol, 0.68));
+        accGrad.addColorStop(0.42, rgbStr(accentCol, 0.32));
+        accGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = accGrad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, outerR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Disco de acreción inclinado + chorros relativistas polares
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.ringTilt || 0.28) + Math.sin(timeSec * 0.3) * 0.03);
+        ctx.strokeStyle = rgbStr(rimCol, 0.55);
+        ctx.lineWidth = Math.max(1.5 * invZoom, drawR * 0.028);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, drawR * 2.15, drawR * 0.42, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        for (const dir of [-1, 1]) {
+            const jetGrad = ctx.createLinearGradient(0, dir * drawR * 0.9, 0, dir * drawR * 2.65);
+            jetGrad.addColorStop(0.0, rgbStr(accentCol, 0.48));
+            jetGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.fillStyle = jetGrad;
+            ctx.beginPath();
+            ctx.moveTo(-drawR * 0.08, dir * drawR * 0.92);
+            ctx.lineTo(drawR * 0.08, dir * drawR * 0.92);
+            ctx.lineTo(drawR * 0.28, dir * drawR * 2.65);
+            ctx.lineTo(-drawR * 0.28, dir * drawR * 2.65);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Anillo de fotones (lente gravitacional)
+        ctx.strokeStyle = rgbStr([255, 245, 220], 0.78);
+        ctx.lineWidth = Math.max(1.2 * invZoom, drawR * 0.013);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, drawR * 1.11, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    if (isMag) {
+        const axis = (p.initialRotationPhase || 0) + timeSec * 0.08;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(axis);
+        for (let loop = 0; loop < 3; loop++) {
+            const spread = drawR * (1.35 + loop * 0.34);
+            const alpha = (0.38 - loop * 0.08) * (0.75 + 0.25 * Math.sin(timeSec * 3.2 + loop));
+            ctx.strokeStyle = rgbStr(accentCol, Math.max(0.08, alpha));
+            ctx.lineWidth = Math.max(1.1 * invZoom, drawR * 0.011);
+            for (const dir of [-1, 1]) {
+                ctx.beginPath();
+                ctx.moveTo(0, -drawR * 0.94);
+                ctx.bezierCurveTo(dir * spread, -drawR * 0.85, dir * spread, drawR * 0.85, 0, drawR * 0.94);
+                ctx.stroke();
+            }
+        }
+        // Conos de haz de púlsar rotatorios
+        const beamAlpha = 0.16 + 0.10 * Math.sin(timeSec * 4.5);
+        for (const dir of [-1, 1]) {
+            const beamGrad = ctx.createLinearGradient(0, dir * drawR * 0.95, 0, dir * drawR * 2.4);
+            beamGrad.addColorStop(0.0, rgbStr(rimCol, beamAlpha));
+            beamGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.fillStyle = beamGrad;
+            ctx.beginPath();
+            ctx.moveTo(-drawR * 0.10, dir * drawR * 0.95);
+            ctx.lineTo(drawR * 0.10, dir * drawR * 0.95);
+            ctx.lineTo(drawR * 0.55, dir * drawR * 2.4);
+            ctx.lineTo(-drawR * 0.55, dir * drawR * 2.4);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    if (isEyeball) {
+        const sunAng = p.lightAngle || 0;
+        const hotX = p.x + Math.cos(sunAng) * drawR * 0.82;
+        const hotY = p.y + Math.sin(sunAng) * drawR * 0.82;
+        const hotGrad = ctx.createRadialGradient(hotX, hotY, drawR * 0.05, hotX, hotY, drawR * 0.72);
+        hotGrad.addColorStop(0.0, 'rgba(251, 146, 60, 0.38)');
+        hotGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = hotGrad;
+        ctx.beginPath();
+        ctx.arc(hotX, hotY, drawR * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+
+        const coldX = p.x - Math.cos(sunAng) * drawR * 0.82;
+        const coldY = p.y - Math.sin(sunAng) * drawR * 0.82;
+        const coldGrad = ctx.createRadialGradient(coldX, coldY, drawR * 0.05, coldX, coldY, drawR * 0.72);
+        coldGrad.addColorStop(0.0, 'rgba(186, 230, 253, 0.28)');
+        coldGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = coldGrad;
+        ctx.beginPath();
+        ctx.arc(coldX, coldY, drawR * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    if (hasAurora) {
+        const axis = p.initialRotationPhase || 0;
+        const auroraCol = cls === 'temporal' ? [244, 114, 182] : [52, 211, 153];
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(axis);
+        for (const pole of [-1, 1]) {
+            const shimmer = 0.22 + 0.14 * Math.sin(timeSec * 2.1 + pole * 1.7 + (p.surfaceSeed || 0) * 8);
+            ctx.strokeStyle = rgbStr(auroraCol, shimmer);
+            ctx.lineWidth = Math.max(2.0 * invZoom, drawR * 0.025);
+            ctx.beginPath();
+            ctx.arc(0, pole * drawR * 0.94, drawR * 0.36, pole < 0 ? Math.PI * 0.15 : Math.PI * 1.15, pole < 0 ? Math.PI * 0.85 : Math.PI * 1.85);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    if (isHostileMiasma) {
+        const miasmaCol = cls === 'volcanic' ? [249, 115, 22] : [163, 230, 53];
+        const pulse = 0.14 + 0.06 * Math.sin(timeSec * 1.9 + (p.surfaceSeed || 0) * 6);
+        const miasmaGrad = ctx.createRadialGradient(p.x, p.y, drawR * 0.92, p.x, p.y, drawR * 1.18);
+        miasmaGrad.addColorStop(0.0, rgbStr(miasmaCol, pulse));
+        miasmaGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = miasmaGrad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, drawR * 1.18, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    if (isDiamond && invZoom < 3.2) {
+        const count = 18;
+        for (let i = 0; i < count; i++) {
+            const ang = (i / count) * Math.PI * 2 + (p.surfaceSeed || 0) * 6.28;
+            const fallFrac = ((timeSec * 0.42 + i * 0.17) % 1);
+            const r = drawR * (1.03 + (1 - fallFrac) * 0.14);
+            const dx = p.x + Math.cos(ang) * r;
+            const dy = p.y + Math.sin(ang) * r;
+            const glint = Math.sin(timeSec * 5 + i * 2.1) * 0.5 + 0.5;
+            ctx.fillStyle = rgbStr([224, 248, 255], 0.35 + glint * 0.55);
+            ctx.beginPath();
+            ctx.arc(dx, dy, Math.max(1.2 * invZoom, drawR * 0.005), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    ctx.restore();
+}
+
 function drawSimplifiedOrbitalPlanet(p, timeSec) {
     const arch = p.archetype;
     const colors = p.colors || {};
@@ -1639,6 +2350,8 @@ function drawSimplifiedOrbitalPlanet(p, timeSec) {
     };
 
     drawSimpleRingHalf(true);
+    if (p.isComet) drawCometTail(p, timeSec, colors, arch);
+    drawExoticPlanetAura(p, timeSec, colors, arch, drawR, invZoom);
 
     // 1. Halo Atmosférico Suave + Límite de Atmósfera
     if (drawAtmoR > drawR * 1.02) {
@@ -1722,6 +2435,35 @@ function drawSimplifiedOrbitalPlanet(p, timeSec) {
     ctx.arc(p.x, p.y, drawR, 0, Math.PI * 2);
     ctx.stroke();
 
+    // En zoom out lejano, mostrar claramente las bocas abiertas y brillo interno de mundos huecos
+    if (p.isHollow && p.caveEntrances && p.caveEntrances.length > 0) {
+        const gCol = p.cavernGlowColor || arch.accentColor || [56, 189, 248];
+        ctx.save();
+        for (const cave of p.caveEntrances) {
+            const halfW = Math.max(0.14, cave.span * 0.62);
+            ctx.fillStyle = 'rgba(2, 4, 12, 0.95)';
+            ctx.beginPath();
+            ctx.moveTo(p.x + Math.cos(cave.centerAngle) * (drawR * 0.52), p.y + Math.sin(cave.centerAngle) * (drawR * 0.52));
+            ctx.arc(p.x, p.y, drawR * 1.01, cave.centerAngle - halfW, cave.centerAngle + halfW);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = rgbStr(gCol, 0.85);
+            ctx.lineWidth = 1.6 * invZoom;
+            ctx.stroke();
+        }
+        // Núcleo interior tenue visible en previsualización orbital
+        ctx.globalCompositeOperation = 'lighter';
+        const cDot = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, drawR * 0.38);
+        cDot.addColorStop(0.0, rgbStr(gCol, 0.65));
+        cDot.addColorStop(1.0, 'rgba(0,0,0,0)');
+        ctx.fillStyle = cDot;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, drawR * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
     drawSimpleRingHalf(false);
 
     // 3. Rótulo Cartográfico en Tamaño de Pantalla (siempre legible y horizontal)
@@ -1773,6 +2515,18 @@ function drawCinematicPlanet(p, timeSec) {
         drawPlanetRingHalf(p, true, timeSec);
     }
 
+    if (p.isComet) {
+        drawCometTail(p, timeSec, colors, arch);
+    }
+    const distCamSurf = Math.hypot(camera.x - p.x, camera.y - p.y) - p.radius;
+    const orbitalAuraFade = smoothstep(Math.max(450, p.radius * 0.06), Math.max(1800, p.radius * 0.24), distCamSurf);
+    if (orbitalAuraFade > 0.02) {
+        ctx.save();
+        ctx.globalAlpha *= orbitalAuraFade;
+        drawExoticPlanetAura(p, timeSec, colors, arch, p.maxSurfaceRadius || p.radius, 1 / Math.max(0.08, camera.zoom));
+        ctx.restore();
+    }
+
     // 1. Atmósfera Continua y Sedosa (Degradado exponencial multi-parada sin anillos bruscos)
     drawPlanetAtmosphere(p, timeSec, atmoGlowCol, condensationCol, accentCol);
 
@@ -1785,14 +2539,35 @@ function drawCinematicPlanet(p, timeSec) {
     // 3. Cuerpo Planetario, Sombreado Esférico Volumétrico y Superficie Macro Cinemática
     ctx.save();
     ctx.beginPath();
-    const total = p.heights.length;
-    for (let i = 0; i <= total; i++) {
-        const theta = (i / total) * Math.PI * 2;
-        const r = getSurfaceRadius(p, theta);
-        const vx = p.x + Math.cos(theta) * r;
-        const vy = p.y + Math.sin(theta) * r;
-        if (i === 0) ctx.moveTo(vx, vy);
-        else ctx.lineTo(vx, vy);
+    const arc = getPlanetRenderArc(p, 340);
+    if (!arc.partialArc) {
+        for (let k = 0; k <= arc.total; k += arc.stride) {
+            const theta = (k % arc.total) * arc.dTheta;
+            const r = getSurfaceRadius(p, theta);
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
+            if (k === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
+        }
+    } else {
+        let firstPt = true;
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) {
+            const theta = k * arc.dTheta;
+            const r = getSurfaceRadius(p, theta);
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
+            if (firstPt) { ctx.moveTo(vx, vy); firstPt = false; }
+            else ctx.lineTo(vx, vy);
+        }
+        // Cerrar suavemente por el arco trasero fuera de pantalla con ~14 puntos gruesos
+        const backSpan = (arc.kMin + arc.total) - arc.kMax;
+        if (backSpan > 0) {
+            const backSteps = 14;
+            for (let b = 1; b < backSteps; b++) {
+                const theta = (arc.kMax + (b / backSteps) * backSpan) * arc.dTheta;
+                ctx.lineTo(p.x + Math.cos(theta) * p.radius, p.y + Math.sin(theta) * p.radius);
+            }
+        }
     }
     ctx.closePath();
     ctx.clip();
@@ -1810,19 +2585,20 @@ function drawCinematicPlanet(p, timeSec) {
             ctx.globalCompositeOperation = 'soft-light';
             ctx.globalAlpha = texAlpha;
             ctx.fillStyle = texPat;
-            const spanR = p.radius + 120;
+            const spanR = (p.maxSurfaceRadius || p.radius) + 120;
             ctx.fillRect(-spanR, -spanR, spanR * 2, spanR * 2);
             ctx.restore();
         }
     }
 
     // 3.6. Dispersión Cromática en el Terminador y Limbo Atmosférico Fresnel (Sombreado 3D Realista)
+    const maxGlowR = (p.maxSurfaceRadius || p.radius);
     const sunDirX = Math.cos(p.lightAngle);
     const sunDirY = Math.sin(p.lightAngle);
     const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
     const termGrad = ctx.createLinearGradient(
-        p.x + sunDirX * p.radius, p.y + sunDirY * p.radius,
-        p.x - sunDirX * p.radius, p.y - sunDirY * p.radius
+        p.x + sunDirX * maxGlowR, p.y + sunDirY * maxGlowR,
+        p.x - sunDirX * maxGlowR, p.y - sunDirY * maxGlowR
     );
     termGrad.addColorStop(0.00, 'rgba(255,255,255,0)');
     termGrad.addColorStop(0.42, 'rgba(255,255,255,0)');
@@ -1830,11 +2606,11 @@ function drawCinematicPlanet(p, timeSec) {
     termGrad.addColorStop(0.64, 'rgba(4, 8, 20, 0.22)');
     termGrad.addColorStop(1.00, 'rgba(2, 4, 12, 0.42)');
     ctx.fillStyle = termGrad;
-    ctx.fillRect(p.x - p.radius - 120, p.y - p.radius - 120, (p.radius + 120) * 2, (p.radius + 120) * 2);
+    ctx.fillRect(p.x - maxGlowR - 120, p.y - maxGlowR - 120, (maxGlowR + 120) * 2, (maxGlowR + 120) * 2);
 
     const fresnelGrad = ctx.createRadialGradient(
-        p.x - sunDirX * p.radius * 0.12, p.y - sunDirY * p.radius * 0.12, p.radius * 0.72,
-        p.x, p.y, p.radius * 1.02
+        p.x - sunDirX * maxGlowR * 0.12, p.y - sunDirY * maxGlowR * 0.12, maxGlowR * 0.72,
+        p.x, p.y, maxGlowR * 1.02
     );
     fresnelGrad.addColorStop(0.00, 'rgba(0,0,0,0)');
     fresnelGrad.addColorStop(0.75, rgbStr(atmoGlowCol, 0.08));
@@ -1843,7 +2619,7 @@ function drawCinematicPlanet(p, timeSec) {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = fresnelGrad;
-    ctx.fillRect(p.x - p.radius - 120, p.y - p.radius - 120, (p.radius + 120) * 2, (p.radius + 120) * 2);
+    ctx.fillRect(p.x - maxGlowR - 120, p.y - maxGlowR - 120, (maxGlowR + 120) * 2, (maxGlowR + 120) * 2);
     ctx.restore();
 
     ctx.restore();
@@ -1854,8 +2630,14 @@ function drawCinematicPlanet(p, timeSec) {
     // 4.5. Cavernas y Cámaras Subterráneas de Mundos Huecos
     drawHollowPlanetCaverns(p, timeSec, colors, arch);
 
-    // 4.6. Columnas de Ceniza y Penachos Piroclásticos de Super-Volcanes
+    // 4.6. Islas Flotantes y Plataformas Oceánicas/Aéreas
+    if (p.floatingIslands && p.floatingIslands.length > 0) {
+        drawFloatingIslandsList(p, p.floatingIslands, timeSec, colors, arch);
+    }
+
+    // 4.7. Columnas de Ceniza y Fenómenos Activos (Géiseres y Anomalías Gravitatorias)
     drawSuperVolcanoPlumes(p, timeSec, colors, arch);
+    drawPlanetPhenomena(p, timeSec, colors, arch);
 
     // 5. Nodos de Éter
     for (const node of p.nodes) {
@@ -1962,25 +2744,31 @@ function drawPlanetAtmosphere(p, timeSec, atmoGlowCol, condensationCol, accentCo
     ctx.arc(dayX, dayY, dayRad, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3. Resplandor crepuscular en los dos extremos del terminador (borde amanecer y atardecer)
+    // 3. Resplandor crepuscular en los dos extremos del terminador (confinado al anillo atmosférico exterior para no manchar la superficie)
     const sunsetRGB = colors.sunsetRGB || arch.sunsetRGB || (arch.atmoVisuals && arch.atmoVisuals.sunsetColor) || [251, 146, 60];
-    const termR = p.radius + atmoDepth * 0.22;
+    const termR = p.radius + atmoDepth * 0.28;
     const tAngle1 = p.lightAngle + Math.PI * 0.5;
     const tAngle2 = p.lightAngle - Math.PI * 0.5;
-    const flareRad = atmoDepth * 0.85 + p.radius * 0.12;
+    const flareRad = atmoDepth * 0.78 + p.radius * 0.08;
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.atmoRadius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.radius * 0.97, 0, Math.PI * 2, true);
+    ctx.clip();
     for (const tAng of [tAngle1, tAngle2]) {
         const tx = p.x + Math.cos(tAng) * termR;
         const ty = p.y + Math.sin(tAng) * termR;
         const twGrad = ctx.createRadialGradient(tx, ty, 5, tx, ty, flareRad);
-        twGrad.addColorStop(0.00, rgbStr(sunsetRGB, 0.22));
-        twGrad.addColorStop(0.40, rgbStr(sunsetRGB, 0.08));
+        twGrad.addColorStop(0.00, rgbStr(sunsetRGB, 0.20));
+        twGrad.addColorStop(0.45, rgbStr(sunsetRGB, 0.07));
         twGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
         ctx.fillStyle = twGrad;
         ctx.beginPath();
         ctx.arc(tx, ty, flareRad, 0, Math.PI * 2);
         ctx.fill();
     }
+    ctx.restore();
 
     // 4. Luminiscencia aérea nocturna sutil (Airglow) en el hemisferio oscuro (sin blanquear la noche)
     const nightAirglowCol = colors.nightAirglow || arch.nightAirglow || atmoGlowCol;
@@ -2010,8 +2798,11 @@ function drawPlanetAtmosphere(p, timeSec, atmoGlowCol, condensationCol, accentCo
 function drawPlanetInterior(p, timeSec, colors, arch) {
     const inter = p.interior || {};
     const strataProfiles = inter.strataProfiles || [];
-    const total = p.heights.length;
-    const step = camera.zoom > 0.65 ? 2 : 4;
+    const arc = getPlanetRenderArc(p, 340);
+    const total = arc.total;
+    const step = arc.stride;
+    const kMin = arc.kMin;
+    const kMax = arc.kMax;
 
     const topsoilCol = colors.topsoilColor || arch.topsoilColor || colors.litColor;
     const subcrustCol = colors.subcrustColor || arch.subcrustColor || colors.crustColor;
@@ -2035,20 +2826,21 @@ function drawPlanetInterior(p, timeSec, colors, arch) {
         const lowerProf = strataProfiles[s];
         const styleSpec = bandColors[s] || bandColors[bandColors.length - 1];
 
-        // Cinta cerrada entre el estrato superior y el inferior (no llena el centro del planeta)
+        // Cinta cerrada entre el estrato superior y el inferior (solo arco visible)
         ctx.beginPath();
-        for (let i = 0; i <= total; i += step) {
-            const idx = i % total;
-            const theta = (idx / total) * Math.PI * 2;
+        let firstU = true;
+        for (let k = kMin; k <= kMax; k += step) {
+            const idx = ((k % total) + total) % total;
+            const theta = idx * arc.dTheta;
             const r = upperProf[idx];
             const vx = p.x + Math.cos(theta) * r;
             const vy = p.y + Math.sin(theta) * r;
-            if (i === 0) ctx.moveTo(vx, vy);
+            if (firstU) { ctx.moveTo(vx, vy); firstU = false; }
             else ctx.lineTo(vx, vy);
         }
-        for (let i = total; i >= 0; i -= step) {
-            const idx = i % total;
-            const theta = (idx / total) * Math.PI * 2;
+        for (let k = kMax; k >= kMin; k -= step) {
+            const idx = ((k % total) + total) % total;
+            const theta = idx * arc.dTheta;
             const r = lowerProf[idx];
             const vx = p.x + Math.cos(theta) * r;
             const vy = p.y + Math.sin(theta) * r;
@@ -2063,28 +2855,12 @@ function drawPlanetInterior(p, timeSec, colors, arch) {
             ctx.clip();
             ctx.translate(p.x, p.y);
             ctx.globalCompositeOperation = 'soft-light';
-            ctx.globalAlpha = s === 0 ? 0.28 : 0.16;
+            ctx.globalAlpha = s === 0 ? 0.24 : 0.14;
             ctx.fillStyle = strataTex;
-            const spanR = p.radius + 140;
+            const spanR = (p.maxSurfaceRadius || p.radius) + 140;
             ctx.fillRect(-spanR, -spanR, spanR * 2, spanR * 2);
             ctx.restore();
         }
-
-        // Línea de contorno topográfico ultra delicada y estática
-        ctx.beginPath();
-        for (let i = 0; i <= total; i += step) {
-            const idx = i % total;
-            const theta = (idx / total) * Math.PI * 2;
-            const r = lowerProf[idx];
-            const vx = p.x + Math.cos(theta) * r;
-            const vy = p.y + Math.sin(theta) * r;
-            if (i === 0) ctx.moveTo(vx, vy);
-            else ctx.lineTo(vx, vy);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = rgbStr(rimCol, styleSpec.lineAlpha);
-        ctx.lineWidth = 0.9;
-        ctx.stroke();
     }
 
     // 2. Sombra abisal profunda y tenue luminiscencia térmica estática en el centro del planeta (Sin bordes ni movimiento)
@@ -2215,18 +2991,32 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
         ctx.fillStyle = waterGrad;
         ctx.fill();
 
-        // 2. Transición orgánica de orilla y playa húmeda (contacto roca/arena)
-        ctx.strokeStyle = rgbStr(shoreCol, 0.72 * sunIntensity);
-        ctx.lineWidth = 1.8;
+        // Confinar reflejos, brillos solares y magma al interior estricto de la cuenca del lago (evita círculos saliendo al cielo o bajo tierra)
+        ctx.save();
+        ctx.clip();
+
+        // 2. Borde sutil de menisco superficial únicamente sobre la lámina de agua (sin trazar líneas bajo tierra)
+        ctx.beginPath();
+        for (let s = 0; s <= steps; s++) {
+            const u = (s / steps) * 2 - 1;
+            const theta = normCenter + u * spanHalf;
+            const shoreDamp = Math.max(0, 1 - u * u);
+            const wave = (Math.sin(theta * 32 + wavePhase) * 1.35 + Math.cos(theta * 64 - wavePhase * 1.25) * 0.65) * shoreDamp;
+            const rWater = lake.waterLevel + wave;
+            const wx = p.x + Math.cos(theta) * rWater;
+            const wy = p.y + Math.sin(theta) * rWater;
+            if (s === 0) ctx.moveTo(wx, wy);
+            else ctx.lineTo(wx, wy);
+        }
+        ctx.strokeStyle = rgbStr(shoreCol, 0.52 * sunIntensity);
+        ctx.lineWidth = 1.6;
         ctx.stroke();
 
-        // 3. Destello solar especular (Sunglint fotométrico)
+        // 3. Destello solar especular (Sunglint fotométrico confinado al agua)
         if (dayLake > 0.05) {
-            // Vector de reflexión de la luz solar
             const reflX = 2 * sunDot * normX - sunVecX;
             const reflY = 2 * sunDot * normY - sunVecY;
 
-            // Vector hacia la cámara
             const viewCamX = camera.x - surfX;
             const viewCamY = camera.y - surfY;
             const viewDist = Math.hypot(viewCamX, viewCamY) || 1;
@@ -2235,16 +3025,16 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
 
             const specDot = Math.max(0, reflX * viewDirX + reflY * viewDirY);
             const specPower = Math.pow(specDot, 6);
-            const glintIntensity = clamp((0.25 * sunDot + 0.75 * specPower) * dayLake, 0, 1.45);
+            const glintIntensity = clamp((0.25 * sunDot + 0.75 * specPower) * dayLake, 0, 1.25);
 
-            const glintRadius = lake.span * p.radius * 0.48;
+            const glintRadius = lake.span * p.radius * 0.44;
 
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             const glintGrad = ctx.createRadialGradient(surfX, surfY, 2, surfX, surfY, glintRadius);
-            glintGrad.addColorStop(0.00, rgbStr(specCol, 0.90 * glintIntensity));
-            glintGrad.addColorStop(0.20, rgbStr(shallowCol, 0.50 * glintIntensity));
-            glintGrad.addColorStop(0.65, rgbStr(deepCol, 0.18 * glintIntensity));
+            glintGrad.addColorStop(0.00, rgbStr(specCol, 0.78 * glintIntensity));
+            glintGrad.addColorStop(0.24, rgbStr(shallowCol, 0.42 * glintIntensity));
+            glintGrad.addColorStop(0.65, rgbStr(deepCol, 0.14 * glintIntensity));
             glintGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
 
             ctx.fillStyle = glintGrad;
@@ -2252,36 +3042,40 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
             ctx.arc(surfX, surfY, glintRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Chispas de diamante dinámicas que centellean sobre el oleaje
+            // Chispas de diamante dinámicas sobre la línea del oleaje
             for (let g = -3; g <= 3; g++) {
-                const sparkleAng = normCenter + g * (lake.span * 0.16);
-                const sparkleR = lake.waterLevel + Math.sin(sparkleAng * 38 + timeSec * 5.5) * 1.5;
+                const sparkleAng = normCenter + g * (lake.span * 0.15);
+                const sparkleR = lake.waterLevel - 1.2 + Math.sin(sparkleAng * 38 + timeSec * 5.5) * 1.2;
                 const sx = p.x + Math.cos(sparkleAng) * sparkleR;
                 const sy = p.y + Math.sin(sparkleAng) * sparkleR;
-                const spAlpha = 0.35 + 0.60 * Math.sin(timeSec * 7 + g * 2.1);
+                const spAlpha = 0.30 + 0.55 * Math.sin(timeSec * 7 + g * 2.1);
                 ctx.fillStyle = `rgba(255, 255, 255, ${spAlpha * glintIntensity})`;
                 ctx.beginPath();
-                ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+                ctx.arc(sx, sy, 2.0, 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.restore();
         }
 
-        // 4. Bruma y vapor atmosférico sobre lagos fríos, o ascuas incandescentes sobre magma
+        // 4. Núcleo incandescente de magma confinado al estanque (sin halo circular flotando en cielo/roca)
         if (lake.liquidType === 'magma') {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
-            const pulse = 0.7 + 0.3 * Math.sin(timeSec * 2.8 + normCenter * 3);
-            const magmaGrad = ctx.createRadialGradient(surfX, surfY, 6, surfX, surfY, lake.span * p.radius * 0.65);
-            magmaGrad.addColorStop(0.00, `rgba(254, 240, 138, ${0.55 * pulse})`);
-            magmaGrad.addColorStop(0.40, `rgba(249, 115, 22, ${0.30 * pulse})`);
+            const pulse = 0.72 + 0.28 * Math.sin(timeSec * 2.8 + normCenter * 3);
+            const magmaGrad = ctx.createLinearGradient(surfX, surfY, bedX, bedY);
+            magmaGrad.addColorStop(0.00, `rgba(254, 240, 138, ${0.42 * pulse})`);
+            magmaGrad.addColorStop(0.55, `rgba(249, 115, 22, ${0.22 * pulse})`);
             magmaGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
             ctx.fillStyle = magmaGrad;
-            ctx.beginPath();
-            ctx.arc(surfX, surfY, lake.span * p.radius * 0.65, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(Math.min(surfX, bedX) - lake.span * p.radius, Math.min(surfY, bedY) - lake.span * p.radius, lake.span * p.radius * 2, lake.span * p.radius * 2);
+            ctx.restore();
+        }
+        ctx.restore();
 
-            // Partículas de ascuas flotantes que ascienden
+        // Ascuas o neblina rasante que sigue el arco del lago (sin esferas gigantes)
+        if (lake.liquidType === 'magma') {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
             for (let e = -2; e <= 2; e++) {
                 const eAng = normCenter + e * (lake.span * 0.18);
                 const eAlt = (timeSec * 14 + e * 19) % 28;
@@ -2295,20 +3089,21 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
             }
             ctx.restore();
         } else if (lake.liquidType === 'water' || lake.liquidType === 'methane') {
-            // Bruma suave sobre la superficie del agua
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
-            const mistAlt = 6 + 3 * Math.sin(timeSec * 1.5 + normCenter);
-            const mx = p.x + normX * (lake.waterLevel + mistAlt);
-            const my = p.y + normY * (lake.waterLevel + mistAlt);
-            const mistGrad = ctx.createRadialGradient(mx, my, 2, mx, my, lake.span * p.radius * 0.55);
-            mistGrad.addColorStop(0.00, 'rgba(255, 255, 255, 0.15)');
-            mistGrad.addColorStop(0.50, rgbStr(shallowCol, 0.08));
-            mistGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
-            ctx.fillStyle = mistGrad;
+            const mistR = lake.waterLevel + 4 + 2 * Math.sin(timeSec * 1.5 + normCenter);
             ctx.beginPath();
-            ctx.arc(mx, my, lake.span * p.radius * 0.55, 0, Math.PI * 2);
-            ctx.fill();
+            for (let s = 0; s <= 14; s++) {
+                const u = (s / 14) * 2 - 1;
+                const theta = normCenter + u * spanHalf * 0.85;
+                const vx = p.x + Math.cos(theta) * (mistR + (1 - u * u) * 5);
+                const vy = p.y + Math.sin(theta) * (mistR + (1 - u * u) * 5);
+                if (s === 0) ctx.moveTo(vx, vy);
+                else ctx.lineTo(vx, vy);
+            }
+            ctx.strokeStyle = rgbStr(shallowCol, 0.14);
+            ctx.lineWidth = 6.0;
+            ctx.stroke();
             ctx.restore();
         }
     }
@@ -2338,18 +3133,25 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
     const antiSunX = p.x - Math.cos(p.lightAngle) * p.radius;
     const antiSunY = p.y - Math.sin(p.lightAngle) * p.radius;
 
+    const arc = getPlanetRenderArc(p, 340);
+
     if (arch.isLiquid) {
-        // Superficie oceánica translúcida con profundidad marina suave
+        // Superficie oceánica translúcida con profundidad marina suave (optimizada al arco visible)
         ctx.beginPath();
-        for (let i = 0; i <= total; i++) {
-            const theta = (i / total) * Math.PI * 2;
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) {
+            const theta = k * arc.dTheta;
             const r = getSurfaceRadius(p, theta);
             const vx = p.x + Math.cos(theta) * r;
             const vy = p.y + Math.sin(theta) * r;
-            if (i === 0) ctx.moveTo(vx, vy);
+            if (k === arc.kMin) ctx.moveTo(vx, vy);
             else ctx.lineTo(vx, vy);
         }
-        ctx.closePath();
+        if ((arc.kMax - arc.kMin) % arc.stride !== 0) {
+            const theta = arc.kMax * arc.dTheta;
+            const r = getSurfaceRadius(p, theta);
+            ctx.lineTo(p.x + Math.cos(theta) * r, p.y + Math.sin(theta) * r);
+        }
+        if (!arc.partialArc) ctx.closePath();
         ctx.strokeStyle = rgbStr(topsoilCol, 0.45);
         ctx.lineWidth = 5.5;
         ctx.stroke();
@@ -2365,30 +3167,69 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
         return;
     }
 
-    // 1. Cinta Orgánica de Suelo Superficial / Regolito con espesor natural variable (Polígono relleno sobre la roca)
-    ctx.beginPath();
-    for (let i = 0; i <= total; i++) {
-        const idx = i % total;
-        const theta = (idx / total) * Math.PI * 2;
-        const r = p.heights[idx];
-        const vx = p.x + Math.cos(theta) * r;
-        const vy = p.y + Math.sin(theta) * r;
-        if (i === 0) ctx.moveTo(vx, vy);
-        else ctx.lineTo(vx, vy);
-    }
+    // 1. Cinta Orgánica de Suelo Superficial / Regolito con espesor natural variable (respeta gargantas abiertas y recorte de viewport)
     const staticCrustPhase = ((p.surfaceSeed || 0.42) * 17.3);
-    for (let i = total; i >= 0; i--) {
-        const idx = i % total;
-        const theta = (idx / total) * Math.PI * 2;
-        // El espesor del suelo varía orgánicamente de forma ESTÁTICA según la elevación y seed del planeta
-        const elevBonus = Math.max(0, (p.heights[idx] - p.radius) * 0.12);
-        const thickness = (5.2 + Math.sin(theta * 17 + staticCrustPhase) * 1.8) * scaleFactor + elevBonus;
-        const rSub = p.heights[idx] - thickness;
-        const vx = p.x + Math.cos(theta) * rSub;
-        const vy = p.y + Math.sin(theta) * rSub;
-        ctx.lineTo(vx, vy);
+    const hasOpenCaves = !!(p.isHollow && p.caveEntrances && p.caveEntrances.length > 0);
+    const isSolidRimIdx = (idx) => {
+        if (!hasOpenCaves) return true;
+        const th = (idx / total) * Math.PI * 2;
+        const cInfo = getPlanetCaveEntranceAt(p, th);
+        return !(cInfo && cInfo.normDist < 0.56);
+    };
+
+    const crustSpans = [];
+    if (!hasOpenCaves) {
+        crustSpans.push({ lo: arc.kMin, hi: arc.kMax });
+    } else {
+        let inSolid = false;
+        let spanStart = arc.kMin;
+        let prevSolidK = arc.kMin;
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) {
+            const idx = ((k % total) + total) % total;
+            const solid = isSolidRimIdx(idx);
+            if (solid && !inSolid) {
+                inSolid = true;
+                spanStart = k;
+                prevSolidK = k;
+            } else if (solid) {
+                prevSolidK = k;
+            } else if (inSolid) {
+                inSolid = false;
+                crustSpans.push({ lo: spanStart, hi: prevSolidK });
+            }
+        }
+        if (inSolid) {
+            crustSpans.push({ lo: spanStart, hi: prevSolidK });
+        }
     }
-    ctx.closePath();
+
+    ctx.beginPath();
+    for (const span of crustSpans) {
+        const ks = [];
+        for (let k = span.lo; k <= span.hi; k += arc.stride) ks.push(k);
+        if (ks.length === 0 || ks[ks.length - 1] !== span.hi) ks.push(span.hi);
+
+        for (let j = 0; j < ks.length; j++) {
+            const k = ks[j];
+            const idx = ((k % total) + total) % total;
+            const theta = k * arc.dTheta;
+            const r = p.heights[idx];
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
+            if (j === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
+        }
+        for (let j = ks.length - 1; j >= 0; j--) {
+            const k = ks[j];
+            const idx = ((k % total) + total) % total;
+            const theta = k * arc.dTheta;
+            const elevBonus = Math.max(0, (p.heights[idx] - p.radius) * 0.14);
+            const thickness = (5.2 + Math.sin(theta * 17 + staticCrustPhase) * 1.8) * scaleFactor + elevBonus;
+            const rSub = p.heights[idx] - thickness;
+            ctx.lineTo(p.x + Math.cos(theta) * rSub, p.y + Math.sin(theta) * rSub);
+        }
+        ctx.closePath();
+    }
 
     const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
     const nightCol = colors.nightSkyRGB ? lerpRGB(subcrustCol, colors.nightSkyRGB, 0.85) : lerpRGB(subcrustCol, [3, 5, 12], 0.85);
@@ -2420,70 +3261,176 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
             ctx.globalCompositeOperation = 'soft-light';
             ctx.globalAlpha = clamp((camera.zoom - 0.14) * 1.2, 0, 0.42);
             ctx.fillStyle = crustTex;
-            const spanR = p.radius + 140;
+            const spanR = (p.maxSurfaceRadius || p.radius) + 140;
             ctx.fillRect(-spanR, -spanR, spanR * 2, spanR * 2);
             ctx.restore();
         }
     }
 
-    // 1.5. Sombreado Topográfico de Pendientes (Hillshading en laderas hacia/contra el sol cuando hay proximidad)
-    if (camera.zoom > 0.22) {
-        const sunVecX = Math.cos(p.lightAngle);
-        const sunVecY = Math.sin(p.lightAngle);
-        const dTheta = (Math.PI * 2) / total;
-        const arcStep = p.radius * dTheta;
-        const hillAlphaBase = clamp((camera.zoom - 0.22) * 0.9, 0, 0.45);
-        for (let i = 0; i < total; i++) {
-            const iPrev = (i - 1 + total) % total;
-            const iNext = (i + 1) % total;
-            const theta0 = (i / total) * Math.PI * 2;
-            const theta1 = ((i + 1) / total) * Math.PI * 2;
-            const dr = (p.heights[iNext] - p.heights[iPrev]) * 0.5;
-            const slope = clamp(dr / Math.max(1, arcStep), -1.5, 1.5);
-            if (Math.abs(slope) < 0.04) continue;
+    // 1.4 y 1.5. Cintas continuas suaves de realce altitudinal (cumbres/cráteres) y hillshading direccional sin uniones circulares
+    if (camera.zoom > 0.14) {
+        const arcKs = [];
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) arcKs.push(k);
+        if (arcKs.length > 0 && arcKs[arcKs.length - 1] !== arc.kMax) arcKs.push(arc.kMax);
 
-            // Normal local de la pendiente en espacio mundo
-            const radX = Math.cos(theta0);
-            const radY = Math.sin(theta0);
-            const tanX = -radY;
-            const tanY = radX;
-            const nX = radX - tanX * slope;
-            const nY = radY - tanY * slope;
-            const nLen = Math.hypot(nX, nY) || 1;
-            const sunDot = (nX * sunVecX + nY * sunVecY) / nLen;
-            if (sunDot < -0.2) continue;
+        const nS = arcKs.length;
+        if (nS >= 2) {
+            const drawTaperedRibbon = (depths, fillStyle) => {
+                let j = 0;
+                while (j < nS) {
+                    if (depths[j] <= 0.05) { j++; continue; }
+                    const start = j;
+                    while (j < nS && depths[j] > 0.05) j++;
+                    const end = j - 1;
+                    if (end - start < 1) continue;
 
-            const slopeBias = (sunDot - (radX * sunVecX + radY * sunVecY));
-            if (Math.abs(slopeBias) < 0.04) continue;
+                    const lo = (start > 0 && isSolidRimIdx(((arcKs[start - 1] % total) + total) % total)) ? start - 1 : start;
+                    const hi = (end < nS - 1 && isSolidRimIdx(((arcKs[end + 1] % total) + total) % total)) ? end + 1 : end;
 
-            const r0 = p.heights[i];
-            const r1 = p.heights[iNext];
-            ctx.beginPath();
-            ctx.moveTo(p.x + Math.cos(theta0) * r0, p.y + Math.sin(theta0) * r0);
-            ctx.lineTo(p.x + Math.cos(theta1) * r1, p.y + Math.sin(theta1) * r1);
-            ctx.strokeStyle = slopeBias > 0
-                ? rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.5), Math.min(0.65, slopeBias * 1.4) * hillAlphaBase)
-                : `rgba(2, 5, 14, ${Math.min(0.55, -slopeBias * 1.4) * hillAlphaBase})`;
-            ctx.lineWidth = 3.2 * scaleFactor;
-            ctx.stroke();
+                    ctx.beginPath();
+                    for (let i = lo; i <= hi; i++) {
+                        const k = arcKs[i];
+                        const idx = ((k % total) + total) % total;
+                        const theta = k * arc.dTheta;
+                        const r = p.heights[idx];
+                        const vx = p.x + Math.cos(theta) * r;
+                        const vy = p.y + Math.sin(theta) * r;
+                        if (i === lo) ctx.moveTo(vx, vy);
+                        else ctx.lineTo(vx, vy);
+                    }
+                    for (let i = hi; i >= lo; i--) {
+                        const k = arcKs[i];
+                        const idx = ((k % total) + total) % total;
+                        const theta = k * arc.dTheta;
+                        const rSub = p.heights[idx] - depths[i];
+                        ctx.lineTo(p.x + Math.cos(theta) * rSub, p.y + Math.sin(theta) * rSub);
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle = fillStyle;
+                    ctx.fill();
+                }
+            };
+
+            const highPeakCol = colors.highPeakCapColor || arch.highPeakCapColor || lerpRGB(rimCol, [255, 255, 255], 0.45);
+            const hScale = p.heightScale || 1;
+            const elevAlphaBase = clamp((camera.zoom - 0.14) * 1.1, 0, 0.46);
+            const sunVecX = Math.cos(p.lightAngle);
+            const sunVecY = Math.sin(p.lightAngle);
+            const ribbonScale = Math.min(2.1, scaleFactor);
+
+            const peakDepths = new Float32Array(nS);
+            const basinDepths = new Float32Array(nS);
+
+            for (let i = 0; i < nS; i++) {
+                const k = arcKs[i];
+                const idx = ((k % total) + total) % total;
+                if (!isSolidRimIdx(idx)) continue;
+                const h = p.heights[idx] - p.radius;
+                if (h > 24 * hScale) {
+                    const theta = k * arc.dTheta;
+                    const sunDot = Math.cos(theta) * sunVecX + Math.sin(theta) * sunVecY;
+                    if (sunDot > -0.25) {
+                        const strength = clamp((h - 24 * hScale) / (68 * hScale), 0, 1);
+                        const lightMult = clamp((sunDot + 0.25) * 0.85, 0.2, 1.0);
+                        peakDepths[i] = (3.5 + strength * 7.5) * ribbonScale * lightMult;
+                    }
+                } else if (h < -16 * hScale) {
+                    const depthStrength = clamp((-h - 16 * hScale) / (58 * hScale), 0, 1);
+                    basinDepths[i] = (3.2 + depthStrength * 6.8) * ribbonScale;
+                }
+            }
+
+            drawTaperedRibbon(peakDepths, rgbStr(highPeakCol, elevAlphaBase));
+            drawTaperedRibbon(basinDepths, rgbStr(lerpRGB(subcrustCol, [3, 6, 16], 0.58), elevAlphaBase * 0.65));
+
+            if (camera.zoom > 0.22) {
+                const hillAlphaBase = clamp((camera.zoom - 0.22) * 0.9, 0, 0.44);
+                const sunSlopeDepths = new Float32Array(nS);
+                const shadeSlopeDepths = new Float32Array(nS);
+
+                for (let i = 0; i < nS - 1; i++) {
+                    const k0 = arcKs[i];
+                    const k1 = arcKs[i + 1];
+                    const spanK = Math.max(1, k1 - k0);
+                    const idx0 = ((k0 % total) + total) % total;
+                    const idx1 = ((k1 % total) + total) % total;
+                    if (!isSolidRimIdx(idx0) || !isSolidRimIdx(idx1)) continue;
+
+                    const theta0 = k0 * arc.dTheta;
+                    const arcSpan = Math.max(1, p.radius * arc.dTheta * spanK);
+                    const slope = clamp((p.heights[idx1] - p.heights[idx0]) / arcSpan, -1.5, 1.5);
+                    if (Math.abs(slope) < 0.05) continue;
+
+                    const radX = Math.cos(theta0);
+                    const radY = Math.sin(theta0);
+                    const nX = radX + radY * slope;
+                    const nY = radY - radX * slope;
+                    const nLen = Math.hypot(nX, nY) || 1;
+                    const sunDot = (nX * sunVecX + nY * sunVecY) / nLen;
+                    if (sunDot < -0.28) continue;
+
+                    const slopeBias = sunDot - (radX * sunVecX + radY * sunVecY);
+                    if (slopeBias > 0.05) {
+                        sunSlopeDepths[i] = clamp((slopeBias - 0.05) * 9.5, 0, 5.2) * ribbonScale;
+                    } else if (slopeBias < -0.05) {
+                        shadeSlopeDepths[i] = clamp((-slopeBias - 0.05) * 9.5, 0, 5.2) * ribbonScale;
+                    }
+                }
+
+                drawTaperedRibbon(sunSlopeDepths, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.45), 0.50 * hillAlphaBase));
+                drawTaperedRibbon(shadeSlopeDepths, `rgba(2, 5, 14, ${0.46 * hillAlphaBase})`);
+            }
         }
     }
 
     // 2. Cuencas, Lagos y Mares Cinemáticos asentados sobre el manto rocoso con destellos solares especulares (Sunglint)
     drawCinematicPlanetLakes(p, timeSec, colors, arch);
 
-    // 3. BORDE DE HORIZONTE BESADO POR EL SOL (SUN-KISSED RIM GLOW - SELLO DE ALTO'S ODYSSEY)
+    // 3. BORDE DE HORIZONTE BESADO POR EL SOL (SUN-KISSED RIM GLOW — omite gargantas abiertas y recorta al viewport)
     ctx.beginPath();
-    for (let i = 0; i <= total; i++) {
-        const idx = i % total;
-        const theta = (idx / total) * Math.PI * 2;
-        const r = p.heights[idx];
-        const vx = p.x + Math.cos(theta) * r;
-        const vy = p.y + Math.sin(theta) * r;
-        if (i === 0) ctx.moveTo(vx, vy);
-        else ctx.lineTo(vx, vy);
+    if (!hasOpenCaves) {
+        let first = true;
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) {
+            const idx = ((k % total) + total) % total;
+            const theta = k * arc.dTheta;
+            const r = p.heights[idx];
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
+            if (first) { ctx.moveTo(vx, vy); first = false; }
+            else ctx.lineTo(vx, vy);
+        }
+        if ((arc.kMax - arc.kMin) % arc.stride !== 0) {
+            const idx = ((arc.kMax % total) + total) % total;
+            const theta = arc.kMax * arc.dTheta;
+            const r = p.heights[idx];
+            ctx.lineTo(p.x + Math.cos(theta) * r, p.y + Math.sin(theta) * r);
+        }
+        if (!arc.partialArc) ctx.closePath();
+    } else {
+        let drawing = false;
+        for (let k = arc.kMin; k <= arc.kMax; k += arc.stride) {
+            const idx = ((k % total) + total) % total;
+            const solid = isSolidRimIdx(idx);
+            const theta = k * arc.dTheta;
+            const r = p.heights[idx];
+            const vx = p.x + Math.cos(theta) * r;
+            const vy = p.y + Math.sin(theta) * r;
+            if (solid) {
+                if (!drawing) { ctx.moveTo(vx, vy); drawing = true; }
+                else ctx.lineTo(vx, vy);
+            } else {
+                drawing = false;
+            }
+        }
+        if ((arc.kMax - arc.kMin) % arc.stride !== 0) {
+            const idx = ((arc.kMax % total) + total) % total;
+            if (isSolidRimIdx(idx)) {
+                const theta = arc.kMax * arc.dTheta;
+                const r = p.heights[idx];
+                if (drawing) ctx.lineTo(p.x + Math.cos(theta) * r, p.y + Math.sin(theta) * r);
+            }
+        }
     }
-    ctx.closePath();
 
     const rimGrad = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
     rimGrad.addColorStop(0.00, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.6), 0.98));
@@ -2508,6 +3455,17 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
     ctx.strokeStyle = sunStrokeGrad;
     ctx.lineWidth = 1.3;
     ctx.stroke();
+
+    // Brillo sutil de corteza activa en mundos volcánicos, tóxicos, vivos, artificiales, fragmentados o singulares
+    if (['volcanic', 'toxic', 'gravitic', 'artificial', 'living', 'shattered', 'temporal'].includes(arch.classId)) {
+        const pulse = 0.24 + 0.14 * Math.sin(timeSec * 2.2 + (p.surfaceSeed || 0) * 10);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = rgbStr(accentCol || rimCol, pulse);
+        ctx.lineWidth = 2.1;
+        ctx.stroke();
+        ctx.restore();
+    }
 
     ctx.restore();
 }
@@ -3496,6 +4454,147 @@ function drawSurfaceProps(p, timeSec) {
             ctx.arc(vx, vy, 12, 0, Math.PI * 2);
             ctx.fill();
 
+        } else if (type === 'giant_mushroom') {
+            // Hongo gigante micelial con tallo sinuoso y sombrero bioluminiscente
+            const tipX = p.x + Math.cos(prop.angle) * (centerR + maxH * 1.15);
+            const tipY = p.y + Math.sin(prop.angle) * (centerR + maxH * 1.15);
+            const stemCtrlX = p.x + Math.cos(prop.angle + prop.asymmetry * 0.04) * (centerR + maxH * 0.55);
+            const stemCtrlY = p.y + Math.sin(prop.angle + prop.asymmetry * 0.04) * (centerR + maxH * 0.55);
+            ctx.strokeStyle = rgbStr(baseCol, 0.96);
+            ctx.lineWidth = Math.max(4, halfSpan * p.radius * 0.14);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(gx0, gy0);
+            ctx.quadraticCurveTo(stemCtrlX, stemCtrlY, tipX, tipY);
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(tipX, tipY);
+            ctx.rotate(prop.angle + Math.PI / 2);
+            const capW = Math.max(16, halfSpan * p.radius * 0.85);
+            const capH = Math.max(10, maxH * 0.42);
+            const capGrad = ctx.createLinearGradient(0, -capH, 0, capH * 0.3);
+            capGrad.addColorStop(0.0, rgbStr(rimCol, 0.96));
+            capGrad.addColorStop(0.55, rgbStr(accentCol, 0.92));
+            capGrad.addColorStop(1.0, rgbStr(baseCol, 0.95));
+            ctx.fillStyle = capGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, capW, capH, 0, Math.PI, Math.PI * 2);
+            ctx.quadraticCurveTo(0, capH * 0.28, -capW, 0);
+            ctx.closePath();
+            ctx.fill();
+            // Láminas inferiores y manchas bioluminiscentes en el sombrero
+            ctx.strokeStyle = rgbStr(baseCol, 0.45);
+            ctx.lineWidth = 1.0;
+            for (let gIdx = -2; gIdx <= 2; gIdx++) {
+                ctx.beginPath();
+                ctx.moveTo(0, capH * 0.1);
+                ctx.lineTo(gIdx * capW * 0.34, 0);
+                ctx.stroke();
+            }
+            ctx.fillStyle = rgbStr(rimCol, 0.85);
+            for (let dIdx = -1; dIdx <= 1; dIdx++) {
+                ctx.beginPath();
+                ctx.arc(dIdx * capW * 0.42, -capH * (0.45 - Math.abs(dIdx) * 0.12), 2.4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.strokeStyle = rgbStr(rimCol, 0.72);
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, capW, capH, 0, Math.PI, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+        } else if (type === 'coral_tower') {
+            // Agujas coralinas ramificadas orgánicas
+            const branches = 3 + Math.floor(prop.seed * 2);
+            ctx.lineCap = 'round';
+            for (let b = 0; b < branches; b++) {
+                const u = branches === 1 ? 0 : (b / (branches - 1)) * 2 - 1;
+                const angB = prop.angle + u * halfSpan * 0.55;
+                const bH = maxH * (1.0 - Math.abs(u) * 0.25);
+                const r0 = getSurfaceRadius(p, angB) - 4;
+                const bx0 = p.x + Math.cos(angB) * r0;
+                const by0 = p.y + Math.sin(angB) * r0;
+                const bx1 = p.x + Math.cos(angB + u * 0.015) * (r0 + bH);
+                const by1 = p.y + Math.sin(angB + u * 0.015) * (r0 + bH);
+                ctx.strokeStyle = rgbStr(lerpRGB(baseCol, accentCol, 0.55 + u * 0.2), 0.95);
+                ctx.lineWidth = Math.max(3, 5.5 - Math.abs(u) * 2);
+                ctx.beginPath();
+                ctx.moveTo(bx0, by0);
+                ctx.lineTo(bx1, by1);
+                ctx.stroke();
+                ctx.fillStyle = rgbStr(rimCol, 0.92);
+                ctx.beginPath();
+                ctx.arc(bx1, by1, 3.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (type === 'monolith_pylon' || type === 'stargate_arch' || type === 'floating_obelisk') {
+            // Monolitos ancestrales, pórticos rúnicos o agujas levitantes con halo energético
+            ctx.save();
+            const isFloating = (type === 'floating_obelisk');
+            const isGate = (type === 'stargate_arch');
+            const hover = isFloating ? (14 + Math.sin(timeSec * 2.1 + prop.seed * 10) * 6) : 0;
+            const anchorR = centerR + hover;
+            ctx.translate(p.x + Math.cos(prop.angle) * anchorR, p.y + Math.sin(prop.angle) * anchorR);
+            ctx.rotate(prop.angle + Math.PI / 2);
+
+            if (isGate) {
+                const spanW = Math.max(14, halfSpan * p.radius * 0.6);
+                ctx.fillStyle = rgbStr(baseCol, 0.96);
+                ctx.strokeStyle = rgbStr(accentCol, 0.78);
+                ctx.lineWidth = 1.5;
+                ctx.fillRect(-spanW - 5, -maxH, 7, maxH + 4);
+                ctx.fillRect(spanW - 2, -maxH, 7, maxH + 4);
+                ctx.fillRect(-spanW - 7, -maxH - 6, spanW * 2 + 14, 7);
+                ctx.strokeRect(-spanW - 5, -maxH, 7, maxH + 4);
+                ctx.strokeRect(spanW - 2, -maxH, 7, maxH + 4);
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = rgbStr(accentCol, 0.55 + 0.25 * Math.sin(timeSec * 2.6 + prop.seed * 8));
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.ellipse(0, -maxH * 0.5, spanW * 0.58, maxH * 0.36, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                const w = isFloating ? 9 : 11;
+                ctx.fillStyle = rgbStr(baseCol, 0.98);
+                ctx.strokeStyle = rgbStr(accentCol, 0.85);
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(-w * 0.55, isFloating ? 0 : 5);
+                ctx.lineTo(-w * 0.35, -maxH * 0.82);
+                ctx.lineTo(0, -maxH * 1.15);
+                ctx.lineTo(w * 0.35, -maxH * 0.82);
+                ctx.lineTo(w * 0.55, isFloating ? 0 : 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = rgbStr(rimCol, 0.85);
+                ctx.fillRect(-1.2, -maxH * 0.85, 2.4, maxH * 0.6);
+            }
+            ctx.restore();
+
+        } else if (type === 'bismuth_terrace') {
+            // Terrazas minerales escalonadas iridiscentes
+            const tiers = 4;
+            ctx.save();
+            ctx.translate(p.x + Math.cos(prop.angle) * centerR, p.y + Math.sin(prop.angle) * centerR);
+            ctx.rotate(prop.angle + Math.PI / 2);
+            const totalW = Math.max(18, halfSpan * p.radius * 1.15);
+            for (let t = 0; t < tiers; t++) {
+                const frac = t / tiers;
+                const tw = totalW * (1 - frac * 0.58);
+                const th = (maxH / tiers) * 1.05;
+                const ty = -t * th * 0.85 - th;
+                ctx.fillStyle = rgbStr(lerpRGB(baseCol, accentCol, frac), 0.95);
+                ctx.strokeStyle = rgbStr(rimCol, 0.72);
+                ctx.lineWidth = 1.1;
+                ctx.fillRect(-tw * 0.5, ty, tw, th + 3);
+                ctx.strokeRect(-tw * 0.5, ty, tw, th + 3);
+            }
+            ctx.restore();
+
         } else {
             // 'layered_boulder' / 'coral_atoll' — Afloramiento rocoso o arrecife suavemente redondeado y fundido con el suelo
             const steps = 14;
@@ -3560,9 +4659,12 @@ function drawSurfaceProps(p, timeSec) {
 
 function drawEtherNode(p, node, timeSec) {
     const hoverOffset = 16 + Math.sin(timeSec * 2.5 + node.phase) * 4.0;
-    const sr = getSurfaceRadius(p, node.angle);
-    const nx = p.x + Math.cos(node.angle) * (sr + hoverOffset);
-    const ny = p.y + Math.sin(node.angle) * (sr + hoverOffset);
+    const sr = (typeof getCavernOrSurfaceRadius === 'function')
+        ? getCavernOrSurfaceRadius(p, node.angle, node.inCavern, node.onCeiling)
+        : getSurfaceRadius(p, node.angle);
+    const totalR = node.onCeiling ? (sr - hoverOffset) : (sr + hoverOffset);
+    const nx = p.x + Math.cos(node.angle) * totalR;
+    const ny = p.y + Math.sin(node.angle) * totalR;
 
     ctx.save();
     ctx.translate(nx, ny);
@@ -3729,6 +4831,8 @@ function drawDynamicGroundGlow(planets) {
 }
 
 function drawHeadlights(timeSec) {
+    // Faros frontales de la sonda desactivados en el diseño limpio
+    return;
     if (!ship.headlightsOn) return;
 
     ctx.save();
@@ -4595,6 +5699,65 @@ function drawGroundFlameDeflection(def, timeSec) {
 
 // --- ASTILLERO AEROESPACIAL: RENDERIZADO DE FLOTA DE COHETES ---
 
+let _presetRocketNightCanvas = null;
+let _presetRocketNightCtx = null;
+
+function drawPresetRocketWithNightShade(drawFn, s, timeSec, localNight, sScale, thr) {
+    const night = clamp(localNight || 0, 0, 1);
+    if (night <= 0.005 || typeof document === 'undefined') {
+        drawFn(s, timeSec, night, sScale, thr);
+        return;
+    }
+
+    const halfBox = 110 * Math.max(1, sScale || 1);
+    const boxSize = halfBox * 2;
+    const camZoom = (typeof camera !== 'undefined' && camera.zoom) ? camera.zoom : 1.0;
+    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1.0;
+    const offScale = Math.max(1.5, Math.min(4.0, camZoom * dpr * 1.25));
+    const dim = Math.min(1024, Math.max(1, Math.ceil(boxSize * offScale)));
+    const actualScale = dim / boxSize;
+
+    if (!_presetRocketNightCanvas) {
+        _presetRocketNightCanvas = document.createElement('canvas');
+        _presetRocketNightCtx = _presetRocketNightCanvas.getContext('2d');
+    }
+    if (!_presetRocketNightCtx) {
+        drawFn(s, timeSec, night, sScale, thr);
+        return;
+    }
+    if (_presetRocketNightCanvas.width !== dim || _presetRocketNightCanvas.height !== dim) {
+        _presetRocketNightCanvas.width = dim;
+        _presetRocketNightCanvas.height = dim;
+    } else {
+        _presetRocketNightCtx.clearRect(0, 0, dim, dim);
+    }
+
+    const mainCtx = ctx;
+    _presetRocketNightCtx.save();
+    _presetRocketNightCtx.scale(actualScale, actualScale);
+    _presetRocketNightCtx.translate(halfBox, halfBox);
+
+    try {
+        ctx = _presetRocketNightCtx;
+        drawFn(s, timeSec, night, sScale, thr);
+    } finally {
+        ctx = mainCtx;
+    }
+
+    _presetRocketNightCtx.save();
+    _presetRocketNightCtx.globalCompositeOperation = 'source-atop';
+    const nightGrad = _presetRocketNightCtx.createLinearGradient(0, -halfBox * 0.45, 0, halfBox * 0.45);
+    nightGrad.addColorStop(0.0, `rgba(22, 32, 52, ${(0.64 * night).toFixed(3)})`);
+    nightGrad.addColorStop(0.5, `rgba(14, 21, 37, ${(0.72 * night).toFixed(3)})`);
+    nightGrad.addColorStop(1.0, `rgba(7, 11, 22, ${(0.80 * night).toFixed(3)})`);
+    _presetRocketNightCtx.fillStyle = nightGrad;
+    _presetRocketNightCtx.fillRect(-halfBox, -halfBox, boxSize, boxSize);
+    _presetRocketNightCtx.restore();
+
+    _presetRocketNightCtx.restore();
+    ctx.drawImage(_presetRocketNightCanvas, -halfBox, -halfBox, boxSize, boxSize);
+}
+
 function drawRocket(timeSec, customShip) {
     const s = customShip || ship;
     if (!s) return;
@@ -4609,10 +5772,23 @@ function drawRocket(timeSec, customShip) {
     const curModel = (typeof getRocketModel === 'function') ? getRocketModel(mKey) : null;
     const sScale = curModel ? (curModel.scale || 1.0) : 1.0;
 
-    // Factor de noche local en la posición de la nave para adaptación orgánica
-    const pNear = s.nearestPlanet || ship.nearestPlanet;
-    const solar = (pNear && (s.currentAtmoWeight || ship.currentAtmoWeight) > 0.02)
-        ? (s.currentSolarState || ship.currentSolarState || getPlanetSolarState(pNear, s.x, s.y, timeSec))
+    // Factor de noche local en la posición de la nave (o etapa/nave estacionada) para adaptación orgánica
+    const isMainShip = (s === ship);
+    const pNear = isMainShip ? ship.nearestPlanet : (s.nearestPlanet || s.planet || ship.nearestPlanet);
+    let atmoW = 0;
+    if (pNear) {
+        if (typeof s.currentAtmoWeight === 'number') {
+            atmoW = s.currentAtmoWeight;
+        } else if (isMainShip) {
+            atmoW = ship.currentAtmoWeight || 0;
+        } else {
+            const distP = Math.hypot(s.x - pNear.x, s.y - pNear.y);
+            const atmoLim = (pNear.atmoRadius && pNear.atmoRadius > pNear.radius) ? pNear.atmoRadius : (pNear.radius * 1.45);
+            atmoW = distP <= atmoLim ? 1.0 : 0.0;
+        }
+    }
+    const solar = (pNear && atmoW > 0.02)
+        ? (s.currentSolarState || (isMainShip ? ship.currentSolarState : null) || getPlanetSolarState(pNear, s.x, s.y, timeSec))
         : null;
     const localNight = solar ? clamp(solar.nightFactor, 0, 1) : 0;
 
@@ -4629,17 +5805,17 @@ function drawRocket(timeSec, customShip) {
             drawRocket_Vesper(s, timeSec, localNight, sScale, thr);
         }
     } else if (mKey === 'starship') {
-        drawRocket_Starship(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_Starship, s, timeSec, localNight, sScale, thr);
     } else if (mKey === 'celestia') {
-        drawRocket_Celestia(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_Celestia, s, timeSec, localNight, sScale, thr);
     } else if (mKey === 'titan') {
-        drawRocket_Titan(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_Titan, s, timeSec, localNight, sScale, thr);
     } else if (mKey === 'aerodart') {
-        drawRocket_AeroDart(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_AeroDart, s, timeSec, localNight, sScale, thr);
     } else if (mKey === 'hyperion') {
-        drawRocket_Hyperion(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_Hyperion, s, timeSec, localNight, sScale, thr);
     } else if (mKey === 'drone') {
-        drawRocket_Drone(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade(drawRocket_Drone, s, timeSec, localNight, sScale, thr);
     } else {
         drawRocket_Vesper(s, timeSec, localNight, sScale, thr);
     }

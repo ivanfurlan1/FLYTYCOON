@@ -64,6 +64,13 @@ function dismissIntro() {
     introOverlay.classList.add('opacity-0', 'pointer-events-none');
     setTimeout(() => introOverlay.classList.add('hidden'), 700);
 }
+function showIntroScreen() {
+    if (!introOverlay) return;
+    if (typeof autoSaveActiveWorld === 'function') autoSaveActiveWorld(true);
+    if (typeof refreshSavesUI === 'function') refreshSavesUI();
+    introOverlay.classList.remove('hidden', 'pointer-events-none');
+    requestAnimationFrame(() => introOverlay.classList.remove('opacity-0'));
+}
 const btnStartExpedition = document.getElementById('btnStartExpedition');
 if (btnStartExpedition) btnStartExpedition.addEventListener('click', dismissIntro);
 
@@ -96,6 +103,9 @@ function screenToWorld(sx, sy) {
 
 window.addEventListener('mousemove', (e) => {
     lastMouseWorldPos = screenToWorld(e.clientX, e.clientY);
+    if (typeof handleExtractorHover === 'function' && e.target && e.target.id === 'flightCanvas') {
+        handleExtractorHover(lastMouseWorldPos.x, lastMouseWorldPos.y);
+    }
 });
 
 function handlePlayerFire(targetX, targetY) {
@@ -132,7 +142,7 @@ function handlePlayerFire(targetX, targetY) {
     }
 }
 
-// Disparo fotónico con clic en el lienzo (si no interfiere con la UI)
+// Interacción directa con el lienzo (extractores y partes del cohete)
 const flightCanvasEl = document.getElementById('flightCanvas');
 if (flightCanvasEl) {
     flightCanvasEl.addEventListener('pointerdown', (e) => {
@@ -141,93 +151,114 @@ if (flightCanvasEl) {
 
         // Comprobar si hay modales visibles
         const hm = document.getElementById('rocketHangarModal');
-        const cm = document.getElementById('codexModal');
         const mm = document.getElementById('mapModal');
         const wm = document.getElementById('worldsModal');
+        const cwm = document.getElementById('createWorldModal');
         const qsm = document.getElementById('quickSaveModal');
+        const extm = document.getElementById('extractorModal');
+        const invm = document.getElementById('resourceInventoryModal');
         if ((hm && !hm.classList.contains('hidden')) || 
-            (cm && !cm.classList.contains('hidden')) || 
             (mm && !mm.classList.contains('hidden')) ||
             (wm && !wm.classList.contains('hidden')) ||
-            (qsm && !qsm.classList.contains('hidden'))) {
+            (cwm && !cwm.classList.contains('hidden')) ||
+            (qsm && !qsm.classList.contains('hidden')) ||
+            (extm && !extm.classList.contains('hidden')) ||
+            (invm && !invm.classList.contains('hidden'))) {
             return;
         }
 
         const worldTarget = screenToWorld(e.clientX, e.clientY);
         if (typeof closeFairingActionMenu === 'function') closeFairingActionMenu();
+        if (typeof handleExtractorClick === 'function' && handleExtractorClick(worldTarget.x, worldTarget.y)) {
+            return;
+        }
         if (typeof handleCustomRocketPartClick === 'function' && handleCustomRocketPartClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
             return;
         }
         if (typeof handleFreeVesselClick === 'function' && handleFreeVesselClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
             return;
         }
-        handlePlayerFire(worldTarget.x, worldTarget.y);
+        if (typeof handleWorldObjectClick === 'function' && handleWorldObjectClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
+            return;
+        }
+        if (typeof closeWorldObjectMenu === 'function') closeWorldObjectMenu();
     });
 }
 
-// Gimbal Navball de Actitud
-const gimbalZone = document.getElementById('gimbalZone');
-const gimbalTargetNeedle = document.getElementById('gimbalTargetNeedle');
-const gimbalKnob = document.getElementById('gimbalKnob');
-let gimbalPointerId = null;
+// Cruz Direccional estilo Spaceflight Simulator (▲ / ◀ ▼ ▶)
+const btnSteerLeftTop = document.getElementById('btnSteerLeftTop');
+const btnSteerRightTop = document.getElementById('btnSteerRightTop');
+const btnSteerLeft = document.getElementById('btnSteerLeft');
+const btnSteerRight = document.getElementById('btnSteerRight');
+const btnThrustUp = document.getElementById('btnThrustUp');
+const btnBrakeDown = document.getElementById('btnBrakeDown');
 
-function updateGimbal(e) {
-    if (!gimbalZone) return;
-    const rect = gimbalZone.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = e.clientX - cx;
-    const dy = e.clientY - cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 6) {
-        const ang = Math.atan2(dy, dx);
-        // Conexión con el marco de horizonte en pantalla: convierte ángulo de pantalla a ángulo de mundo
-        ship.targetAngle = ang - camera.rotation;
-        const deg = (ang * 180 / Math.PI) + 90;
-        if (gimbalTargetNeedle) {
-            gimbalTargetNeedle.style.transform = `rotate(${deg}deg)`;
-            gimbalTargetNeedle.classList.remove('opacity-0');
-        }
-        const maxShift = 14;
-        const shift = Math.min(dist * 0.28, maxShift);
-        if (gimbalKnob) {
-            gimbalKnob.style.transform = `translate(${(dx / dist) * shift}px, ${(dy / dist) * shift}px)`;
-        }
-    }
-}
-
-if (gimbalZone) {
-    gimbalZone.addEventListener('pointerdown', (e) => {
+function bindFlightPadButton(btn, onPress, onRelease) {
+    if (!btn) return;
+    let activePtrId = null;
+    btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         dismissIntro();
-        gimbalZone.setPointerCapture(e.pointerId);
-        gimbalPointerId = e.pointerId;
-        gimbalZone.classList.add('is-dragging');
         audio.init();
-        updateGimbal(e);
+        activePtrId = e.pointerId;
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        onPress();
+        btn.classList.add('is-active');
     });
-
-    gimbalZone.addEventListener('pointermove', (e) => {
-        if (e.pointerId === gimbalPointerId) {
-            e.preventDefault();
-            updateGimbal(e);
-        }
-    });
-
-    const releaseGimbal = (e) => {
-        if (e.pointerId === gimbalPointerId) {
-            gimbalPointerId = null;
-            ship.targetAngle = null;
-            gimbalZone.classList.remove('is-dragging');
-            if (gimbalTargetNeedle) gimbalTargetNeedle.classList.add('opacity-0');
-            if (gimbalKnob) gimbalKnob.style.transform = 'translate(0px, 0px)';
+    const release = (e) => {
+        if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
+            activePtrId = null;
+            onRelease();
+            btn.classList.remove('is-active');
         }
     };
-    gimbalZone.addEventListener('pointerup', releaseGimbal);
-    gimbalZone.addEventListener('pointercancel', releaseGimbal);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
-// Barra Graduable de Potencia de Motores (0% - 100%)
+bindFlightPadButton(
+    btnSteerLeftTop,
+    () => { keys['ArrowLeft'] = true; ship.turnVal = -1; },
+    () => {
+        keys['ArrowLeft'] = false;
+        if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
+        else if (!keys['KeyA']) ship.turnVal = 0;
+    }
+);
+bindFlightPadButton(
+    btnSteerRightTop,
+    () => { keys['ArrowRight'] = true; ship.turnVal = 1; },
+    () => {
+        keys['ArrowRight'] = false;
+        if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
+        else if (!keys['KeyD']) ship.turnVal = 0;
+    }
+);
+bindFlightPadButton(
+    btnSteerLeft,
+    () => { ship.rcsStrafe = -1; },
+    () => { if (ship.rcsStrafe === -1) ship.rcsStrafe = 0; }
+);
+bindFlightPadButton(
+    btnSteerRight,
+    () => { ship.rcsStrafe = 1; },
+    () => { if (ship.rcsStrafe === 1) ship.rcsStrafe = 0; }
+);
+bindFlightPadButton(
+    btnThrustUp,
+    () => { keys['ArrowUp'] = true; ship.thrusting = true; },
+    () => { keys['ArrowUp'] = false; if (!keys['KeyW'] && !keys['Space']) ship.thrusting = false; }
+);
+bindFlightPadButton(
+    btnBrakeDown,
+    () => { keys['ArrowDown'] = true; ship.braking = true; },
+    () => { keys['ArrowDown'] = false; if (!keys['KeyS']) ship.braking = false; }
+);
+
+// Barra Graduable de Potencia de Motores (0% - 100%, compatible multitáctil)
 const throttleTrack = document.getElementById('throttleTrack');
 let throttlePointerId = null;
 function setThrottleFromPointer(clientY) {
@@ -243,7 +274,7 @@ if (throttleTrack) {
         e.stopPropagation();
         dismissIntro();
         throttlePointerId = e.pointerId;
-        throttleTrack.setPointerCapture(e.pointerId);
+        try { throttleTrack.setPointerCapture(e.pointerId); } catch (_) {}
         setThrottleFromPointer(e.clientY);
     });
     throttleTrack.addEventListener('pointermove', (e) => {
@@ -258,6 +289,8 @@ if (throttleTrack) {
     };
     throttleTrack.addEventListener('pointerup', releaseThrottle);
     throttleTrack.addEventListener('pointercancel', releaseThrottle);
+    throttleTrack.addEventListener('lostpointercapture', releaseThrottle);
+    throttleTrack.addEventListener('contextmenu', (e) => e.preventDefault());
     throttleTrack.addEventListener('wheel', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -288,35 +321,38 @@ if (btnThrust) {
     btnThrust.addEventListener('pointercancel', releaseThrust);
 }
 
-// Hiperimpulso Warp y Sonar
+// Hiperimpulso Warp directo (clic para alternar o mantener pulsado)
 const btnWarp = document.getElementById('btnWarp');
 let warpPointerId = null;
+let warpDownAt = 0;
+let warpWasActiveOnDown = false;
 if (btnWarp) {
     btnWarp.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         dismissIntro();
         warpPointerId = e.pointerId;
-        btnWarp.setPointerCapture(e.pointerId);
+        warpDownAt = performance.now();
+        warpWasActiveOnDown = Boolean(ship.warping);
+        try { btnWarp.setPointerCapture(e.pointerId); } catch (_) {}
         audio.init();
         ship.warping = true;
     });
     const releaseWarp = (e) => {
         if (e.pointerId === warpPointerId) {
             warpPointerId = null;
-            ship.warping = false;
+            const heldMs = performance.now() - warpDownAt;
+            if (heldMs < 240) {
+                ship.warping = !warpWasActiveOnDown;
+            } else {
+                ship.warping = false;
+            }
         }
     };
     btnWarp.addEventListener('pointerup', releaseWarp);
     btnWarp.addEventListener('pointercancel', releaseWarp);
-}
-
-const btnSonar = document.getElementById('btnSonar');
-if (btnSonar) {
-    btnSonar.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        dismissIntro();
-        triggerSonar();
-    });
+    btnWarp.addEventListener('lostpointercapture', releaseWarp);
+    btnWarp.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
 const btnOrbit = document.getElementById('btnOrbit');
@@ -401,10 +437,25 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    // Disparo fotónico / defensa contra criaturas con tecla Q o J
-    if (e.code === 'KeyQ' || e.code === 'KeyJ') {
+    if (e.code === 'Escape') {
+        if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
+        const extm = document.getElementById('extractorModal');
+        if (extm && !extm.classList.contains('hidden')) {
+            if (typeof closeExtractorModal === 'function') closeExtractorModal();
+            else extm.classList.add('hidden');
+            return;
+        }
+        const invm = document.getElementById('resourceInventoryModal');
+        if (invm && !invm.classList.contains('hidden')) {
+            if (typeof closeResourceInventoryModal === 'function') closeResourceInventoryModal();
+            else invm.classList.add('hidden');
+            return;
+        }
+    }
+
+    if (e.code === 'KeyI') {
         e.preventDefault();
-        handlePlayerFire(lastMouseWorldPos.x, lastMouseWorldPos.y);
+        if (typeof toggleResourceInventoryModal === 'function') toggleResourceInventoryModal();
         return;
     }
 
@@ -412,7 +463,16 @@ window.addEventListener('keydown', (e) => {
     if (typeof astronaut !== 'undefined' && astronaut.active) {
         if (e.code === 'KeyC') {
             e.preventDefault();
-            // La lógica de mantenimiento continuado se procesa en el bucle físico
+            return;
+        }
+        if (e.code === 'KeyG') {
+            e.preventDefault();
+            if (!e.repeat) astronaut.autoDeployExtractor = true;
+            return;
+        }
+        if (e.code === 'KeyU') {
+            e.preventDefault();
+            if (!e.repeat) astronaut.autoRefuelShip = !astronaut.autoRefuelShip;
             return;
         }
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
@@ -436,23 +496,6 @@ window.addEventListener('keydown', (e) => {
             showHoloCard(astronaut.planet, 'OBJETIVO: SUPERPLATAFORMA CON TORRE (NV. 3)', (bInfo ? bInfo.desc : 'Superpista masiva de hierro con torre de control 360°') + ' · Mantén pulsado [C] para construir.');
             return;
         }
-        if (e.code === 'KeyB') {
-            e.preventDefault();
-            plantExplorationBeacon();
-            return;
-        }
-        if (e.code === 'KeyE') {
-            e.preventDefault();
-            triggerAstronautScan();
-            return;
-        }
-        if (e.code === 'KeyL') {
-            e.preventDefault();
-            astronaut.headlamp = !astronaut.headlamp;
-            showHoloCard(astronaut.planet, astronaut.headlamp ? 'FAROS DEL CASCO ENCENDIDOS' : 'FAROS DEL CASCO APAGADOS',
-                astronaut.headlamp ? 'Proyector frontal de haz halógeno activado.' : 'Iluminación táctica desactivada.');
-            return;
-        }
         if (e.code === 'KeyV') {
             e.preventDefault();
             toggleRocketHangarModal();
@@ -472,11 +515,6 @@ window.addEventListener('keydown', (e) => {
         if (mm && !mm.classList.contains('hidden')) {
             if (typeof closeMapModal === 'function') closeMapModal();
             else mm.classList.add('hidden');
-            return;
-        }
-        const cm = document.getElementById('codexModal');
-        if (cm && !cm.classList.contains('hidden')) {
-            cm.classList.add('hidden');
             return;
         }
     }
@@ -520,12 +558,6 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
         toggleSAS();
     }
-    if (e.code === 'KeyL') {
-        e.preventDefault();
-        ship.headlightsOn = !ship.headlightsOn;
-        showHoloCard(getPlanet(0, 0), ship.headlightsOn ? 'FAROS ACTIVADOS' : 'FAROS APAGADOS',
-            ship.headlightsOn ? 'Proyectores volumétricos frontales de aterrizaje encendidos.' : 'Luces frontales apagadas.');
-    }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -564,44 +596,46 @@ if (btnEvaBoard) {
     });
 }
 
-const btnEvaBeacon = document.getElementById('btnEvaBeacon');
-if (btnEvaBeacon) {
-    btnEvaBeacon.addEventListener('click', () => {
+// Botón táctil / ratón para abrir informe del Extractor cercano en EVA
+const btnEvaInspectExtractor = document.getElementById('btnEvaInspectExtractor');
+if (btnEvaInspectExtractor) {
+    btnEvaInspectExtractor.addEventListener('click', () => {
         audio.init();
-        plantExplorationBeacon();
+        if (window._nearbyExtractorId && typeof openExtractorModal === 'function') {
+            openExtractorModal(window._nearbyExtractorId);
+        }
     });
 }
 
-const btnEvaScan = document.getElementById('btnEvaScan');
-if (btnEvaScan) {
-    btnEvaScan.addEventListener('click', () => {
-        audio.init();
-        triggerAstronautScan();
-    });
-}
-
-const btnEvaShoot = document.getElementById('btnEvaShoot');
-if (btnEvaShoot) {
-    btnEvaShoot.addEventListener('click', (e) => {
+// Controles táctiles de movimiento en superficie EVA (Móvil / Tablet, multitáctil por pointerId)
+function bindEvaTouchHold(btnId, keyCode) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    let activePtrId = null;
+    btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        activePtrId = e.pointerId;
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        keys[keyCode] = true;
+        btn.classList.add('is-active');
         audio.init();
-        if (typeof astronaut !== 'undefined' && astronaut.active) {
-            handlePlayerFire();
-        }
     });
-}
-
-const btnEvaLamp = document.getElementById('btnEvaLamp');
-if (btnEvaLamp) {
-    btnEvaLamp.addEventListener('click', () => {
-        audio.init();
-        if (typeof astronaut !== 'undefined') {
-            astronaut.headlamp = !astronaut.headlamp;
-            showHoloCard(astronaut.planet, astronaut.headlamp ? 'FAROS DEL CASCO ENCENDIDOS' : 'FAROS DEL CASCO APAGADOS');
+    const release = (e) => {
+        if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
+            activePtrId = null;
+            keys[keyCode] = false;
+            btn.classList.remove('is-active');
         }
-    });
+    };
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
 }
+bindEvaTouchHold('btnEvaTouchLeft', 'KeyA');
+bindEvaTouchHold('btnEvaTouchRight', 'KeyD');
+bindEvaTouchHold('btnEvaTouchJump', 'Space');
 
 // Botón táctil / ratón sostenido para "Enderezar Nave"
 const btnEvaRightShip = document.getElementById('btnEvaRightShip');
@@ -646,26 +680,28 @@ if (btnEvaRepairShip) {
 }
 
 // Botón táctil / ratón sostenido para "Construir / Mejorar Base Planetaria"
-const btnEvaBuildBase = document.getElementById('btnEvaBuildBase');
-if (btnEvaBuildBase) {
-    btnEvaBuildBase.addEventListener('pointerdown', (e) => {
+const bindBuildBaseHold = (btn) => {
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        btnEvaBuildBase.setPointerCapture(e.pointerId);
+        btn.setPointerCapture(e.pointerId);
         if (typeof astronaut !== 'undefined') {
             astronaut.isHoldingBuildBtn = true;
         }
         keys['KeyC'] = true;
         audio.init();
     });
-    const releaseBuild = (e) => {
+    const releaseBuild = () => {
         if (typeof astronaut !== 'undefined') {
             astronaut.isHoldingBuildBtn = false;
         }
         keys['KeyC'] = false;
     };
-    btnEvaBuildBase.addEventListener('pointerup', releaseBuild);
-    btnEvaBuildBase.addEventListener('pointercancel', releaseBuild);
-}
+    btn.addEventListener('pointerup', releaseBuild);
+    btn.addEventListener('pointercancel', releaseBuild);
+};
+bindBuildBaseHold(document.getElementById('btnEvaBuildBase'));
+bindBuildBaseHold(document.getElementById('btnEvaUpgradeBase'));
 
 // Botón táctil / ratón para "Construir Cohete / Astillero Aeroespacial"
 const btnEvaBuildRocket = document.getElementById('btnEvaBuildRocket');
@@ -705,6 +741,117 @@ if (btnEvaBuildRocket) {
 
     btnEvaBuildRocket.addEventListener('pointerup', releaseBuildRocket);
     btnEvaBuildRocket.addEventListener('pointercancel', releaseBuildRocket);
+}
+
+// Botón Desplegar Extractor de Recursos (G) - clic rápido o mantener pulsado
+const btnEvaDeployExtractor = document.getElementById('btnEvaDeployExtractor');
+if (btnEvaDeployExtractor) {
+    let extPressDownAt = 0;
+    btnEvaDeployExtractor.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        extPressDownAt = performance.now();
+        btnEvaDeployExtractor.setPointerCapture(e.pointerId);
+        audio.init();
+        if (typeof astronaut !== 'undefined') astronaut.isHoldingExtractorBtn = true;
+    });
+    const releaseDeployExt = () => {
+        if (typeof astronaut !== 'undefined') {
+            astronaut.isHoldingExtractorBtn = false;
+            if (performance.now() - extPressDownAt < 450 && astronaut.actionProgress < 1.0) {
+                astronaut.autoDeployExtractor = true;
+            }
+        }
+    };
+    btnEvaDeployExtractor.addEventListener('pointerup', releaseDeployExt);
+    btnEvaDeployExtractor.addEventListener('pointercancel', releaseDeployExt);
+}
+
+// Botón Repostar Cohete desde Reserva EVA (U) - clic rápido o mantener pulsado
+const btnEvaRefuelShip = document.getElementById('btnEvaRefuelShip');
+if (btnEvaRefuelShip) {
+    let refuelPressDownAt = 0;
+    btnEvaRefuelShip.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        refuelPressDownAt = performance.now();
+        btnEvaRefuelShip.setPointerCapture(e.pointerId);
+        audio.init();
+        if (typeof astronaut !== 'undefined') astronaut.isHoldingRefuelBtn = true;
+    });
+    const releaseRefuelBtn = () => {
+        if (typeof astronaut !== 'undefined') {
+            astronaut.isHoldingRefuelBtn = false;
+            if (performance.now() - refuelPressDownAt < 350) {
+                astronaut.autoRefuelShip = !astronaut.autoRefuelShip;
+            }
+        }
+    };
+    btnEvaRefuelShip.addEventListener('pointerup', releaseRefuelBtn);
+    btnEvaRefuelShip.addEventListener('pointercancel', releaseRefuelBtn);
+}
+
+// Botones y Modales de Extractor e Inventario de Recursos
+['btnEvaResources', 'btnEvaReserveQuick', 'btnHudReservePill', 'btnHudResources'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', () => {
+            if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
+            if (typeof toggleResourceInventoryModal === 'function') toggleResourceInventoryModal();
+        });
+    }
+});
+
+const btnCloseExtractorModal = document.getElementById('btnCloseExtractorModal');
+if (btnCloseExtractorModal) {
+    btnCloseExtractorModal.addEventListener('click', () => {
+        if (typeof closeExtractorModal === 'function') closeExtractorModal();
+    });
+}
+const btnCloseResourceInventoryModal = document.getElementById('btnCloseResourceInventoryModal');
+if (btnCloseResourceInventoryModal) {
+    btnCloseResourceInventoryModal.addEventListener('click', () => {
+        if (typeof closeResourceInventoryModal === 'function') closeResourceInventoryModal();
+    });
+}
+const btnExtCollect = document.getElementById('btnExtCollect');
+if (btnExtCollect) {
+    btnExtCollect.addEventListener('click', () => {
+        if (typeof planetaryExtractors === 'undefined' || typeof selectedExtractorId === 'undefined') return;
+        const m = planetaryExtractors.find(e => e.id === selectedExtractorId);
+        if (m && typeof collectFromExtractor === 'function') {
+            collectFromExtractor(m);
+            if (typeof renderExtractorModal === 'function') renderExtractorModal();
+        }
+    });
+}
+const btnExtDismantle = document.getElementById('btnExtDismantle');
+if (btnExtDismantle) {
+    btnExtDismantle.addEventListener('click', () => {
+        if (typeof planetaryExtractors === 'undefined' || typeof selectedExtractorId === 'undefined') return;
+        const m = planetaryExtractors.find(e => e.id === selectedExtractorId);
+        if (m && typeof dismantleExtractor === 'function') {
+            dismantleExtractor(m);
+        }
+    });
+}
+const btnInvApplyFuelToRocket = document.getElementById('btnInvApplyFuelToRocket');
+if (btnInvApplyFuelToRocket) {
+    btnInvApplyFuelToRocket.addEventListener('click', () => {
+        if (typeof transferFuelReserveToRocket === 'function') {
+            const added = transferFuelReserveToRocket(Infinity);
+            if (added > 0.05) {
+                sfx('playResourceCollect');
+                if (typeof renderResourceInventoryModal === 'function') renderResourceInventoryModal();
+            }
+        }
+    });
+}
+const btnInvRepairHull = document.getElementById('btnInvRepairHull');
+if (btnInvRepairHull) {
+    btnInvRepairHull.addEventListener('click', () => {
+        if (typeof repairRocketWithMaterials === 'function' && repairRocketWithMaterials()) {
+            if (typeof renderResourceInventoryModal === 'function') renderResourceInventoryModal();
+        }
+    });
 }
 
 // Astillero Planetario & Hangar de Cohetes
@@ -925,66 +1072,11 @@ if (btnCloseMap) {
     });
 }
 
-const codexModal = document.getElementById('codexModal');
-const btnOpenCodex = document.getElementById('btnOpenCodex');
-if (btnOpenCodex) {
-    btnOpenCodex.addEventListener('click', () => {
-        renderCodexList();
-        if (codexModal) codexModal.classList.remove('hidden');
-    });
-}
-const btnCloseCodex = document.getElementById('btnCloseCodex');
-if (btnCloseCodex) {
-    btnCloseCodex.addEventListener('click', () => {
-        if (codexModal) codexModal.classList.add('hidden');
-    });
-}
-
-const btnRandomSeed = document.getElementById('btnRandomSeed');
-if (btnRandomSeed) {
-    btnRandomSeed.addEventListener('click', () => {
-        const seedInput = document.getElementById('inSeed');
-        const prefixes = ['COSMOS', 'ASTRAL', 'NOVA', 'VOYD', 'MINECRAFT', 'ZENITH', 'CHRONOS', 'PULSAR', 'NEBULA', 'ORION', 'SOL'];
-        const randSeed = `${prefixes[Math.floor(Math.random() * prefixes.length)]}-${Math.floor(Math.random() * 8999 + 1000)}`;
-        if (seedInput) seedInput.value = randSeed;
-        universeSeed = randSeed;
-        sectors.clear();
-        codexPlanets.clear();
-        if (typeof clearAllWaypoints === 'function') clearAllWaypoints();
-        if (typeof astronaut !== 'undefined') astronaut.plantedBeacons = [];
-        if (typeof planetaryBases !== 'undefined') planetaryBases.length = 0;
-        resetOrigin();
-        if (typeof autoSaveActiveWorld === 'function') autoSaveActiveWorld(false);
-        if (codexModal) codexModal.classList.add('hidden');
-        showHoloCard(getPlanet(0, 0), 'NUEVO UNIVERSO GENERADO', `Semilla Única: #${universeSeed}`);
-        sfx('playChime');
-    });
-}
-
-const btnApplySeed = document.getElementById('btnApplySeed');
-if (btnApplySeed) {
-    btnApplySeed.addEventListener('click', () => {
-        const seedInput = document.getElementById('inSeed');
-        const val = (seedInput && seedInput.value.trim().toUpperCase()) || 'ASTRAL-7';
-        universeSeed = val;
-        sectors.clear();
-        codexPlanets.clear();
-        if (typeof clearAllWaypoints === 'function') clearAllWaypoints();
-        if (typeof astronaut !== 'undefined') astronaut.plantedBeacons = [];
-        if (typeof planetaryBases !== 'undefined') planetaryBases.length = 0;
-        resetOrigin();
-        if (typeof autoSaveActiveWorld === 'function') autoSaveActiveWorld(false);
-        if (codexModal) codexModal.classList.add('hidden');
-        showHoloCard(getPlanet(0, 0), 'CONSTELACIÓN GENERADA', `Semilla Astral: #${universeSeed}`);
-        sfx('playChime');
-    });
-}
-
 const btnEmergencyRescue = document.getElementById('btnEmergencyRescue');
 if (btnEmergencyRescue) {
     btnEmergencyRescue.addEventListener('click', () => {
+        if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
         resetOrigin();
-        if (codexModal) codexModal.classList.add('hidden');
         showHoloCard(getPlanet(0, 0), 'RETORNO COMPLETADO', 'Sonda estabilizada en Cuna del Éter.');
     });
 }
@@ -1006,7 +1098,7 @@ if (btnAudioToggle) {
     });
 }
 
-// --- CONTROL DE ACELERACIÓN TEMPORAL (TIME WARP EXPONENCIAL) Y MENÚS DESPLEGABLES ---
+// --- CONTROL DE ACELERACIÓN TEMPORAL (2 FLECHAS) Y MENÚ DE SISTEMAS ---
 const TIME_WARP_LEVELS = [1, 2, 4, 8, 16, 32, 64];
 let timeScale = 1;
 
@@ -1015,22 +1107,19 @@ function setTimeScale(newScale) {
     timeScale = newScale;
 
     const label = document.getElementById('uiTimeWarpLabel');
-    const status = document.getElementById('uiTimeWarpMenuStatus');
-    const toggleBtn = document.getElementById('btnTimeWarpToggle');
+    const control = document.getElementById('timeWarpControl');
+    const btnSlower = document.getElementById('btnTimeSlower');
+    const btnFaster = document.getElementById('btnTimeFaster');
 
-    if (label) label.textContent = `${timeScale}×`;
-    if (status) {
-        status.textContent = timeScale === 1 ? 'NORMAL' : `ACELERADO ${timeScale}×`;
-        status.className = `font-mono-num text-[9.5px] font-semibold ${timeScale > 1 ? 'text-amber-300' : 'text-stone-400'}`;
+    if (label) {
+        label.textContent = `${timeScale}×`;
+        label.className = timeScale > 1 ? 'text-amber-300 font-bold' : 'text-stone-200';
     }
-    if (toggleBtn) {
-        toggleBtn.classList.toggle('time-warp-active-pill', timeScale > 1);
+    if (control) {
+        control.classList.toggle('time-warp-active-pill', timeScale > 1);
     }
-
-    document.querySelectorAll('.time-warp-opt').forEach(btn => {
-        const sp = Number(btn.dataset.speed);
-        btn.classList.toggle('active', sp === timeScale);
-    });
+    if (btnSlower) btnSlower.disabled = timeScale <= 1;
+    if (btnFaster) btnFaster.disabled = timeScale >= TIME_WARP_LEVELS[TIME_WARP_LEVELS.length - 1];
 }
 
 function stepTimeScale(dir) {
@@ -1039,36 +1128,96 @@ function stepTimeScale(dir) {
     setTimeScale(TIME_WARP_LEVELS[nextIdx]);
 }
 
-const btnTimeWarpToggle = document.getElementById('btnTimeWarpToggle');
-const timeWarpMenu = document.getElementById('timeWarpMenu');
+const btnTimeSlower = document.getElementById('btnTimeSlower');
+const btnTimeFaster = document.getElementById('btnTimeFaster');
+const btnTimeWarpReset = document.getElementById('btnTimeWarpReset');
 const btnSystemsMenu = document.getElementById('btnSystemsMenu');
 const systemsDropdown = document.getElementById('systemsDropdown');
+const worldObjectMenu = document.getElementById('worldObjectMenu');
+let worldMenuOpenedAt = 0;
+
+function closeWorldObjectMenu() {
+    if (worldObjectMenu) worldObjectMenu.classList.add('hidden');
+}
+
+function openWorldObjectMenu(kind, clientX, clientY) {
+    if (!worldObjectMenu) return;
+    closeAllHudDropdowns();
+
+    const titleEl = document.getElementById('worldMenuTitle');
+    const gFlight = document.getElementById('worldMenuFlightGroup');
+    const gEvaRocket = document.getElementById('worldMenuEvaRocketGroup');
+    const gEvaAstro = document.getElementById('worldMenuEvaAstroGroup');
+    const gBase = document.getElementById('worldMenuBaseGroup');
+
+    if (gFlight) gFlight.classList.toggle('hidden', kind !== 'flight_rocket');
+    if (gEvaRocket) gEvaRocket.classList.toggle('hidden', kind !== 'eva_rocket');
+    if (gEvaAstro) gEvaAstro.classList.toggle('hidden', kind !== 'astro');
+    if (gBase) gBase.classList.toggle('hidden', kind !== 'base');
+
+    if (titleEl) {
+        if (kind === 'flight_rocket' || kind === 'eva_rocket') {
+            const m = (typeof getRocketModel === 'function') ? getRocketModel(ship.modelId || 'starship') : null;
+            titleEl.textContent = m ? m.name.toUpperCase() : 'COHETE';
+        } else if (kind === 'astro') {
+            titleEl.textContent = 'ASTRONAUTA · CONSTRUCCIÓN';
+        } else if (kind === 'base') {
+            titleEl.textContent = 'BASE PLANETARIA';
+        }
+    }
+
+    worldObjectMenu.classList.remove('hidden');
+    const mw = worldObjectMenu.offsetWidth || 225;
+    const mh = worldObjectMenu.offsetHeight || 200;
+    const px = clamp(clientX - mw * 0.5, 10, window.innerWidth - mw - 10);
+    const py = clamp(clientY - mh - 14, 56, window.innerHeight - mh - 76);
+    worldObjectMenu.style.left = `${Math.round(px)}px`;
+    worldObjectMenu.style.top = `${Math.round(py)}px`;
+    worldMenuOpenedAt = performance.now();
+}
+
+function handleWorldObjectClick(worldX, worldY, clientX, clientY) {
+    const z = Math.max(0.25, camera.zoom || 1);
+    const isEva = Boolean(typeof astronaut !== 'undefined' && astronaut.active);
+
+    if (isEva) {
+        if (Math.hypot(worldX - astronaut.x, worldY - astronaut.y) < 34 / z) {
+            openWorldObjectMenu('astro', clientX, clientY);
+            return true;
+        }
+        if (Math.hypot(worldX - ship.x, worldY - ship.y) < 50 / z) {
+            openWorldObjectMenu('eva_rocket', clientX, clientY);
+            return true;
+        }
+        if (typeof nearestPlanet !== 'undefined' && nearestPlanet && Array.isArray(nearestPlanet.bases)) {
+            for (let i = 0; i < nearestPlanet.bases.length; i++) {
+                const b = nearestPlanet.bases[i];
+                const bx = nearestPlanet.x + Math.cos(b.angle) * (b.radius || nearestPlanet.radius);
+                const by = nearestPlanet.y + Math.sin(b.angle) * (b.radius || nearestPlanet.radius);
+                if (Math.hypot(worldX - bx, worldY - by) < 55 / z) {
+                    openWorldObjectMenu('base', clientX, clientY);
+                    return true;
+                }
+            }
+        }
+    } else {
+        if (Math.hypot(worldX - ship.x, worldY - ship.y) < 50 / z) {
+            openWorldObjectMenu('flight_rocket', clientX, clientY);
+            return true;
+        }
+    }
+    return false;
+}
 
 function closeAllHudDropdowns() {
-    if (timeWarpMenu) timeWarpMenu.classList.add('hidden');
     if (systemsDropdown) systemsDropdown.classList.add('hidden');
+    closeWorldObjectMenu();
 }
 
-if (btnTimeWarpToggle && timeWarpMenu) {
-    btnTimeWarpToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const willOpen = timeWarpMenu.classList.contains('hidden');
-        closeAllHudDropdowns();
-        if (willOpen) timeWarpMenu.classList.remove('hidden');
-    });
-    timeWarpMenu.addEventListener('click', (e) => e.stopPropagation());
-}
-
-document.querySelectorAll('.time-warp-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-        setTimeScale(Number(btn.dataset.speed));
-    });
-});
-
-const btnTimeWarpReset = document.getElementById('btnTimeWarpReset');
-if (btnTimeWarpReset) {
-    btnTimeWarpReset.addEventListener('click', () => setTimeScale(1));
-}
+if (btnTimeSlower) btnTimeSlower.addEventListener('click', () => stepTimeScale(-1));
+if (btnTimeFaster) btnTimeFaster.addEventListener('click', () => stepTimeScale(1));
+if (btnTimeWarpReset) btnTimeWarpReset.addEventListener('click', () => setTimeScale(1));
+setTimeScale(1);
 
 if (btnSystemsMenu && systemsDropdown) {
     btnSystemsMenu.addEventListener('click', (e) => {
@@ -1080,65 +1229,78 @@ if (btnSystemsMenu && systemsDropdown) {
     systemsDropdown.addEventListener('click', (e) => e.stopPropagation());
 }
 
-const btnHudHeadlights = document.getElementById('btnHudHeadlights');
-if (btnHudHeadlights) {
-    btnHudHeadlights.addEventListener('click', () => {
-        if (typeof astronaut !== 'undefined' && astronaut.active) {
-            astronaut.headlamp = !astronaut.headlamp;
-            showHoloCard(astronaut.planet, astronaut.headlamp ? 'FAROS DEL CASCO ENCENDIDOS' : 'FAROS DEL CASCO APAGADOS',
-                astronaut.headlamp ? 'Proyector frontal de haz halógeno activado.' : 'Iluminación táctica desactivada.');
+if (worldObjectMenu) {
+    worldObjectMenu.addEventListener('click', (e) => e.stopPropagation());
+    worldObjectMenu.addEventListener('pointerdown', (e) => e.stopPropagation());
+}
+
+const btnCloseWorldObjectMenu = document.getElementById('btnCloseWorldObjectMenu');
+if (btnCloseWorldObjectMenu) {
+    btnCloseWorldObjectMenu.addEventListener('click', () => closeWorldObjectMenu());
+}
+
+const btnEvaWorldMenuQuick = document.getElementById('btnEvaWorldMenuQuick');
+if (btnEvaWorldMenuQuick) {
+    btnEvaWorldMenuQuick.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = worldObjectMenu && !worldObjectMenu.classList.contains('hidden') && !document.getElementById('worldMenuEvaAstroGroup')?.classList.contains('hidden');
+        if (isOpen) {
+            closeWorldObjectMenu();
         } else {
-            ship.headlightsOn = !ship.headlightsOn;
-            showHoloCard(getPlanet(0, 0), ship.headlightsOn ? 'FAROS ACTIVADOS' : 'FAROS APAGADOS',
-                ship.headlightsOn ? 'Proyectores volumétricos frontales de aterrizaje encendidos.' : 'Luces frontales apagadas.');
+            const rect = btnEvaWorldMenuQuick.getBoundingClientRect();
+            openWorldObjectMenu('astro', rect.left + rect.width * 0.5, rect.top);
         }
+    });
+}
+
+['btnWorldResources', 'btnWorldOpenVab', 'btnBaseOpenHangar', 'btnBaseOpenVab'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', () => {
+        closeWorldObjectMenu();
+        if (id === 'btnWorldResources' && typeof toggleResourceInventoryModal === 'function') toggleResourceInventoryModal();
+        if ((id === 'btnWorldOpenVab' || id === 'btnBaseOpenVab') && typeof openRocketBuilder === 'function') openRocketBuilder();
+        if (id === 'btnBaseOpenHangar' && typeof openRocketHangarModal === 'function') openRocketHangarModal();
+    });
+});
+
+const btnReturnToIntro = document.getElementById('btnReturnToIntro');
+if (btnReturnToIntro) {
+    btnReturnToIntro.addEventListener('click', () => {
         closeAllHudDropdowns();
+        showIntroScreen();
     });
 }
 
 // Cerrar menús al hacer clic fuera o abrir un modal
-document.addEventListener('click', () => closeAllHudDropdowns());
-['btnOpenBuilderHUD', 'btnOpenCodex', 'btnOpenMap', 'btnOpenWorldsHUD', 'btnQuickSaveHUD'].forEach(id => {
+document.addEventListener('click', () => {
+    if (performance.now() - worldMenuOpenedAt < 350) return;
+    closeAllHudDropdowns();
+});
+['btnOpenBuilderHUD', 'btnOpenMap', 'btnQuickSaveHUD', 'btnHudResources'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', () => closeAllHudDropdowns());
 });
 
 // Bucle Principal de Animación con Sub-pasos para Aceleración Temporal
 let lastTime = performance.now();
-let _loopErrorReported = false;
+let _loopErrorLogged = false;
+let _consecutiveLoopErrors = 0;
 
-window.__reportEterError = function(err, sourceLabel) {
-    if (_loopErrorReported) return;
-    _loopErrorReported = true;
-    console.error('ÉTER Error [' + (sourceLabel || 'runtime') + ']:', err);
+function selfHealSimulationState(level) {
     try {
-        let box = document.getElementById('eterErrorBanner');
-        if (!box) {
-            box = document.createElement('div');
-            box.id = 'eterErrorBanner';
-            box.style.cssText = 'position:fixed;bottom:14px;left:14px;z-index:99999;max-width:440px;background:rgba(15,23,42,0.95);color:#fecaca;border:1px solid rgba(248,113,113,0.45);border-radius:14px;padding:12px 14px;font-family:monospace;font-size:11px;box-shadow:0 12px 32px rgba(0,0,0,0.6);';
-            document.body.appendChild(box);
+        if (typeof astronaut !== 'undefined') astronaut.active = false;
+        if (typeof disengageOrbitMode === 'function') disengageOrbitMode(true);
+        if (typeof resetOrigin === 'function') resetOrigin();
+        if (level >= 2 && typeof ship !== 'undefined') {
+            ship.customRocket = null;
+            ship.modelKey = 'vesper';
+            if (typeof applyRocketModel === 'function') applyRocketModel(ship, 'vesper');
+            if (typeof parkedShips !== 'undefined') parkedShips.length = 0;
+            if (typeof freeVessels !== 'undefined') freeVessels.length = 0;
         }
-        const msg = (err && (err.message || String(err))) || 'Error desconocido';
-        box.innerHTML = `<div style="font-weight:700;color:#fca5a5;margin-bottom:6px;">Error en ÉTER (${sourceLabel || 'JS'})</div>`
-            + `<div style="color:#e2e8f0;word-break:break-word;margin-bottom:8px;">${msg.replace(/</g, '&lt;')}</div>`
-            + `<div style="display:flex;gap:8px;flex-wrap:wrap;">`
-            + `<button id="btnEterClearCache" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-weight:600;">Reiniciar sesión local y recargar</button>`
-            + `<button id="btnEterCloseErr" style="background:rgba(255,255,255,0.1);color:#e2e8f0;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">Cerrar</button>`
-            + `</div>`;
-        const btnClr = document.getElementById('btnEterClearCache');
-        if (btnClr) btnClr.onclick = () => {
-            try { localStorage.removeItem('eter_worlds_v1'); } catch (_) {}
-            location.reload();
-        };
-        const btnCls = document.getElementById('btnEterCloseErr');
-        if (btnCls) btnCls.onclick = () => box.remove();
     } catch (_) {}
-};
-
-window.addEventListener('error', (ev) => {
-    window.__reportEterError(ev.error || ev.message, ev.filename ? ev.filename.split('/').pop() + ':' + ev.lineno : 'window');
-});
+}
 
 function loop(now) {
     requestAnimationFrame(loop);
@@ -1147,6 +1309,25 @@ function loop(now) {
     lastTime = now;
 
     try {
+        if (typeof canvas !== 'undefined' && (canvas.width <= 0 || canvas.height <= 0) && typeof resize === 'function') {
+            resize();
+        }
+        // Autosanación silenciosa si alguna coordenada o zoom perdiera finitud
+        if (typeof ship !== 'undefined' && (!Number.isFinite(ship.x) || !Number.isFinite(ship.y) || !Number.isFinite(ship.angle))) {
+            if (typeof resetOrigin === 'function') resetOrigin();
+        }
+        if (typeof camera !== 'undefined' && (!Number.isFinite(camera.x) || !Number.isFinite(camera.y) || !Number.isFinite(camera.zoom) || camera.zoom <= 0 || !Number.isFinite(camera.rotation))) {
+            if (typeof ship !== 'undefined' && Number.isFinite(ship.x) && Number.isFinite(ship.y)) {
+                camera.x = ship.x;
+                camera.y = ship.y;
+            }
+            camera.zoom = 1.0;
+            camera.targetZoom = 1.0;
+            camera.rotation = 0;
+            camera.targetRotation = 0;
+            camera.userZoomMult = 1.0;
+        }
+
         if (timeScale <= 1) {
             updatePhysics(rawDt, false);
         } else {
@@ -1158,9 +1339,25 @@ function loop(now) {
                 updatePhysics(subDt, s < steps - 1);
             }
         }
-        render(typeof cosmosSimTime !== 'undefined' ? cosmosSimTime : (now / 1000));
+        if (typeof ctx !== 'undefined' && ctx.save) ctx.save();
+        try {
+            render(typeof cosmosSimTime !== 'undefined' ? cosmosSimTime : (now / 1000));
+        } finally {
+            if (typeof ctx !== 'undefined' && ctx.restore) ctx.restore();
+        }
+        _consecutiveLoopErrors = 0;
     } catch (err) {
-        window.__reportEterError(err, 'loop');
+        _consecutiveLoopErrors++;
+        if (!_loopErrorLogged) {
+            _loopErrorLogged = true;
+            console.error('ÉTER Error en bucle de simulación:', err);
+        }
+        if (_consecutiveLoopErrors === 3) {
+            selfHealSimulationState(1);
+        } else if (_consecutiveLoopErrors >= 6) {
+            selfHealSimulationState(2);
+            _consecutiveLoopErrors = 0;
+        }
     }
 }
 
@@ -1178,7 +1375,6 @@ function initSimulator() {
             initWorldSaveSystem(isAutostart);
         } catch (e) {
             console.warn('ÉTER: Error inicializando sistema de mundos:', e);
-            window.__reportEterError(e, 'saves');
         }
     }
 
@@ -1228,31 +1424,38 @@ function initSimulator() {
             camera.zoom = 0.14;
             camera.targetZoom = 0.14;
         } else if (window.location.search.includes('archetype=')) {
-            const match = window.location.search.match(/archetype=([a-z_]+)/);
+            const match = window.location.search.match(/archetype=([a-z0-9_]+)/);
             if (match) {
                 const targetArchId = match[1];
                 const nearby = getNearbyPlanets(0, 0, 8);
                 let targetPlanet = nearby.find(p => p.archetype && p.archetype.id === targetArchId);
-                if (!targetPlanet && typeof ARCHETYPES !== 'undefined' && ARCHETYPES[targetArchId]) {
-                    targetPlanet = getPlanet(0, 0);
-                    targetPlanet.archetype = ARCHETYPES[targetArchId];
-                    if (targetPlanet.archetype.hasRings) {
-                        targetPlanet.hasRings = true;
-                        targetPlanet.ringStyle = targetPlanet.archetype.ringStyle || 'saturnian_rings';
+                if (!targetPlanet && typeof ARCHETYPES !== 'undefined') {
+                    const archDef = ARCHETYPES.find(a => a.id === targetArchId);
+                    if (archDef) {
+                        window._forcePlanetArchetypeId = targetArchId;
+                        sectors.delete('12,12');
+                        const genList = getSectorPlanets(12, 12);
+                        window._forcePlanetArchetypeId = null;
+                        if (genList && genList.length > 0) targetPlanet = genList[0];
                     }
                 }
                 if (targetPlanet) {
-                    ship.x = targetPlanet.x;
-                    ship.y = targetPlanet.y;
+                    const spawnAng = (targetPlanet.isHollow && targetPlanet.caveEntrances && targetPlanet.caveEntrances.length > 0)
+                        ? targetPlanet.caveEntrances[0].centerAngle
+                        : -Math.PI / 2;
+                    const spawnR = (targetPlanet.maxSurfaceRadius || targetPlanet.radius) + 320;
+                    ship.x = targetPlanet.x + Math.cos(spawnAng) * spawnR;
+                    ship.y = targetPlanet.y + Math.sin(spawnAng) * spawnR;
+                    ship.angle = spawnAng;
                     ship.vx = 0;
                     ship.vy = 0;
                     ship.isGrounded = false;
-                    camera.x = targetPlanet.x;
-                    camera.y = targetPlanet.y;
-                    camera.rotation = 0;
-                    camera.userZoomMult = 0.06;
-                    camera.zoom = 0.06;
-                    camera.targetZoom = 0.06;
+                    camera.x = ship.x;
+                    camera.y = ship.y;
+                    camera.rotation = -Math.PI / 2 - spawnAng;
+                    camera.userZoomMult = 0.25;
+                    camera.zoom = 0.25;
+                    camera.targetZoom = 0.25;
                 }
             }
         }

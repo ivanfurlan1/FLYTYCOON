@@ -4,17 +4,24 @@
 let holoCardTimer = null;
 
 function updateHUD(nearestPlanet, altFromSurface, speed) {
+    const isEva = (typeof astronaut !== 'undefined' && !!astronaut.active);
     const maxH = ship.maxHull || 100;
     const maxF = ship.maxFuel || 100;
     const hullPct = clamp(Math.round((ship.hull / maxH) * 100), 0, 100);
     const fuelPct = clamp(Math.round((ship.fuel / maxF) * 100), 0, 100);
 
+    // Alternar vitales entre Cohete y Astronauta en cabecera superior
+    const hudShipVitals = document.getElementById('hudShipVitals');
+    const hudEvaVitals = document.getElementById('hudEvaVitals');
+    if (hudShipVitals) hudShipVitals.classList.toggle('hidden', isEva);
+    if (hudEvaVitals) hudEvaVitals.classList.toggle('hidden', !isEva);
+
     const uiHullVal = document.getElementById('uiHullVal');
     if (uiHullVal) uiHullVal.textContent = `${hullPct}%`;
     const hullBar = document.getElementById('uiHullBar');
     if (hullBar) {
-        hullBar.style.width = `${hullPct}%`;
-        hullBar.className = `telemetry-fill h-full rounded-full ${
+        hullBar.style.height = `${hullPct}%`;
+        hullBar.className = `w-full transition-all duration-100 ${
             hullPct < 30 ? 'bg-rose-400' : (hullPct < 60 ? 'bg-amber-300' : 'bg-stone-200')
         }`;
     }
@@ -22,36 +29,35 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     const uiFuelVal = document.getElementById('uiFuelVal');
     if (uiFuelVal) uiFuelVal.textContent = `${fuelPct}%`;
     const fuelBar = document.getElementById('uiFuelBar');
-    if (fuelBar) fuelBar.style.width = `${fuelPct}%`;
+    if (fuelBar) fuelBar.style.height = `${fuelPct}%`;
 
     const uiCoresVal = document.getElementById('uiCoresVal');
     if (uiCoresVal) uiCoresVal.textContent = ship.artifacts;
 
-    // Actualización de Telemetría de Cohete Activo y Pasaje
-    const uiActiveShipName = document.getElementById('uiActiveShipName');
-    const uiActiveShipPassengers = document.getElementById('uiActiveShipPassengers');
-    const curModel = (typeof getRocketModel === 'function') ? getRocketModel(ship.modelKey) : null;
-    if (uiActiveShipName && curModel) {
-        uiActiveShipName.textContent = curModel.name.split(' ')[0].toUpperCase();
+    const uiEvaCoresVal = document.getElementById('uiEvaCoresVal');
+    if (uiEvaCoresVal) uiEvaCoresVal.textContent = ship.artifacts;
+
+    const uiEvaFuelText = document.getElementById('uiEvaFuelText');
+    const uiEvaJetpackBar = document.getElementById('uiEvaJetpackBar');
+    if (typeof astronaut !== 'undefined') {
+        const jPct = clamp(Math.round(astronaut.jetpackFuel), 0, 100);
+        if (uiEvaFuelText) uiEvaFuelText.textContent = `${jPct}%`;
+        if (uiEvaJetpackBar) uiEvaJetpackBar.style.width = `${jPct}%`;
     }
-    if (uiActiveShipPassengers && curModel) {
-        if (curModel.passengers > 0) {
-            uiActiveShipPassengers.textContent = `${curModel.passengers}P`;
-            uiActiveShipPassengers.className = 'text-[8px] font-mono-num px-1 py-0.1 rounded bg-cyan-500/25 text-cyan-200 border border-cyan-400/30';
-            uiActiveShipPassengers.classList.remove('hidden');
-        } else {
-            uiActiveShipPassengers.textContent = 'IA VTOL';
-            uiActiveShipPassengers.className = 'text-[8px] font-mono-num px-1 py-0.1 rounded bg-teal-500/25 text-teal-200 border border-teal-400/30';
-            uiActiveShipPassengers.classList.remove('hidden');
-        }
+
+    const uiHudReserveVal = document.getElementById('uiHudReserveVal');
+    if (uiHudReserveVal && typeof astronaut !== 'undefined') {
+        uiHudReserveVal.textContent = `${Math.round(astronaut.fuelReserve || 0)} L`;
+    }
+    if (typeof refreshOpenResourceModals === 'function') {
+        refreshOpenResourceModals(performance.now());
     }
 
     const uiVelVal = document.getElementById('uiVelVal');
     if (uiVelVal) {
         uiVelVal.textContent = Math.round(speed * 0.1);
-        // Alerta cromática si el descenso vertical es peligroso cerca del terreno
-        const isFastDescent = !ship.isGrounded && altFromSurface < 950 && ship.verticalSpeed < -175;
-        uiVelVal.className = `font-mono-num text-xs sm:text-sm font-semibold ${
+        const isFastDescent = !isEva && !ship.isGrounded && altFromSurface < 950 && ship.verticalSpeed < -175;
+        uiVelVal.className = `font-mono-num text-[11px] sm:text-xs font-semibold ${
             isFastDescent ? 'text-rose-400 animate-pulse' : 'text-stone-100'
         }`;
     }
@@ -59,98 +65,32 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     const uiAlt = document.getElementById('uiAltVal');
     const altMeters = ship.isGrounded ? 0 : Math.max(0, Math.round(altFromSurface * 0.1));
     if (uiAlt) {
-        if (typeof astronaut !== 'undefined' && astronaut.active) {
+        if (isEva) {
             uiAlt.textContent = (Math.round(astronaut.altitude * 10) / 10).toFixed(1);
         } else {
             uiAlt.textContent = altMeters;
         }
     }
 
-    if (typeof astronaut !== 'undefined' && astronaut.active) {
+    if (isEva) {
         const evaSpeed = Math.round(Math.abs(astronaut.vTangential) + Math.abs(astronaut.vRadial));
         if (uiVelVal) uiVelVal.textContent = evaSpeed;
     }
 
-    // Estado de vuelo compacto (siempre 1 línea) + Micro-píldora separada de Entorno
-    const stateDot = document.getElementById('uiFlightStateDot');
-    const stateText = document.getElementById('uiFlightStateText');
-    const envStrip = document.getElementById('uiEnvStrip');
-    const envText = document.getElementById('uiEnvText');
+    const uiHeadingLine = document.getElementById('uiHeadingLine');
+    if (uiHeadingLine) uiHeadingLine.classList.toggle('hidden', isEva);
+    const sasBadge = document.getElementById('uiSasBadge');
 
-    const envParts = [];
-    if (nearestPlanet && typeof getPlanetRegionAtAngle === 'function') {
-        const zenithAngle = Math.atan2(ship.y - nearestPlanet.y, ship.x - nearestPlanet.x);
-        const reg = getPlanetRegionAtAngle(nearestPlanet, zenithAngle);
-        if (reg && altFromSurface < (nearestPlanet.atmoRadius - nearestPlanet.radius + 600)) {
-            envParts.push(reg.name);
-        }
-    }
-    if (ship.currentSolarState && nearestPlanet && altFromSurface < (nearestPlanet.atmoRadius - nearestPlanet.radius + 400)) {
-        const sol = ship.currentSolarState;
-        if (sol.phase === 'day') envParts.push('☀️ Día');
-        else if (sol.phase === 'sunset') envParts.push('🌅 Atardecer');
-        else if (sol.phase === 'sunrise') envParts.push('🌄 Amanecer');
-        else if (sol.phase === 'night') envParts.push('🌌 Noche');
-    }
-    if (nearestPlanet && nearestPlanet.weather && altFromSurface < (nearestPlanet.atmoRadius - nearestPlanet.radius)) {
-        const w = nearestPlanet.weather;
-        if (w.stormIntensity > 0.4) {
-            envParts.push('⚡ Tormenta');
-        } else if (w.rainIntensity > 0.22) {
-            const kind = w.profile && w.profile.precip && w.profile.precip.kind;
-            envParts.push(kind === 'snow' ? '❄️ Nevada' : (kind === 'ash' ? '🌋 Ceniza' : '🌧️ Lluvia'));
-        }
-    }
+    const flightHudFooter = document.getElementById('flightHudFooter');
+    if (flightHudFooter) flightHudFooter.classList.toggle('hidden', isEva);
 
-    if (envStrip && envText) {
-        if (envParts.length > 0 && ship.orbitMode === 'off') {
-            envText.textContent = envParts.join(' · ');
-            envStrip.classList.remove('hidden');
-        } else {
-            envStrip.classList.add('hidden');
-        }
-    }
+    const evaTouchControls = document.getElementById('evaTouchControls');
+    if (evaTouchControls) evaTouchControls.classList.toggle('hidden', !isEva);
 
-    if (stateDot && stateText) {
-        if (typeof astronaut !== 'undefined' && astronaut.active) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_10px_#f59e0b] animate-pulse shrink-0';
-            stateText.textContent = 'EVA SUPERFICIE';
-        } else if (ship.orbitMode === 'locked') {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse shrink-0';
-            stateText.textContent = nearestPlanet ? `ÓRBITA · ${nearestPlanet.name.toUpperCase()}` : 'ÓRBITA ESTABLE';
-        } else if (ship.orbitMode === 'inserting') {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse shrink-0';
-            stateText.textContent = 'INSERCIÓN';
-        } else if (ship.warping && ship.fuel > 0) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8] shrink-0';
-            stateText.textContent = 'HIPERIMPULSO';
-        } else if (ship.reentryIntensity > 0.15) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#f97316] animate-pulse shrink-0';
-            stateText.textContent = 'REENTRADA';
-        } else if (ship.vaporConeIntensity > 0.25) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-sky-300 shadow-[0_0_8px_#7dd3fc] shrink-0';
-            stateText.textContent = 'MACH 1+';
-        } else if (ship.isGrounded) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0';
-            stateText.textContent = 'POSADO';
-        } else if (nearestPlanet && altFromSurface < (nearestPlanet.atmoRadius - nearestPlanet.radius)) {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-sky-300 shrink-0';
-            stateText.textContent = ship.currentLayerName || 'ATMÓSFERA';
-        } else {
-            stateDot.className = 'w-1.5 h-1.5 rounded-full bg-stone-300 shrink-0';
-            stateText.textContent = 'ESPACIO';
-        }
-    }
-
-    // Actualización de la consola EVA y botones de acción
-    const evaBar = document.getElementById('evaActionBar');
     const btnEVA = document.getElementById('btnEVA');
     const uiEvaBtnText = document.getElementById('uiEvaBtnText');
-    const gimbalZone = document.getElementById('gimbalZone');
+    const btnStageSeparate = document.getElementById('btnStageSeparate');
     const throttleConsole = document.getElementById('throttleConsole');
-    const btnThrust = document.getElementById('btnThrust');
-    const btnWarp = document.getElementById('btnWarp');
-    const btnSonar = document.getElementById('btnSonar');
     const btnOrbit = document.getElementById('btnOrbit');
     const orbitLed = document.getElementById('orbitLed');
     const uiOrbitBtnText = document.getElementById('uiOrbitBtnText');
@@ -158,7 +98,7 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     // Telemetría Orbital en HUD superior
     const uiOrbitTelemetry = document.getElementById('uiOrbitTelemetry');
     if (uiOrbitTelemetry) {
-        const showOrbitHud = ship.orbitalInfo && !ship.isGrounded && !(typeof astronaut !== 'undefined' && astronaut.active);
+        const showOrbitHud = ship.orbitalInfo && !ship.isGrounded && !isEva;
         uiOrbitTelemetry.classList.toggle('hidden', !showOrbitHud);
         if (showOrbitHud) {
             const info = ship.orbitalInfo;
@@ -197,106 +137,160 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     }
 
     if (btnOrbit) {
+        const distToNearest = nearestPlanet ? Math.hypot(ship.x - nearestPlanet.x, ship.y - nearestPlanet.y) : Infinity;
+        const canOrbitBtn = !isEva && nearestPlanet && !ship.isGrounded && (distToNearest < nearestPlanet.gravityRadius * 1.45 || ship.orbitMode !== 'off');
         if (ship.orbitMode === 'locked') {
             btnOrbit.className = 'aero-pill aero-btn px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 text-emerald-200 border-emerald-400/60 shadow-[0_0_16px_rgba(52,211,153,0.35)] whitespace-nowrap cursor-pointer';
             if (orbitLed) orbitLed.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] shrink-0';
-            if (uiOrbitBtnText) uiOrbitBtnText.textContent = 'EN ÓRBITA (O)';
+            if (uiOrbitBtnText) uiOrbitBtnText.textContent = 'EN ÓRBITA';
         } else if (ship.orbitMode === 'inserting') {
             btnOrbit.className = 'aero-pill aero-btn px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 text-cyan-100 border-cyan-400/60 shadow-[0_0_16px_rgba(34,211,238,0.35)] whitespace-nowrap cursor-pointer';
             if (orbitLed) orbitLed.className = 'w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#22d3ee] animate-pulse shrink-0';
             if (uiOrbitBtnText) uiOrbitBtnText.textContent = 'ORBITANDO...';
         } else {
-            btnOrbit.className = 'aero-pill aero-btn px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 text-cyan-100 border-cyan-400/20 whitespace-nowrap cursor-pointer';
+            btnOrbit.className = 'aero-pill aero-btn px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 text-cyan-100 border-cyan-400/25 whitespace-nowrap cursor-pointer';
             if (orbitLed) orbitLed.className = 'w-1.5 h-1.5 rounded-full bg-cyan-400/60 shrink-0';
-            if (uiOrbitBtnText) uiOrbitBtnText.textContent = 'ÓRBITA (O)';
+            if (uiOrbitBtnText) uiOrbitBtnText.textContent = 'ÓRBITA';
         }
+        btnOrbit.classList.toggle('hidden', !canOrbitBtn);
     }
 
-    if (typeof drawOrbitScope === 'function') {
-        drawOrbitScope(nearestPlanet);
-    }
+    if (isEva) {
 
-    if (typeof astronaut !== 'undefined' && astronaut.active) {
-        if (evaBar) {
-            evaBar.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
-            evaBar.classList.add('opacity-100', 'translate-y-0');
-        }
-        if (uiEvaBtnText) uiEvaBtnText.textContent = 'ABORDAJE (F)';
-        if (btnEVA) {
-            btnEVA.classList.add('border-emerald-400/60', 'text-emerald-200');
-            btnEVA.classList.remove('border-amber-400/30', 'text-amber-200');
-        }
+        const closestShipInfo = (typeof getClosestShipToAstronaut === 'function')
+            ? getClosestShipToAstronaut()
+            : { shipObj: ship, dist: Math.hypot(astronaut.x - ship.x, astronaut.y - ship.y) };
+        const targetShipObj = closestShipInfo.shipObj || ship;
+        const distToTargetShip = closestShipInfo.dist;
+        const distToActiveShip = Math.hypot(astronaut.x - ship.x, astronaut.y - ship.y);
 
-        const closestShipInfo = (typeof getClosestShipToAstronaut === 'function') ? getClosestShipToAstronaut() : { shipObj: ship, dist: Math.hypot(astronaut.x - ship.x, astronaut.y - ship.y) };
-        const distToShip = closestShipInfo.dist;
-        const uiEvaFuelText = document.getElementById('uiEvaFuelText');
-        const uiEvaDistText = document.getElementById('uiEvaDistText');
-        if (uiEvaFuelText) uiEvaFuelText.textContent = `${Math.round(astronaut.jetpackFuel)}%`;
-        if (uiEvaDistText) uiEvaDistText.textContent = `${Math.round(distToShip * 0.1 * 10) / 10}m`;
+        // Mismos umbrales que boardShip() y handleAstronautInteractions()
+        let padSpan = 25;
+        if (targetShipObj.customRocket && targetShipObj.customRocket.bounds) {
+            padSpan = Math.max(25, (targetShipObj.customRocket.bounds.height || 60) * 0.25);
+        }
+        const targetScale = targetShipObj.scale || 1.0;
+        const maxBoardDist = Math.max(70 * Math.max(1.0, targetScale * 0.9), padSpan * 2.2);
+        const canBoard = distToTargetShip <= maxBoardDist;
 
         const btnEvaBoard = document.getElementById('btnEvaBoard');
         if (btnEvaBoard) {
-            const targetMod = (typeof getRocketModel === 'function') ? getRocketModel(closestShipInfo.shipObj.modelKey) : null;
-            const shortTargetName = targetMod ? targetMod.name.split(' ')[0] : 'Sonda';
+            btnEvaBoard.classList.toggle('hidden', !canBoard);
+            const targetMod = (typeof getRocketModel === 'function') ? getRocketModel(targetShipObj.modelKey) : null;
+            const shortTargetName = targetMod ? targetMod.name.split(' ')[0] : 'Cohete';
             const boardSpan = btnEvaBoard.querySelector('span');
-            if (boardSpan) boardSpan.textContent = `Abordar ${shortTargetName} (F)`;
+            if (boardSpan) boardSpan.textContent = `Abordar ${shortTargetName}`;
         }
+
+        let canRight = false;
+        let canRepair = false;
+        let canRefuel = false;
+        let nearExt = null;
+        let canUpgradeBase = false;
 
         const p = astronaut.planet;
         if (p) {
+            let padDist = 15.5 * (ship.scale || 1);
+            if (ship.customRocket && ship.customRocket.contactPoints) {
+                const padPts = ship.customRocket.contactPoints.filter(pt => pt.isPad);
+                const searchList = padPts.length > 0 ? padPts : ship.customRocket.contactPoints;
+                if (searchList.length > 0) padDist = Math.abs(Math.min(...searchList.map(pt => pt.x)));
+            }
+            const maxInteractDist = Math.max(58, padDist * 1.6);
+
             const shipZenith = Math.atan2(ship.y - p.y, ship.x - p.x);
             const tilt = Math.atan2(Math.sin(ship.angle - shipZenith), Math.cos(ship.angle - shipZenith));
             const isShipTilted = Math.abs(tilt) > 0.32;
+
+            canRight = isShipTilted && distToActiveShip < maxInteractDist;
             const btnRight = document.getElementById('btnEvaRightShip');
             const rightBar = document.getElementById('uiRightShipBar');
-            if (btnRight) {
-                btnRight.classList.toggle('hidden', !(isShipTilted && distToShip < 60));
-            }
-            if (rightBar) {
-                rightBar.style.width = `${Math.round(astronaut.actionProgress * 100)}%`;
-            }
+            if (btnRight) btnRight.classList.toggle('hidden', !canRight);
+            if (rightBar) rightBar.style.width = astronaut.actionType === 'right_ship' ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
 
+            canRepair = ship.hull < (ship.maxHull || 100) - 1.0 && !isShipTilted && distToActiveShip < maxInteractDist;
             const btnRepair = document.getElementById('btnEvaRepairShip');
-            if (btnRepair) {
-                btnRepair.classList.toggle('hidden', !(ship.hull < 99.0 && !isShipTilted && distToShip < 52));
+            const repairBar = document.getElementById('uiRepairShipBar');
+            if (btnRepair) btnRepair.classList.toggle('hidden', !canRepair);
+            if (repairBar) repairBar.style.width = astronaut.actionType === 'repair_ship' ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
+
+            const needFuel = targetShipObj.fuel < (targetShipObj.maxFuel || 100) - 0.5;
+            const hasRes = (astronaut.fuelReserve || 0) > 0.2;
+            canRefuel = !isShipTilted && needFuel && hasRes && distToTargetShip < maxInteractDist + 32;
+            const btnRefuel = document.getElementById('btnEvaRefuelShip');
+            if (btnRefuel) btnRefuel.classList.toggle('hidden', !canRefuel);
+
+            // Extractor cercano por proximidad
+            if (typeof planetaryExtractors !== 'undefined' && Array.isArray(planetaryExtractors)) {
+                let bestExtDist = 95;
+                for (let i = 0; i < planetaryExtractors.length; i++) {
+                    const m = planetaryExtractors[i];
+                    if (m.planetKey !== p.key) continue;
+                    if (Boolean(m.onCeiling) !== Boolean(astronaut.onCeiling)) continue;
+                    const arcDiff = Math.abs(Math.atan2(Math.sin(m.angle - astronaut.angle), Math.cos(m.angle - astronaut.angle)));
+                    const dExt = arcDiff * (m.radialPos || p.radius);
+                    if (dExt < bestExtDist) {
+                        bestExtDist = dExt;
+                        nearExt = m;
+                    }
+                }
+            }
+            window._nearbyExtractorId = nearExt ? nearExt.id : null;
+            const btnInspectExt = document.getElementById('btnEvaInspectExtractor');
+            const nearExtLabel = document.getElementById('uiNearExtractorLabel');
+            if (btnInspectExt) btnInspectExt.classList.toggle('hidden', !nearExt);
+            if (nearExtLabel && nearExt) {
+                nearExtLabel.textContent = `Extractor (${Math.round(nearExt.storedFuel || 0)}L)`;
             }
 
-            // Actualización de Interfaz de Construcción y Mejora de Base Planetaria
+            const uiDeployExtractorBar = document.getElementById('uiDeployExtractorBar');
+            if (uiDeployExtractorBar) {
+                const isDeployingExt = (astronaut.actionType === 'deploy_extractor');
+                uiDeployExtractorBar.style.width = isDeployingExt ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
+            }
+
+            // Base cercana: acción contextual para mejorar + selector N1/N2/N3 solo en terreno libre
+            const nearbyBase = (typeof findNearbyBase === 'function') ? findNearbyBase(p, astronaut.angle, 1.05) : null;
+            const currentSelectedLvl = astronaut.selectedBaseLevel || 1;
+            const baseSelector = document.getElementById('evaBaseLevelSelector');
+            if (baseSelector) baseSelector.classList.toggle('hidden', Boolean(nearbyBase));
+
+            canUpgradeBase = Boolean(nearbyBase && nearbyBase.level < 3);
+            const btnUpgradeBase = document.getElementById('btnEvaUpgradeBase');
+            const uiUpgradeBaseLabel = document.getElementById('uiUpgradeBaseLabel');
+            const uiUpgradeBaseBar = document.getElementById('uiUpgradeBaseBar');
+            if (btnUpgradeBase) btnUpgradeBase.classList.toggle('hidden', !canUpgradeBase);
+            if (uiUpgradeBaseLabel && canUpgradeBase) {
+                uiUpgradeBaseLabel.textContent = `Mejorar N${nearbyBase.level}→N${nearbyBase.level + 1}`;
+            }
+            if (uiUpgradeBaseBar) {
+                uiUpgradeBaseBar.style.width = (astronaut.actionType === 'build_base' && canUpgradeBase)
+                    ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
+            }
+
             const uiBuildBaseLabel = document.getElementById('uiBuildBaseLabel');
             const uiBuildBaseLvlBadge = document.getElementById('uiBuildBaseLvlBadge');
             const uiBuildBaseBar = document.getElementById('uiBuildBaseBar');
-            const nearbyBase = (typeof findNearbyBase === 'function') ? findNearbyBase(p, astronaut.angle, 1.05) : null;
-            const currentSelectedLvl = astronaut.selectedBaseLevel || 1;
-
             if (nearbyBase) {
-                if (nearbyBase.level < 3) {
-                    const nextLvl = nearbyBase.level + 1;
-                    if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = `Mejorar a Nv.${nextLvl} (C)`;
-                    if (uiBuildBaseLvlBadge) {
-                        uiBuildBaseLvlBadge.textContent = `NV.${nearbyBase.level}➔${nextLvl}`;
-                        uiBuildBaseLvlBadge.className = 'text-[8px] font-mono-num px-1 py-0.2 rounded bg-amber-400/25 text-amber-300 border border-amber-400/40';
-                    }
-                } else {
-                    if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = 'Base Nv.3 Completa';
-                    if (uiBuildBaseLvlBadge) {
-                        uiBuildBaseLvlBadge.textContent = 'MÁX';
-                        uiBuildBaseLvlBadge.className = 'text-[8px] font-mono-num px-1 py-0.2 rounded bg-emerald-400/25 text-emerald-300 border border-emerald-400/40';
-                    }
+                if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = 'Base';
+                if (uiBuildBaseLvlBadge) {
+                    uiBuildBaseLvlBadge.textContent = nearbyBase.level >= 3 ? 'MAX' : `N${nearbyBase.level}`;
+                    uiBuildBaseLvlBadge.className = nearbyBase.level >= 3
+                        ? 'text-[7px] font-mono-num px-1 rounded bg-emerald-400/25 text-emerald-300 border border-emerald-400/40'
+                        : 'text-[7px] font-mono-num px-1 rounded bg-amber-400/25 text-amber-300 border border-amber-400/40';
                 }
             } else {
-                if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = 'Construir Base (C)';
+                if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = 'Base';
                 if (uiBuildBaseLvlBadge) {
-                    uiBuildBaseLvlBadge.textContent = `NV.${currentSelectedLvl}`;
-                    uiBuildBaseLvlBadge.className = 'text-[8px] font-mono-num px-1 py-0.2 rounded bg-sky-400/20 text-sky-300 border border-sky-400/30';
+                    uiBuildBaseLvlBadge.textContent = `N${currentSelectedLvl}`;
+                    uiBuildBaseLvlBadge.className = 'text-[7px] font-mono-num px-1 rounded bg-sky-400/20 text-sky-300 border border-sky-400/30';
                 }
             }
-
             if (uiBuildBaseBar) {
-                const isBuilding = (astronaut.actionType === 'build_base');
-                uiBuildBaseBar.style.width = isBuilding ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
+                uiBuildBaseBar.style.width = (astronaut.actionType === 'build_base' && !nearbyBase)
+                    ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
             }
 
-            // Actualización de Interfaz de Construcción de Cohetes en EVA
             const uiBuildRocketBar = document.getElementById('uiBuildRocketBar');
             const uiCurrentRocketBadge = document.getElementById('uiCurrentRocketBadge');
             const selRocketModel = (typeof getRocketModel === 'function') ? getRocketModel(astronaut.selectedRocketModel || 'starship') : null;
@@ -308,82 +302,46 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
                 uiBuildRocketBar.style.width = isBuildingRocket ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
             }
 
-            // Resaltar botón de nivel seleccionado en la barra EVA
             for (let l = 1; l <= 3; l++) {
                 const btnLvl = document.getElementById(`btnBaseLvl${l}`);
                 if (btnLvl) {
                     const isSelected = (currentSelectedLvl === l);
-                    if (isSelected) {
-                        btnLvl.className = 'px-1.5 py-1 rounded-lg text-[8.5px] font-mono-num font-semibold text-sky-200 bg-sky-500/30 border border-sky-400/60 shadow-[0_0_8px_rgba(56,189,248,0.3)] cursor-pointer transition-all';
-                    } else {
-                        btnLvl.className = 'px-1.5 py-1 rounded-lg text-[8.5px] font-mono-num font-semibold text-slate-400 hover:text-white cursor-pointer transition-all';
-                    }
+                    btnLvl.className = isSelected
+                        ? 'px-1.5 py-0.5 rounded-lg text-[8.5px] font-mono-num font-semibold text-sky-200 bg-sky-500/30 border border-sky-400/60 cursor-pointer transition-all'
+                        : 'px-1.5 py-0.5 rounded-lg text-[8.5px] font-mono-num font-semibold text-stone-400 hover:text-white cursor-pointer transition-all';
                 }
             }
         }
 
-        if (gimbalZone) gimbalZone.style.opacity = '0.35';
-        if (throttleConsole) throttleConsole.style.opacity = '0.35';
-        else if (btnThrust) btnThrust.style.opacity = '0.35';
-        if (btnWarp) btnWarp.style.opacity = '0.35';
-        if (btnSonar) btnSonar.style.opacity = '0.35';
-        if (btnOrbit) btnOrbit.style.opacity = '0.35';
+        const hasRocketNearAction = Boolean(canBoard || canRight || canRepair || canRefuel);
+        const farHint = document.getElementById('worldMenuEvaRocketFarHint');
+        if (farHint) farHint.classList.toggle('hidden', hasRocketNearAction);
     } else {
-        if (evaBar) {
-            evaBar.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
-            evaBar.classList.remove('opacity-100', 'translate-y-0');
-        }
-        if (uiEvaBtnText) uiEvaBtnText.textContent = 'EVA (F)';
-        if (btnEVA) {
-            const canDisembark = ship.isGrounded || (nearestPlanet && altMeters < 3 && speed < 18);
-            btnEVA.classList.toggle('shadow-[0_0_18px_rgba(245,158,11,0.5)]', canDisembark);
-            btnEVA.classList.toggle('border-amber-400', canDisembark);
-            btnEVA.classList.remove('border-emerald-400/60', 'text-emerald-200');
-            btnEVA.classList.add('text-amber-200');
-        }
+        window._nearbyExtractorId = null;
 
-        if (gimbalZone) gimbalZone.style.opacity = '1';
-        if (throttleConsole) throttleConsole.style.opacity = '1';
-        else if (btnThrust) btnThrust.style.opacity = '1';
-        if (btnWarp) btnWarp.style.opacity = '1';
-        if (btnSonar) btnSonar.style.opacity = '1';
-        if (btnOrbit) btnOrbit.style.opacity = '1';
+        const canDisembark = Boolean(ship.isGrounded || (nearestPlanet && altMeters < 3 && speed < 18));
+        if (btnEVA) btnEVA.classList.toggle('hidden', !canDisembark);
+        if (uiEvaBtnText) uiEvaBtnText.textContent = 'Salir (EVA)';
     }
 
     // Indicador SAS de auto-alineación
-    const sasBadge = document.getElementById('uiSasBadge');
-    if (sasBadge) {
+    if (sasBadge && !isEva) {
         if (ship.sasEnabled) {
-            sasBadge.className = 'sas-badge active px-1.5 sm:px-2 py-0.5 rounded-full border text-[8.5px] sm:text-[9px] font-mono-num font-semibold cursor-pointer whitespace-nowrap';
+            sasBadge.className = 'sas-badge active px-2 py-0.5 rounded-full border text-[8.5px] sm:text-[9px] font-mono-num font-semibold cursor-pointer whitespace-nowrap';
             sasBadge.textContent = ship.sasAssistWeight > 0.2 ? 'SAS ON' : 'SAS ESPERA';
             sasBadge.title = 'Asistencia de Horizonte Activa (Pulsa T para alternar a Manual)';
         } else {
-            sasBadge.className = 'sas-badge manual px-1.5 sm:px-2 py-0.5 rounded-full border text-[8.5px] sm:text-[9px] font-mono-num font-semibold cursor-pointer whitespace-nowrap';
+            sasBadge.className = 'sas-badge manual px-2 py-0.5 rounded-full border text-[8.5px] sm:text-[9px] font-mono-num font-semibold cursor-pointer whitespace-nowrap';
             sasBadge.textContent = 'MANUAL';
             sasBadge.title = 'Control 100% Manual Libre (Pulsa T para activar Asistencia)';
         }
     }
 
-    // Navball: actitud en tiempo real RESPECTO AL HORIZONTE EN PANTALLA
+    // Ángulo de actitud en tiempo real respecto al horizonte en pantalla
     const screenAngle = ship.angle + camera.rotation;
     const deg = (((screenAngle * 180 / Math.PI) + 90) % 360 + 360) % 360;
-    const actualNeedle = document.getElementById('gimbalActualNeedle');
-    if (actualNeedle) actualNeedle.style.transform = `rotate(${deg}deg)`;
     const headingDeg = document.getElementById('uiHeadingDeg');
     if (headingDeg) headingDeg.textContent = `${String(Math.round(deg)).padStart(3, '0')}°`;
-
-    // Marcador Progrado de Velocidad en el Navball (muestra hacia dónde viaja realmente el cohete)
-    const progradeNeedle = document.getElementById('gimbalProgradeNeedle');
-    if (progradeNeedle) {
-        if (!ship.isGrounded && speed > 15) {
-            const velScreenAngle = ship.velAngle + camera.rotation;
-            const velDeg = (((velScreenAngle * 180 / Math.PI) + 90) % 360 + 360) % 360;
-            progradeNeedle.style.transform = `rotate(${velDeg}deg)`;
-            progradeNeedle.classList.remove('opacity-0');
-        } else {
-            progradeNeedle.classList.add('opacity-0');
-        }
-    }
 
     // Barra graduable de potencia y empuje activo en tiempo real
     const setThrottle = clamp(ship.throttle !== undefined ? ship.throttle : 0.0, 0, 1);
@@ -396,15 +354,9 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     const isWarping = Boolean(ship.warping && ship.fuel > 0);
     const isFiring = Boolean((ship.thrusting || setThrottle > 0.005) && ship.fuel > 0 && !isWarping);
 
-    if (setFill) {
-        setFill.style.height = `${(effectiveThrottle * 100).toFixed(1)}%`;
-    }
-    if (liveFill) {
-        liveFill.style.height = `${(liveThr * 100).toFixed(1)}%`;
-    }
-    if (thumb) {
-        thumb.style.bottom = `calc(${(effectiveThrottle * 100).toFixed(1)}% - 5px)`;
-    }
+    if (setFill) setFill.style.height = `${(effectiveThrottle * 100).toFixed(1)}%`;
+    if (liveFill) liveFill.style.height = `${(liveThr * 100).toFixed(1)}%`;
+    if (thumb) thumb.style.bottom = `calc(${(effectiveThrottle * 100).toFixed(1)}% - 3px)`;
     if (throttlePct) {
         if (isWarping) {
             throttlePct.textContent = 'WARP';
@@ -420,6 +372,17 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     if (throttleConsole) {
         throttleConsole.classList.toggle('is-firing', isFiring);
         throttleConsole.classList.toggle('is-warping', isWarping);
+    }
+    const warpLed = document.getElementById('warpLed');
+    const btnWarpEl = document.getElementById('btnWarp');
+    if (warpLed) {
+        warpLed.className = isWarping
+            ? 'w-1.5 h-1.5 rounded-full bg-sky-300 shadow-[0_0_10px_#38bdf8] animate-pulse shrink-0'
+            : 'w-1.5 h-1.5 rounded-full bg-sky-400/60 shrink-0';
+    }
+    if (btnWarpEl) {
+        btnWarpEl.classList.toggle('border-sky-300', isWarping);
+        btnWarpEl.classList.toggle('bg-sky-500/25', isWarping);
     }
 
     if (typeof updateNavHUD === 'function') {
@@ -485,7 +448,8 @@ function registerCodex(p) {
     if (!codexPlanets.has(p.key)) {
         const rimCol = (p.colors && p.colors.rimColor) || p.archetype.rimColor;
         const sizeTag = p.sizeClass ? p.sizeClass.tag : 'PLANETA';
-        const mineralsStr = (p.minerals || []).map(m => m.name).slice(0, 3).join(', ') || 'Silicato estándar';
+        const mineralsStr = (p.minerals || []).map(m => m.name).slice(0, 4).join(', ') || 'Silicato estándar';
+        const fuelProfLabel = (typeof getPlanetCategoryProfile === 'function') ? getPlanetCategoryProfile(p).fuelProfile.tierLabel : 'Variable';
         const regionsStr = (p.regions || []).map(r => r.name).slice(0, 3).join(' · ');
         const structuresStr = (p.structures || []).map(s => s.name).slice(0, 3).join(' · ');
 
@@ -497,6 +461,9 @@ function registerCodex(p) {
             sizeName: p.sizeClass ? p.sizeClass.name : 'Estándar',
             isLiquid: p.archetype.isLiquid,
             hasRings: p.hasRings,
+            isHollow: !!p.isHollow,
+            isComet: !!p.isComet,
+            classId: p.archetype.classId,
             lakesCount: (p.lakes && p.lakes.length > 0) ? p.lakes.length : 0,
             color: rgbStr(rimCol, 1),
             gravity: `${(p.gravityForce / 285).toFixed(1)}G`,
@@ -504,6 +471,7 @@ function registerCodex(p) {
             rotation: `${p.rotationPeriod || 260}s (${(p.rotationSpeed > 0 ? 'Directa' : 'Retrógrada')})`,
             hazard: p.hazardLevel,
             minerals: mineralsStr,
+            fuelTier: fuelProfLabel,
             regions: regionsStr,
             structures: structuresStr,
             fauna: (p.creatures && p.creatures.length > 0)
@@ -518,67 +486,8 @@ function registerCodex(p) {
 }
 
 function renderCodexList() {
-    const list = document.getElementById('codexList');
-    if (!list) return;
-    const badge = document.getElementById('codexCountBadge');
-    if (badge) badge.textContent = `${codexPlanets.size} ${codexPlanets.size === 1 ? 'descubierto' : 'descubiertos'}`;
-    list.innerHTML = '';
-
-    Array.from(codexPlanets.values()).reverse().forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex flex-col gap-2 hover:bg-white/[0.05] transition-all';
-        div.innerHTML = `
-            <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-2.5">
-                    <span class="w-3 h-3 rounded-full mt-1 shrink-0" style="background:${item.color}; box-shadow:0 0 10px ${item.color}"></span>
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-display font-semibold text-white text-sm sm:text-base">${item.name}</span>
-                            <span class="text-[9px] font-mono-num uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-200 border border-amber-400/30">${item.sizeTag}</span>
-                            ${item.hasRings ? '<span class="text-[9px] font-mono-num uppercase tracking-wider px-1.5 py-0.5 rounded bg-sky-400/15 text-sky-200 border border-sky-400/30">ANILLOS 3D</span>' : ''}
-                            ${item.lakesCount ? `<span class="text-[9px] font-mono-num uppercase tracking-wider px-1.5 py-0.5 rounded bg-teal-400/15 text-teal-200 border border-teal-400/30">${item.lakesCount} LAGOS</span>` : ''}
-                        </div>
-                        <span class="text-xs text-slate-300 font-mono-num">${item.type} // ${item.surface}</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-end shrink-0">
-                    <span class="text-[10px] font-mono-num text-slate-400">GRAV: <strong class="text-white">${item.gravity}</strong></span>
-                    <span class="text-[10px] font-mono-num text-slate-400">ATM: <strong class="text-sky-300">${item.atmo}</strong></span>
-                    ${item.rotation ? `<span class="text-[9px] font-mono-num text-slate-400">DÍA/ROT: <strong class="text-amber-300/90 font-normal">${item.rotation}</strong></span>` : ''}
-                </div>
-            </div>
-
-            <p class="text-[11px] text-slate-300/90 leading-relaxed">${item.desc}</p>
-
-            <div class="pt-1.5 border-t border-white/[0.05] flex items-center justify-between text-[10px] font-mono-num text-slate-400 flex-wrap gap-2">
-                <div>MINERALES: <strong class="text-amber-200/90 font-normal">${item.minerals}</strong></div>
-                <div class="text-[9px] px-1.5 py-0.5 rounded ${
-                    item.hazard === 'Seguro' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/20' :
-                    (item.hazard === 'Peligro Crítico' ? 'bg-rose-500/15 text-rose-300 border border-rose-400/20' : 'bg-amber-500/15 text-amber-300 border border-amber-400/20')
-                }">${item.hazard}</div>
-            </div>
-            ${item.regions ? `<div class="text-[9.5px] font-mono-num text-slate-400">BIOMAS: <span class="text-slate-300">${item.regions}</span></div>` : ''}
-            ${item.structures ? `<div class="text-[9.5px] font-mono-num text-slate-400">ESTRUCTURAS: <span class="text-sky-300/90">${item.structures}</span></div>` : ''}
-            <div class="text-[9.5px] font-mono-num flex items-center gap-1.5 flex-wrap">
-                <span class="text-slate-400">FAUNA:</span>
-                ${item.hasLife ? `
-                    <span class="text-emerald-300 font-medium">${item.fauna}</span>
-                ` : `
-                    <span class="text-stone-400 italic">Mundo inerte (Sin seres vivos)</span>
-                `}
-            </div>
-            ${(item.speciesMetaList && item.speciesMetaList.length > 0) ? `
-                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                    ${item.speciesMetaList.map(sp => `
-                        <span class="text-[8.5px] font-mono-num px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/10" style="color:${sp.tagColor}">
-                            ★ ${sp.name} [${sp.temperament}]
-                        </span>
-                    `).join('')}
-                </div>
-            ` : ''}
-        `;
-        list.appendChild(div);
-    });
+    // Modal de códice eliminado en el rediseño minimalista; conservado como no-op compatible
+    return;
 }
 
 // ============================================================================
@@ -921,23 +830,12 @@ function initStarMap() {
         });
     }
 
-    // Botón de Escanear Planeta
-    const btnScanPlanet = document.getElementById('btnMapScanPlanet');
-    if (btnScanPlanet) {
-        btnScanPlanet.addEventListener('click', () => {
+    // Botón de Teletransportar directamente a la superficie del planeta seleccionado
+    const btnTeleportPlanet = document.getElementById('btnMapTeleportPlanet');
+    if (btnTeleportPlanet) {
+        btnTeleportPlanet.addEventListener('click', () => {
             const p = starMapState.selectedPlanet;
-            if (p) {
-                p.scanned = true;
-                registerCodex(p);
-                if (typeof audio !== 'undefined' && audio && audio.playScanner) {
-                    audio.playScanner();
-                }
-                updateStarMapDossier(p);
-                updateStarMapDirectory();
-                if (typeof showHoloCard === 'function') {
-                    showHoloCard(p, 'SEÑAL CATALOGADA', `${p.name} analizado con éxito.`);
-                }
-            }
+            if (p) teleportShipToPlanet(p);
         });
     }
 
@@ -1040,6 +938,102 @@ function getPlanetAtMapPos(canvasMouseX, canvasMouseY, canvasW, canvasH) {
 }
 
 /**
+ * Teletransporta la nave directamente a la superficie segura de un planeta desde el Mapa Estelar
+ */
+function teleportShipToPlanet(p) {
+    if (!p || typeof ship === 'undefined') return;
+
+    if (typeof astronaut !== 'undefined' && astronaut.active) {
+        astronaut.active = false;
+        astronaut.inCavern = false;
+        astronaut.onCeiling = false;
+    }
+    if (ship.orbitMode && ship.orbitMode !== 'off' && typeof disengageOrbitMode === 'function') {
+        disengageOrbitMode(true);
+    }
+
+    let landAngle = -Math.PI / 2;
+    let landingIsland = null;
+
+    if (p.isHollow && p.caveEntrances && p.caveEntrances.length > 0) {
+        // Posar al borde de la primera boca de cueva para explorar de inmediato
+        const cave = p.caveEntrances[0];
+        landAngle = wrapAngle(cave.centerAngle + cave.span * 0.82);
+    } else if (p.archetype && p.archetype.isLiquid && p.floatingIslands && p.floatingIslands.length > 0) {
+        landingIsland = p.floatingIslands[0];
+        landAngle = landingIsland.angle;
+    } else {
+        const candidates = [-Math.PI / 2, -Math.PI / 4, 0, Math.PI / 4, Math.PI];
+        for (const cand of candidates) {
+            const lk = (typeof getPlanetLakeAtAngle === 'function') ? getPlanetLakeAtAngle(p, cand) : null;
+            if (!lk) { landAngle = cand; break; }
+        }
+    }
+
+    let supportR = (typeof getSurfaceRadius === 'function') ? getSurfaceRadius(p, landAngle) : p.radius;
+    if (landingIsland) supportR = landingIsland.topRadius;
+
+    let halfH = 26;
+    if (ship.customRocket && ship.customRocket.bounds) {
+        halfH = Math.max(18, Math.abs(ship.customRocket.bounds.maxY || 28) * 0.5 + 6);
+    } else if (typeof getRocketModel === 'function') {
+        const m = getRocketModel(ship.modelKey);
+        if (m && m.contactPoints) {
+            halfH = Math.max(18, Math.max(...m.contactPoints.map(pt => pt.y)) + 4);
+        }
+    }
+
+    const isPureLiquid = !!(p.archetype && p.archetype.isLiquid && !landingIsland);
+    const radialOffset = isPureLiquid ? (supportR + halfH + 45) : (supportR + halfH);
+
+    ship.x = p.x + Math.cos(landAngle) * radialOffset;
+    ship.y = p.y + Math.sin(landAngle) * radialOffset;
+    ship.vx = 0;
+    ship.vy = 0;
+    ship.av = 0;
+    ship.angle = landAngle + Math.PI / 2;
+    ship.isGrounded = !isPureLiquid;
+    ship.insideCavernPlanet = null;
+    ship.cavernDepthBlend = 0;
+    ship.cavernInvertedGravity = false;
+    ship.nearestPlanet = p;
+    ship.hull = ship.maxHull || 100;
+    ship.fuel = ship.maxFuel || 100;
+    ship.hullTemp = 0;
+    ship.invulnTimer = 2.0;
+
+    if (typeof camera !== 'undefined') {
+        camera.x = ship.x;
+        camera.y = ship.y;
+        camera.leadX = 0;
+        camera.leadY = 0;
+        camera.rotation = -Math.PI / 2 - landAngle;
+        camera.userZoomMult = 1.0;
+        camera.zoom = 0.85;
+        camera.targetZoom = 0.85;
+    }
+
+    p.scanned = true;
+    p.visited = true;
+    if (typeof registerCodex === 'function') registerCodex(p);
+
+    closeMapModal();
+
+    if (typeof audio !== 'undefined' && audio) {
+        if (audio.playChime) audio.playChime();
+    }
+    if (typeof createShockwave === 'function') {
+        createShockwave(ship.x, ship.y, 180, 380, 'rgba(56, 189, 248, 0.9)', 'ring');
+    }
+    if (typeof createSparks === 'function') {
+        createSparks(ship.x, ship.y, 24, 0, Math.PI * 2, 60, 200, [56, 189, 248], 0.55);
+    }
+    if (typeof showHoloCard === 'function') {
+        showHoloCard(p, 'TELETRANSPORTE COMPLETADO', `Despliegue directo en ${p.name.toUpperCase()}.`);
+    }
+}
+
+/**
  * Selecciona un planeta para mostrar en el Dossier táctico
  */
 function selectStarMapPlanet(p) {
@@ -1126,14 +1120,18 @@ function updateStarMapDossier(p) {
     }
 
     if (mineralsEl) {
-        mineralsEl.textContent = (p.minerals || []).map(m => m.name).slice(0, 4).join(', ') || 'Silicatos estándar y trazas de hierro';
+        const fuelLabel = (typeof getPlanetCategoryProfile === 'function') ? getPlanetCategoryProfile(p).fuelProfile.tierLabel : 'Variable';
+        const mins = (p.minerals || []).map(m => m.name).slice(0, 4).join(', ') || 'Silicatos estándar';
+        mineralsEl.textContent = `Éter: ${fuelLabel} · ${mins}`;
     }
 
     if (descEl) {
         let extraDesc = p.archetype.desc || 'Planeta del sector astral explorado por la misión Vesper.';
         if (p.hasRings) extraDesc += ' · Cuenta con un sistema de anillos masivos 3D en su plano ecuatorial.';
         if (p.isSuperVolcano) extraDesc += ' · Se detectan calderas supervolcánicas activas con columnas piroclásticas.';
-        if (p.isHollow) extraDesc += ' · Contiene fallas cavernosas y abismos subterráneos navegables en su interior.';
+        if (p.isHollow) extraDesc += ` · Mundo hueco navegable (${p.caveEntrances?.length || 1} entradas de caverna, física: ${p.hollowPhysicsMode}).`;
+        if (p.floatingIslands && p.floatingIslands.length > 0) extraDesc += ` · Posee ${p.floatingIslands.length} plataformas e islas flotantes.`;
+        if (p.isComet) extraDesc += ' · Cometa activo con cola iónica/polvo y géiseres criogénicos.';
         if (p.lakes && p.lakes.length > 0) extraDesc += ` · Alberga ${p.lakes.length} mares y cuencas líquidas superficiales.`;
         descEl.textContent = extraDesc;
     }
@@ -1174,6 +1172,8 @@ function updateStarMapDirectory() {
         planets = planets.filter(p => p.creatures && p.creatures.length > 0);
     } else if (starMapState.filter === 'rings') {
         planets = planets.filter(p => p.hasRings);
+    } else if (starMapState.filter === 'rare') {
+        planets = planets.filter(p => p.isHollow || p.isComet || p.isSingularity || p.isMagnetar || p.isEyeballWorld || ['hollow', 'shattered', 'living', 'megalithic', 'cometary', 'anomaly', 'gravitic', 'artificial', 'temporal'].includes(p.archetype?.classId));
     }
 
     // Filtrado por buscador de texto
@@ -1253,6 +1253,14 @@ function updateStarMapDirectory() {
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5">
                         <span class="font-display font-semibold text-white text-xs truncate">${p.name}</span>
+                        ${p.isHollow ? '<span title="Mundo Hueco Navegable" class="text-[9px]">🕳️</span>' : ''}
+                        ${p.isComet ? '<span title="Cometa Activo" class="text-[9px]">☄️</span>' : ''}
+                        ${p.archetype?.classId === 'shattered' ? '<span title="Islas Flotantes" class="text-[9px]">🪨</span>' : ''}
+                        ${p.archetype?.classId === 'living' ? '<span title="Superorganismo Vivo" class="text-[9px]">🍄</span>' : ''}
+                        ${p.archetype?.classId === 'megalithic' ? '<span title="Arqueología Megalítica" class="text-[9px]">⛩️</span>' : ''}
+                        ${p.archetype?.classId === 'gravitic' ? '<span title="Pozo Gravitatorio / Púlsar" class="text-[9px]">🌀</span>' : ''}
+                        ${p.archetype?.classId === 'artificial' ? '<span title="Megaestructura Sintética" class="text-[9px]">🛸</span>' : ''}
+                        ${p.archetype?.classId === 'temporal' ? '<span title="Mundo Efímero / Tormenta Cósmica" class="text-[9px]">⚡</span>' : ''}
                         ${p.creatures && p.creatures.length > 0 ? '<span title="Fauna viva detectada" class="text-[9px]">🐾</span>' : ''}
                         ${p.hasRings ? '<span title="Anillos 3D" class="text-[9px]">🪐</span>' : ''}
                     </div>

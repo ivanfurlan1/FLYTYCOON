@@ -35,12 +35,15 @@ const astronaut = {
     altitude: 0,             // Altura sobre el terreno (m)
     vTangential: 0,          // Velocidad a lo largo de la superficie (m/s)
     vRadial: 0,              // Velocidad vertical perpendicular al suelo (m/s)
+    radialPos: 0,            // Radio actual respecto al centro del planeta
+    inCavern: false,         // ¿Explorando dentro de un mundo hueco?
+    onCeiling: false,        // ¿Caminando sobre el techo por gravedad invertida?
     facing: 1,               // 1 = derecha / sentido horario, -1 = izquierda
     isGrounded: true,
     walkCycle: 0,            // Fase de animación de piernas y brazos
     jetpackFuel: 100,        // Propargol de gas frío del jetpack (0..100)
     suitO2: 100,             // Soporte vital de oxígeno del traje
-    headlamp: true,          // Faros tácticos del casco
+    headlamp: false,         // Proyector deshabilitado en el diseño limpio
     x: 0,
     y: 0,
     
@@ -60,6 +63,16 @@ const astronaut = {
     // Sistema de selección y construcción de cohetes en el astillero
     selectedRocketModel: 'starship',
     isHoldingRocketBuildBtn: false,
+
+    // Sistema de reserva de combustible, inventario de minerales y extractores
+    fuelReserve: 30,             // Reserva portátil de Éter Combustible (L)
+    fuelReserveLevel: 1,         // Nivel del tanque portátil EVA (1..4)
+    inventory: {},               // Mapa { resourceId: cantidad }
+    prospectedZones: {},         // Mapa { planetKey: [{ angle, deg, fuelRichness, regionName }] }
+    isHoldingExtractorBtn: false,
+    isHoldingRefuelBtn: false,
+    autoDeployExtractor: false,
+    autoRefuelShip: false,
     
     // Balizas persistentes plantadas en mundos
     plantedBeacons: []
@@ -121,10 +134,17 @@ function disembarkShip() {
     
     // Ángulo polar de la nave respecto al centro del planeta
     const shipAngle = Math.atan2(ship.y - targetPlanet.y, ship.x - targetPlanet.x);
+    const shipDistR = Math.hypot(ship.x - targetPlanet.x, ship.y - targetPlanet.y);
+    const inCav = !!(targetPlanet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(targetPlanet, ship.x, ship.y));
+    const ceilR = targetPlanet.isHollow && typeof getCavernCeilingRadius === 'function' ? getCavernCeilingRadius(targetPlanet, shipAngle) : targetPlanet.radius;
+    const onCeil = !!(inCav && targetPlanet.hollowPhysicsMode === 'inverted_shell' && Math.abs(shipDistR - ceilR) < Math.abs(shipDistR - (typeof getCavernFloorRadius === 'function' ? getCavernFloorRadius(targetPlanet, shipAngle) : targetPlanet.radius * 0.44)));
+
     // Desplegarse al costado seguro del cohete según su envergadura real
-    const safeAngleOffset = Math.max(0.0004, (halfWidth + 14) / targetPlanet.radius);
-    astronaut.angle = shipAngle + safeAngleOffset;
+    const safeAngleOffset = Math.max(0.0004, (halfWidth + 14) / Math.max(800, shipDistR));
+    astronaut.angle = shipAngle + (onCeil ? -safeAngleOffset : safeAngleOffset);
     if (typeof camera !== 'undefined') camera.userZoomMult = 1.0;
+    astronaut.inCavern = inCav;
+    astronaut.onCeiling = onCeil;
     astronaut.altitude = 1.5;
     astronaut.vTangential = 0;
     astronaut.vRadial = 0;
@@ -135,10 +155,15 @@ function disembarkShip() {
     astronaut.actionType = null;
     astronaut.disembarkFade = 1.0;
 
-    // Calcular coordenadas cartesianas iniciales
-    const sr = getSurfaceRadius(targetPlanet, astronaut.angle);
-    astronaut.x = targetPlanet.x + Math.cos(astronaut.angle) * (sr + astronaut.altitude);
-    astronaut.y = targetPlanet.y + Math.sin(astronaut.angle) * (sr + astronaut.altitude);
+    // Calcular coordenadas cartesianas iniciales (exterior, isla flotante, suelo de caverna o techo invertido)
+    const islStart = (typeof getFloatingIslandAt === 'function') ? getFloatingIslandAt(targetPlanet, astronaut.angle, shipDistR, true) : null;
+    let sr = (typeof getCavernOrSurfaceRadius === 'function')
+        ? getCavernOrSurfaceRadius(targetPlanet, astronaut.angle, inCav, onCeil)
+        : getSurfaceRadius(targetPlanet, astronaut.angle);
+    if (islStart && Math.abs(shipDistR - islStart.topR) < 60) sr = islStart.topR;
+    astronaut.radialPos = onCeil ? (sr - astronaut.altitude) : (sr + astronaut.altitude);
+    astronaut.x = targetPlanet.x + Math.cos(astronaut.angle) * astronaut.radialPos;
+    astronaut.y = targetPlanet.y + Math.sin(astronaut.angle) * astronaut.radialPos;
 
     // Detener propulsión de la nave y poner en modo estacionario
     ship.thrusting = false;
@@ -157,8 +182,8 @@ function disembarkShip() {
     createSmoke(hatchX, hatchY, 6, 3.5, [220, 240, 255], 0, 0, 0.6, 25);
     createSparks(hatchX, hatchY, 8, ship.angle + Math.PI / 2, 0.4, 30, 90, [254, 240, 138], 0.35);
 
-    showHoloCard(targetPlanet, 'EVA INICIADA — DESPLIEGUE EN ' + targetPlanet.name.toUpperCase(), 
-        'Explora a pie. [A/D] caminar, [Espacio] propulsor EVA, [F] abordar sonda.');
+    showHoloCard(targetPlanet, 'EVA INICIADA — ' + targetPlanet.name.toUpperCase(), 
+        'Explora la superficie y acércate a estructuras para interactuar.');
     return true;
 }
 
@@ -234,6 +259,8 @@ function boardShip() {
     }
 
     astronaut.active = false;
+    astronaut.inCavern = false;
+    astronaut.onCeiling = false;
     astronaut.actionProgress = 0;
     astronaut.actionType = null;
 
@@ -258,8 +285,43 @@ function updateAstronautPhysics(dt) {
     if (!astronaut.active || !astronaut.planet) return;
 
     const p = astronaut.planet;
-    const g = (p.gravityForce || 280) * 0.48; // Gravedad local ajustada para movimiento ágil
-    const surfaceR = getSurfaceRadius(p, astronaut.angle);
+    const baseG = (p.gravityForce || 280) * 0.48; // Gravedad local ajustada para movimiento ágil
+    const hollowBounds = (p.isHollow && typeof getHollowBoundsAt === 'function') ? getHollowBoundsAt(p, astronaut.angle) : null;
+
+    // Transición automática de entrada/salida de cueva al explorar a pie o con jetpack
+    if (p.isHollow && hollowBounds) {
+        if (!astronaut.inCavern && astronaut.radialPos > 0 && astronaut.radialPos < hollowBounds.cavernTriggerR) {
+            astronaut.inCavern = true;
+        } else if (astronaut.inCavern && hollowBounds.isThroatOpen && astronaut.radialPos > hollowBounds.extR - 6) {
+            astronaut.inCavern = false;
+            astronaut.onCeiling = false;
+        }
+        astronaut.onCeiling = !!(astronaut.inCavern && p.hollowPhysicsMode === 'inverted_shell' && astronaut.radialPos > (hollowBounds.floorR + hollowBounds.ceilR) * 0.48);
+    } else {
+        astronaut.inCavern = false;
+        astronaut.onCeiling = false;
+    }
+
+    const g = (astronaut.inCavern && p.hollowPhysicsMode === 'microgravity_vortex')
+        ? baseG * 0.25
+        : ((astronaut.inCavern && p.hollowPhysicsMode === 'crystal_resonance') ? baseG * 0.22 : (astronaut.onCeiling ? baseG * 0.55 : baseG));
+
+    // Seleccionar radio de soporte actual (isla flotante, garganta, suelo de caverna, techo invertido o corteza)
+    const islHit = (typeof getFloatingIslandAt === 'function') ? getFloatingIslandAt(p, astronaut.angle, astronaut.radialPos || null, true) : null;
+    const useFloatingSupport = !!(islHit && (astronaut.radialPos || 0) >= islHit.topR - 18 && (astronaut.radialPos || 0) <= islHit.topR + 180);
+
+    let surfaceR = getSurfaceRadius(p, astronaut.angle);
+    if (useFloatingSupport) {
+        surfaceR = islHit.topR;
+    } else if (p.isHollow && hollowBounds) {
+        if (astronaut.inCavern) {
+            surfaceR = astronaut.onCeiling ? hollowBounds.effectiveCeilingR : hollowBounds.floorR;
+        } else if (hollowBounds.isThroatOpen) {
+            surfaceR = hollowBounds.floorR;
+        } else {
+            surfaceR = hollowBounds.extR;
+        }
+    }
 
     // Controles de entrada de usuario cuando se está en modo EVA
     let inputMove = 0;
@@ -272,15 +334,28 @@ function updateAstronautPhysics(dt) {
         astronaut.facing = inputMove > 0 ? 1 : -1;
     }
 
-    // Aceleración tangencial (trote ágil y carrera/sprint con Shift sobre la superficie)
+    // Aceleración tangencial (trote ágil y carrera/sprint con Shift sobre la superficie, con respuesta sutil a pendientes)
     const walkSpeed = 48.0;
     const sprintSpeed = 96.0;
-    const groundSpeed = isSprinting ? sprintSpeed : walkSpeed;
+    let slopeFactor = 1.0;
+    if (astronaut.isGrounded && !astronaut.inCavern && !astronaut.onCeiling && inputMove !== 0 && p.radius > 0) {
+        const eps = clamp(8 / Math.max(250, p.radius), 0.00015, 0.015);
+        const dirSign = astronaut.onCeiling ? -inputMove : inputMove;
+        const dr = getSurfaceRadius(p, astronaut.angle + dirSign * eps) - getSurfaceRadius(p, astronaut.angle - dirSign * eps);
+        const dirSlope = dr / (2 * eps * Math.max(250, surfaceR));
+        if (dirSlope > 0.14) {
+            slopeFactor = clamp(1 - (dirSlope - 0.14) * 0.40, 0.58, 1.0);
+        } else if (dirSlope < -0.14) {
+            slopeFactor = clamp(1 + (-dirSlope - 0.14) * 0.12, 1.0, 1.12);
+        }
+    }
+    const groundSpeed = (isSprinting ? sprintSpeed : walkSpeed) * slopeFactor;
     const airSpeed = isSprinting ? 72.0 : 38.0;
     const targetTangential = inputMove * (astronaut.isGrounded ? groundSpeed : airSpeed);
     const accelRate = astronaut.isGrounded ? (isSprinting ? 11.5 : 14.5) : 5.5;
     astronaut.vTangential = lerp(astronaut.vTangential, targetTangential, dt * accelRate);
 
+    const wasGrounded = astronaut.isGrounded;
     // Salto y Jetpack de gas frío (Espacio / W / Flecha arriba)
     const jumpRequested = keys['Space'] || keys['KeyW'] || keys['ArrowUp'];
 
@@ -290,16 +365,17 @@ function updateAstronautPhysics(dt) {
             astronaut.vRadial = isSprinting ? 46.0 : 40.0;
             astronaut.isGrounded = false;
             sfx('playJetpackPuff');
-            
+
             // Polvo en el suelo al despegar
+            const dustSign = astronaut.onCeiling ? 1 : -1;
             const pNorm = astronaut.angle;
-            createSmoke(astronaut.x, astronaut.y, isSprinting ? 4 : 3, 2.5, p.archetype.surfaceDustColor, -Math.cos(pNorm) * 10, -Math.sin(pNorm) * 10, 0.35);
+            createSmoke(astronaut.x, astronaut.y, isSprinting ? 4 : 3, 2.5, p.archetype.surfaceDustColor, dustSign * Math.cos(pNorm) * 10, dustSign * Math.sin(pNorm) * 10, 0.35);
         } else if (astronaut.jetpackFuel > 0) {
             // Sustentación sostenida por micro-propulsores de mochila PLSS
-            const thrustAcc = g * 1.65;
+            const thrustAcc = Math.max(g * 1.65, 95);
             const maxAscent = isSprinting ? 56.0 : 46.0;
             astronaut.vRadial = Math.min(maxAscent, astronaut.vRadial + thrustAcc * dt);
-            astronaut.jetpackFuel = Math.max(0, astronaut.jetpackFuel - dt * 20.0);
+            astronaut.jetpackFuel = Math.max(0, astronaut.jetpackFuel - dt * 18.0);
 
             // Emisión de micro-chorros de gas frío
             astronaut.puffTimer += dt;
@@ -307,10 +383,11 @@ function updateAstronautPhysics(dt) {
                 astronaut.puffTimer = 0;
                 sfx('playJetpackPuff');
 
-                const jetAngle = astronaut.angle; // Hacia abajo, hacia el planeta
-                const backX = astronaut.x - Math.cos(astronaut.angle + Math.PI / 2) * (astronaut.facing * 3);
-                const backY = astronaut.y - Math.sin(astronaut.angle + Math.PI / 2) * (astronaut.facing * 3);
-                
+                const jetAngle = astronaut.onCeiling ? (astronaut.angle + Math.PI) : astronaut.angle;
+                const rotBasis = astronaut.onCeiling ? (astronaut.angle - Math.PI / 2) : (astronaut.angle + Math.PI / 2);
+                const backX = astronaut.x - Math.cos(rotBasis) * (astronaut.facing * 3);
+                const backY = astronaut.y - Math.sin(rotBasis) * (astronaut.facing * 3);
+
                 particles.push({
                     x: backX + (Math.random() - 0.5) * 2,
                     y: backY + (Math.random() - 0.5) * 2,
@@ -332,41 +409,80 @@ function updateAstronautPhysics(dt) {
         }
     }
 
-    // Aplicar gravedad radial y actualizar altitud
-    astronaut.vRadial -= g * dt;
-    astronaut.altitude += astronaut.vRadial * dt;
-
-    // Contacto con el terreno (Colisión de superficie)
-    if (astronaut.altitude <= 0) {
-        astronaut.altitude = 0;
-        if (!astronaut.isGrounded && astronaut.vRadial < -12) {
-            // Impacto suave al tocar suelo
-            sfx('playFootstep');
-            createSmoke(astronaut.x, astronaut.y, 2, 2.2, p.archetype.surfaceDustColor, 0, 0, 0.3);
+    // Impulso de géiseres activos bajo los pies del astronauta
+    if (p.phenomena && p.phenomena.length > 0 && !astronaut.inCavern) {
+        const curT = performance.now() / 1000;
+        for (const ph of p.phenomena) {
+            if (ph.type !== 'geyser') continue;
+            const intensity = (typeof getGeyserIntensity === 'function') ? getGeyserIntensity(ph, curT) : 0;
+            if (intensity <= 0.1) continue;
+            const dAng = Math.abs(Math.atan2(Math.sin(astronaut.angle - ph.angle), Math.cos(astronaut.angle - ph.angle)));
+            if (dAng <= ph.span * 1.4 && astronaut.altitude <= ph.reachHeight) {
+                astronaut.vRadial = Math.min(140, astronaut.vRadial + ph.force * 2.2 * intensity * dt);
+                astronaut.isGrounded = false;
+            }
         }
-        astronaut.vRadial = 0;
-        astronaut.isGrounded = true;
-    } else {
-        astronaut.isGrounded = false;
     }
 
-    // Actualizar coordenada angular polar a lo largo del perímetro esférico
-    const currentRadius = surfaceR + astronaut.altitude;
-    astronaut.angle += (astronaut.vTangential / currentRadius) * dt;
+    // Aplicar gravedad radial relativa a la superficie de apoyo actual
+    astronaut.vRadial -= g * dt;
+    const stepSign = astronaut.onCeiling ? -1 : 1;
+    const prevRadial = astronaut.radialPos || (surfaceR + astronaut.altitude);
+    let nextRadial = prevRadial + stepSign * astronaut.vRadial * dt;
 
-    // Calcular posición cartesianas en el cosmos
+    // Resolver soporte y techo en mundos huecos e islas flotantes
+    if (astronaut.onCeiling) {
+        if (nextRadial >= surfaceR) {
+            nextRadial = surfaceR;
+            if (!astronaut.isGrounded && astronaut.vRadial < -12) sfx('playFootstep');
+            astronaut.vRadial = 0;
+            astronaut.isGrounded = true;
+        } else {
+            astronaut.isGrounded = false;
+        }
+        astronaut.altitude = Math.max(0, surfaceR - nextRadial);
+    } else {
+        if (nextRadial <= surfaceR || (wasGrounded && !jumpRequested && astronaut.vRadial <= 2 && (nextRadial - surfaceR) < 4.5)) {
+            nextRadial = surfaceR;
+            if (!wasGrounded && astronaut.vRadial < -12) {
+                sfx('playFootstep');
+                createSmoke(astronaut.x, astronaut.y, 2, 2.2, p.archetype.surfaceDustColor, 0, 0, 0.3);
+            }
+            astronaut.vRadial = 0;
+            astronaut.isGrounded = true;
+        } else {
+            astronaut.isGrounded = false;
+        }
+        // Evitar atravesar techo sólido de la caverna en mundos huecos con gravedad normal
+        if (astronaut.inCavern && hollowBounds && !hollowBounds.isThroatOpen && nextRadial > hollowBounds.effectiveCeilingR - 14) {
+            nextRadial = hollowBounds.effectiveCeilingR - 14;
+            if (astronaut.vRadial > 0) astronaut.vRadial = -4;
+        }
+        astronaut.altitude = Math.max(0, nextRadial - surfaceR);
+    }
+    astronaut.radialPos = nextRadial;
+
+    // Actualizar coordenada angular polar a lo largo del perímetro esférico
+    const currentRadius = Math.max(200, astronaut.radialPos);
+    const tangSign = astronaut.onCeiling ? -1 : 1;
+    astronaut.angle += tangSign * (astronaut.vTangential / currentRadius) * dt;
+
+    // Calcular coordenadas cartesianas en el cosmos
     astronaut.x = p.x + Math.cos(astronaut.angle) * currentRadius;
     astronaut.y = p.y + Math.sin(astronaut.angle) * currentRadius;
 
-    // Detección de inmersión en lagunas y cuencas de fluido
-    const lakeInfo = typeof getPlanetLakeAtAngle === 'function' ? getPlanetLakeAtAngle(p, astronaut.angle) : null;
-    const inLake = !!lakeInfo && (currentRadius <= lakeInfo.waterLevel + 2.5);
+    // Detección de inmersión en lagunas exteriores o subterráneas (excluyendo plataformas flotantes)
+    const lakeInfo = !useFloatingSupport
+        ? (astronaut.inCavern
+            ? (typeof getCavernLakeAtAngle === 'function' ? getCavernLakeAtAngle(p, astronaut.angle) : null)
+            : (typeof getPlanetLakeAtAngle === 'function' ? getPlanetLakeAtAngle(p, astronaut.angle) : null))
+        : null;
+    const inLake = !astronaut.onCeiling && !!lakeInfo && (currentRadius <= lakeInfo.waterLevel + 2.5);
 
     if (inLake) {
         // Amortiguación viscosa hidrodinámica al vadear fluido
         astronaut.vTangential *= Math.pow(0.86, dt * 8);
         if (astronaut.altitude <= 0 && lakeInfo.waterLevel > surfaceR + 1) {
-            // Flotabilidad suave en aguas más profundas
             astronaut.vRadial += (p.gravityForce || 280) * 0.22 * dt;
         }
     }
@@ -611,6 +727,74 @@ function handleAstronautInteractions(dt) {
         astronaut.jetpackFuel = Math.min(100, astronaut.jetpackFuel + dt * 42.0);
         astronaut.suitO2 = 100;
     }
+
+    // 5. DESPLIEGUE DE MÁQUINA EXTRACTORA DE RECURSOS (CLIC, TECLA G O MANTENER SOSTENIDO)
+    const onFirmSurface = astronaut.isGrounded || astronaut.altitude < 4.5;
+    if (astronaut.autoDeployExtractor && !onFirmSurface) {
+        astronaut.autoDeployExtractor = false;
+        showHoloCard(p, 'ATERRIZA PARA INSTALAR', 'Posa los pies sobre la superficie y vuelve a pulsar [G] o el botón ⛏️ Poner Extractor.');
+    }
+    const isHoldingExtractor = (keys['KeyG'] || astronaut.isHoldingExtractorBtn || astronaut.autoDeployExtractor) && onFirmSurface;
+    if (isHoldingExtractor) {
+        astronaut.actionType = 'deploy_extractor';
+        astronaut.actionProgress += dt / 0.75;
+        sfx('playBaseBuild', astronaut.actionProgress);
+
+        if (Math.random() < 0.7) {
+            createSparks(astronaut.x, astronaut.y, 2, astronaut.angle - Math.PI / 2 + (Math.random() - 0.5), 0.5, 40, 130, [56, 189, 248], 0.25);
+        }
+
+        if (astronaut.actionProgress >= 1.0) {
+            astronaut.actionProgress = 0;
+            astronaut.actionType = null;
+            astronaut.isHoldingExtractorBtn = false;
+            astronaut.autoDeployExtractor = false;
+            keys['KeyG'] = false;
+            if (typeof deployExtractorAtAstronaut === 'function') {
+                deployExtractorAtAstronaut();
+            } else {
+                showHoloCard(p, 'MÓDULO DE RECURSOS NO CARGADO', 'Recarga la página con Ctrl+F5 o abre index.html para activar js/resources.js.');
+            }
+        }
+    } else if (astronaut.actionType === 'deploy_extractor') {
+        astronaut.actionProgress = Math.max(0, astronaut.actionProgress - dt * 3.0);
+        if (astronaut.actionProgress === 0) astronaut.actionType = null;
+    }
+
+    // 6. TRANSFERENCIA DE COMBUSTIBLE DE RESERVA EVA AL COHETE (CLIC, TECLA U O MANTENER SOSTENIDO)
+    const closestTarget = (typeof getClosestShipToAstronaut === 'function') ? getClosestShipToAstronaut() : { shipObj: ship, dist: distToShip };
+    const targetShip = closestTarget.shipObj || ship;
+    const distTarget = closestTarget.dist;
+    const isNearRefuelShip = distTarget < maxInteractDist + 32;
+    if (astronaut.autoRefuelShip && !isNearRefuelShip) astronaut.autoRefuelShip = false;
+    const isHoldingRefuel = (keys['KeyU'] || astronaut.isHoldingRefuelBtn || astronaut.autoRefuelShip) && isNearRefuelShip;
+
+    if (isHoldingRefuel && (astronaut.fuelReserve || 0) > 0.05 && targetShip.fuel < (targetShip.maxFuel || 100) - 0.05) {
+        astronaut.actionType = 'refuel_ship';
+        const pumpRate = 42.0; // L/s
+        const transferred = (typeof transferFuelReserveToRocket === 'function')
+            ? transferFuelReserveToRocket(pumpRate * dt)
+            : 0;
+        astronaut.actionProgress = clamp(targetShip.fuel / Math.max(1, targetShip.maxFuel || 100), 0, 1);
+
+        if (transferred > 0 && Math.random() < 0.45) {
+            sfx('playRefuelTransfer');
+            createSparks(targetShip.x, targetShip.y, 2, Math.random() * Math.PI * 2, 0.5, 25, 95, [251, 191, 36], 0.25);
+        }
+        if (targetShip.fuel >= (targetShip.maxFuel || 100) - 0.05 || (astronaut.fuelReserve || 0) <= 0.05) {
+            astronaut.autoRefuelShip = false;
+            astronaut.actionType = null;
+            astronaut.actionProgress = 0;
+            if (targetShip.fuel >= (targetShip.maxFuel || 100) - 0.05) {
+                sfx('playChime');
+                showHoloCard(p, 'COHETE REPOSTADO AL 100%', 'Tanque principal de Éter completamente cargado desde tu reserva.');
+            }
+        }
+    } else if (astronaut.actionType === 'refuel_ship') {
+        astronaut.autoRefuelShip = false;
+        astronaut.actionType = null;
+        astronaut.actionProgress = 0;
+    }
 }
 
 /**
@@ -685,7 +869,8 @@ function deployNewRocket(planet, angle, modelKey) {
     // Aplicar física y reservas del modelo (limpiando o asignando customRocket según corresponda)
     ship.customRocket = (model.id === 'custom' && model.customParts) ? model : null;
     applyRocketModel(ship, model.id);
-    ship.fuel = model.fuelCapacity;
+    // Carga inicial de emergencia (25%): requiere combustible extraído para viajes largos
+    ship.fuel = Math.max(15, Math.round((model.fuelCapacity || 100) * 0.25));
     ship.hull = model.maxHull;
     if (typeof updateStageHudButton === 'function') updateStageHudButton();
 
@@ -697,7 +882,7 @@ function deployNewRocket(planet, angle, modelKey) {
     createSmoke(ship.x, ship.y, 8, 8.5 * (model.scale || 1.0), planet.archetype.surfaceDustColor, 0, 0, 0.9, 32);
 
     showHoloCard(planet, 'COHETE ENSAMBLADO: ' + model.name.toUpperCase(), 
-        model.tagline + ' · Presiona [F] para abordar.');
+        model.tagline + ' · Carga inicial 25%. Reposta con [U] o extrae Éter con [G].');
 }
 
 // --- GESTIÓN DE BASES PLANETARIAS MODULARES ---
@@ -911,7 +1096,10 @@ function triggerAstronautScan() {
             node.harvested = true;
             ship.artifacts += 1;
             astronaut.jetpackFuel = 100;
-            ship.fuel = 100;
+            ship.fuel = Math.min(ship.maxFuel || 100, ship.fuel + 25);
+            if (typeof getFuelReserveCapacity === 'function') {
+                astronaut.fuelReserve = Math.min(getFuelReserveCapacity(), (astronaut.fuelReserve || 0) + 15);
+            }
             nodeHarvestedCount++;
             sfx('playChime');
             createShockwave(astronaut.x, astronaut.y, 80, 240, 'rgba(251, 191, 36, 0.95)', 'ring');
@@ -920,7 +1108,7 @@ function triggerAstronautScan() {
     }
 
     if (nodeHarvestedCount > 0) {
-        showHoloCard(p, 'NÚCLEO DE ÉTER ASIMILADO A PIE', 'Depósito analizado e incorporado al inventario de expedición.');
+        showHoloCard(p, 'NÚCLEO DE ÉTER ASIMILADO A PIE', '+25 L a la sonda y +15 L a tu reserva portátil EVA.');
         return;
     }
 
@@ -938,10 +1126,11 @@ function triggerAstronautScan() {
         if (closestCreature && minCreatureDist < 85) {
             const temp = closestCreature.temperament;
             const healthPct = Math.round((closestCreature.hp / closestCreature.maxHp) * 100);
+            const spDesc = (closestCreature.spec && closestCreature.spec.desc) ? closestCreature.spec.desc : temp.desc;
             showHoloCard(
                 p,
                 `ESPECIE AUTÓCTONA: ${closestCreature.species.toUpperCase()}`,
-                `[${temp.badge}] ${temp.desc} · Morfología: ${closestCreature.family.toUpperCase()} (${closestCreature.sizeClass.toUpperCase()}) · Vitalidad: ${healthPct}%`
+                `[${temp.badge}] ${spDesc} · Locomoción: ${(closestCreature.locomotion || 'terrestre').toUpperCase()} · Vitalidad: ${healthPct}%`
             );
             sfx('playChime');
             return;
@@ -970,8 +1159,9 @@ function triggerAstronautScan() {
 
     const curReg = typeof getPlanetRegionAtAngle === 'function' ? getPlanetRegionAtAngle(p, astronaut.angle) : null;
     const regTitle = curReg ? `${curReg.name.toUpperCase()} [${curReg.def.name.toUpperCase()}]` : p.name.toUpperCase();
-    const minStr = (p.minerals && p.minerals.length > 0) ? p.minerals.map(m => m.name).slice(0, 2).join(', ') : 'Silicatos estándar';
-    const scanText = `Bioma: ${curReg ? curReg.def.name : 'Superficie'}. Muestras: ${minStr} · Peligro: ${p.hazardLevel} · Gravedad: ${(p.gravityForce / 285).toFixed(1)}G`;
+    const minStr = (p.minerals && p.minerals.length > 0) ? p.minerals.map(m => m.name).slice(0, 3).join(', ') : 'Silicatos estándar';
+    const catFuel = (typeof getPlanetCategoryProfile === 'function') ? getPlanetCategoryProfile(p).fuelProfile.tierLabel : 'Variable';
+    const scanText = `Éter planetario: ${catFuel}. Minerales: ${minStr} · Despliega un Extractor [G] para análisis exacto de esta zona.`;
     showHoloCard(p, `SONDEO: ${regTitle}`, scanText);
     sfx('playChime');
 }
@@ -1831,7 +2021,7 @@ function drawAstronaut(timeSec) {
 
     ctx.save();
     ctx.translate(astronaut.x, astronaut.y);
-    ctx.rotate(astronaut.angle + Math.PI / 2); // Aligned to local terrain tangent
+    ctx.rotate(astronaut.onCeiling ? (astronaut.angle - Math.PI / 2) : (astronaut.angle + Math.PI / 2)); // Aligned to local terrain or inverted ceiling tangent
 
     // 1. Sombra elíptica en el suelo que atenúa con la altura
     const shadowAlpha = clamp(1 - astronaut.altitude / 35, 0, 0.65);
@@ -1848,28 +2038,6 @@ function drawAstronaut(timeSec) {
     // 2. Trasladar al modelo según altitud sobre el suelo
     ctx.translate(0, -astronaut.altitude);
     ctx.scale(astronaut.facing, 1); // Orientar hacia izquierda o derecha
-
-    // 3. Proyector de luz del casco (Faros tácticos frontales)
-    if (astronaut.headlamp) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const lampLen = 78;
-        const lampW = 28;
-        const lampGrad = ctx.createRadialGradient(2, -10, 2, lampLen * 0.55, -4, lampLen);
-        lampGrad.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
-        lampGrad.addColorStop(0.35, 'rgba(254, 240, 138, 0.18)');
-        lampGrad.addColorStop(0.85, 'rgba(254, 240, 138, 0.04)');
-        lampGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        
-        ctx.fillStyle = lampGrad;
-        ctx.beginPath();
-        ctx.moveTo(3, -10);
-        ctx.lineTo(lampLen, -10 - lampW * 0.4);
-        ctx.lineTo(lampLen, -10 + lampW * 0.6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-    }
 
     // Parámetros de animación procedural orgánica estilo Alto's Adventure
     const isMoving = astronaut.isGrounded && Math.abs(astronaut.vTangential) > 0.8;
@@ -2097,39 +2265,7 @@ function drawInteractionEffects(timeSec) {
     }
     const maxInteractDist = Math.max(85, padDist * 1.8);
 
-    // 1. INDICADOR HOLOGRÁFICO FLOTANTE SOBRE LA NAVE CUANDO ESTÁ VOLCADA
-    if (distToShip < maxInteractDist && isShipTilted) {
-        ctx.save();
-        ctx.translate(ship.x, ship.y);
-        ctx.rotate(camera.rotation); // Rótulo siempre erguido en pantalla
-
-        const floatY = -34 + Math.sin(timeSec * 4) * 2.5;
-        
-        // Placa aero-panel holográfica
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        safeRoundRect(ctx, -58, floatY - 10, 116, 20, 10);
-        ctx.fill();
-        ctx.stroke();
-
-        // Icono de enderezado / llave giroscópica
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.arc(-44, floatY, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Texto informativo
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 8px JetBrains Mono, monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('ENDEREZAR [ESPACIO]', -36, floatY + 3);
-
-        ctx.restore();
-    }
-
-    // 2. RAYO TRACTOR HIDRÁULICO KINÉTICO (ENDEREZANDO NAVE)
+    // 1. RAYO TRACTOR HIDRÁULICO KINÉTICO (ENDEREZANDO NAVE)
     if (astronaut.actionType === 'right_ship' && astronaut.actionProgress > 0) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -2334,6 +2470,63 @@ function drawInteractionEffects(timeSec) {
         ctx.closePath();
         ctx.fill();
 
+        ctx.restore();
+    }
+
+    // 6. HOLOGRAMA DE DESPLIEGUE DE EXTRACTOR (TECLA G)
+    if (astronaut.actionType === 'deploy_extractor' && astronaut.actionProgress > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const prg = astronaut.actionProgress;
+        ctx.translate(astronaut.x, astronaut.y);
+        ctx.rotate(camera.rotation);
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+        ctx.lineWidth = 3.0;
+        ctx.beginPath();
+        ctx.arc(0, -28, 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3.0;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, -28, 11, -Math.PI / 2, -Math.PI / 2 + prg * Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e0f2fe';
+        ctx.font = 'bold 6.5px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('PERFORADORA', 0, -43);
+        ctx.fillText(Math.round(prg * 100) + '%', 0, -25.5);
+        ctx.restore();
+    }
+
+    // 7. HAZ DE TRANSFERENCIA DE ÉTER AL COHETE (TECLA U) Y AVISO DE REPOSTAJE
+    const closestRefuel = (typeof getClosestShipToAstronaut === 'function') ? getClosestShipToAstronaut() : { shipObj: ship, dist: distToShip };
+    const rShip = closestRefuel.shipObj || ship;
+    const rDist = closestRefuel.dist;
+    const rMaxF = rShip.maxFuel || 100;
+
+    if (astronaut.actionType === 'refuel_ship') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const grad = ctx.createLinearGradient(astronaut.x, astronaut.y, rShip.x, rShip.y);
+        grad.addColorStop(0, 'rgba(251, 191, 36, 0.95)');
+        grad.addColorStop(0.5, 'rgba(254, 240, 138, 0.95)');
+        grad.addColorStop(1, 'rgba(245, 158, 11, 0.95)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2.6 + Math.sin(timeSec * 28) * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(astronaut.x, astronaut.y);
+        ctx.lineTo(rShip.x, rShip.y);
+        ctx.stroke();
+
+        const pulseP = (timeSec * 3.2) % 1;
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath();
+        ctx.arc(lerp(astronaut.x, rShip.x, pulseP), lerp(astronaut.y, rShip.y, pulseP), 3.5, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
 }

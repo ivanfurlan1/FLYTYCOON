@@ -26,7 +26,14 @@ const WX_CLASS_TO_CLIMATE = {
     crystalline: 'crystal',
     toxic: 'toxic',
     anomaly: 'gas',
-    hollow: 'hollow'
+    hollow: 'hollow',
+    shattered: 'shattered',
+    megalithic: 'megalithic',
+    living: 'living',
+    cometary: 'cryo',
+    gravitic: 'gravitic',
+    artificial: 'artificial',
+    temporal: 'temporal'
 };
 
 const WX_IRIS_VARIANTS = [
@@ -158,6 +165,84 @@ const WX_CLIMATES = {
         neutral: { lit: [245, 242, 250], shade: [175, 170, 195] },
         exotic: { chance: 0.05, variants: [
             { name: 'Bruma de cristal ancestral', lit: [240, 225, 255], tint: [180, 155, 225] }
+        ] }
+    },
+    // ── FRAGMENTADOS: corrientes térmicas y polvo magnético entre islas ──
+    shattered: {
+        label: 'Turbulencia Magnética', cover: [0.35, 0.70],
+        mix: { cirrus: 3.5, stratocu: 2.5, cumulus: 2.5, stratus: 1.5 },
+        storm: { prop: 0.42, int: [0.55, 0.92] },
+        lightning: { rate: 0.85, power: [0.7, 1.0], colors: [[255, 195, 120], [165, 243, 252]], branch: 0.85, ic: 0.45 },
+        precip: { kind: 'ash', color: [220, 185, 160], amount: 0.30, evap: 0.3 },
+        wind: [20, 52],
+        neutral: { lit: [245, 228, 215], shade: [155, 138, 150] },
+        exotic: { chance: 0.10, variants: [
+            { name: 'Velo de polvo ígneo', lit: [255, 205, 160], tint: [220, 145, 105] }
+        ] }
+    },
+    // ── MEGALÍTICOS: bruma áurea seca y vientos constantes ──
+    megalithic: {
+        label: 'Cielo Astrolábico', cover: [0.15, 0.42],
+        mix: { cirrus: 5, stratus: 2.5, cumulus: 1.5 },
+        storm: { prop: 0.18, int: [0.4, 0.8] },
+        lightning: { rate: 0.65, power: [0.65, 0.95], colors: [[254, 240, 138], [186, 230, 253]], branch: 0.75, ic: 0.5 },
+        precip: { kind: 'sparkle', color: [254, 240, 138], amount: 0.25, evap: 0.35 },
+        wind: [10, 26],
+        neutral: { lit: [252, 246, 232], shade: [185, 175, 158] },
+        exotic: { chance: 0.08, variants: [
+            { name: 'Cirros áureos', lit: [255, 238, 175], tint: [225, 195, 120] }
+        ] }
+    },
+    // ── SUPERORGANISMOS: nieblas de esporas bioluminiscentes y llovizna cálida ──
+    living: {
+        label: 'Biosfera de Esporas', cover: [0.55, 0.95],
+        mix: { cumulus: 4.5, stratus: 3, stratocu: 2.5, cirrus: 1.5 },
+        storm: { prop: 0.30, int: [0.45, 0.82] },
+        lightning: { rate: 0.55, power: [0.55, 0.90], colors: [[153, 246, 228], [249, 168, 212]], branch: 0.70, ic: 0.45 },
+        precip: { kind: 'rain', color: [190, 248, 235], amount: 0.55, evap: 0.10 },
+        wind: [8, 24],
+        neutral: { lit: [235, 252, 248], shade: [148, 192, 186] },
+        exotic: { chance: 0.14, variants: [
+            { name: 'Niebla de esporas rosadas', lit: [252, 215, 238], tint: [215, 155, 200] }
+        ] }
+    },
+    // ── GRAVITATORIOS: jirones de acreción oscura, descargas relativistas ──
+    gravitic: {
+        label: 'Acreción Relativista', cover: [0.18, 0.48],
+        mix: { band: 4, cirrus: 3, cb: 1.5 },
+        storm: { prop: 0.55, int: [0.65, 1.0] },
+        lightning: { rate: 1.25, power: [0.75, 1.0], colors: [[192, 132, 252], [251, 146, 60]], branch: 0.85, ic: 0.65 },
+        precip: { kind: 'sparkle', color: [216, 180, 254], amount: 0.30, evap: 0.30 },
+        wind: [28, 70],
+        neutral: { lit: [218, 205, 245], shade: [92, 74, 138] },
+        exotic: { chance: 0.25, variants: [
+            { name: 'Filamentos de púlsar', lit: [190, 245, 255], tint: [110, 175, 235] }
+        ] }
+    },
+    // ── MEGAESTRUCTURAS: brumas de refrigerante ionizado y vientos laminares ──
+    artificial: {
+        label: 'Atmósfera Regulada', cover: [0.12, 0.34],
+        mix: { stratus: 4, cirrus: 3, stratocu: 2 },
+        storm: { prop: 0.15, int: [0.35, 0.70] },
+        lightning: { rate: 0.60, power: [0.55, 0.90], colors: [[56, 189, 248], [250, 204, 21]], branch: 0.60, ic: 0.50 },
+        precip: { kind: 'sparkle', color: [125, 211, 252], amount: 0.22, evap: 0.40 },
+        wind: [10, 24],
+        neutral: { lit: [228, 240, 248], shade: [135, 158, 178] },
+        exotic: { chance: 0.12, variants: [
+            { name: 'Vapor de plasma áureo', lit: [254, 235, 175], tint: [220, 175, 95] }
+        ] }
+    },
+    // ── EFÍMEROS & TORMENTAS: frentes eléctricos intensos y precipitación cristalina ──
+    temporal: {
+        label: 'Tormenta Cósmica', cover: [0.60, 1.05],
+        mix: { cb: 3.5, nimbo: 3, band: 2.5, cumulus: 2 },
+        storm: { prop: 0.82, int: [0.75, 1.0] },
+        lightning: { rate: 1.55, power: [0.80, 1.0], colors: [[103, 232, 249], [244, 114, 182]], branch: 0.92, ic: 0.55 },
+        precip: { kind: 'sparkle', color: [186, 230, 253], amount: 0.65, evap: 0.15 },
+        wind: [34, 82],
+        neutral: { lit: [224, 242, 255], shade: [108, 132, 176] },
+        exotic: { chance: 0.22, variants: [
+            { name: 'Lluvia de diamantes prismáticos', lit: [240, 248, 255], tint: [165, 220, 255] }
         ] }
     }
 };

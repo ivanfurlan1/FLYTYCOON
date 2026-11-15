@@ -31,6 +31,7 @@ const ship = {
     thrustIntensity: 0,
     gearCompression: 0,
     turnVal: 0,
+    rcsStrafe: 0,
     targetAngle: null,
     isGrounded: false,
     contactsCount: 0,
@@ -554,7 +555,13 @@ function getPlanetGravityPull(planet, dist, x = null, y = null) {
     const rEff = Math.max(dist, planet.radius * 0.65);
     let pull = getPlanetMu(planet) / (rEff * rEff);
     if (x !== null && y !== null && planet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(planet, x, y)) {
-        pull *= 0.22;
+        const mode = planet.hollowPhysicsMode || 'microgravity_vortex';
+        const coreSafeR = (planet.interiorCoreRadius || planet.radius * 0.17) + 115;
+        if (dist < coreSafeR) return -pull * 0.90;
+        if (mode === 'inverted_shell') return -pull * 0.42;
+        if (mode === 'thermal_forge') return pull * 0.52;
+        if (mode === 'crystal_resonance') return pull * 0.15;
+        return pull * 0.18;
     }
     return pull;
 }
@@ -1090,9 +1097,63 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         }
     }
 
+    const obsX = (typeof astronaut !== 'undefined' && astronaut.active) ? astronaut.x : ship.x;
+    const obsY = (typeof astronaut !== 'undefined' && astronaut.active) ? astronaut.y : ship.y;
+
     if (atmoWeight <= 0.01) {
         ship.currentSolarState = null;
         ship.currentAtmoWeight = 0;
+    }
+
+    // Cobertura nubosa y oclusión solar local bajo las nubes (transición suave y continua)
+    if (nearestPlanet && atmoWeight > 0.01 && typeof getLocalCloudOvercast === 'function') {
+        const wxCover = getLocalCloudOvercast(nearestPlanet, obsX, obsY);
+        const wxBlend = clamp(dt * 1.6, 0, 1);
+        ship.cloudOvercast = lerp(ship.cloudOvercast || 0, wxCover.overcast, wxBlend);
+        ship.cloudStorm = lerp(ship.cloudStorm || 0, wxCover.storm, clamp(dt * 1.4, 0, 1));
+        ship.sunCloudOcclusion = lerp(ship.sunCloudOcclusion || 0, wxCover.sunOcclusion, clamp(dt * 1.8, 0, 1));
+    } else {
+        const wxClear = clamp(dt * 2.2, 0, 1);
+        ship.cloudOvercast = lerp(ship.cloudOvercast || 0, 0, wxClear);
+        ship.cloudStorm = lerp(ship.cloudStorm || 0, 0, wxClear);
+        ship.sunCloudOcclusion = lerp(ship.sunCloudOcclusion || 0, 0, wxClear);
+    }
+
+    // Oscurecimiento realista y desaturación sutil del cielo diurno/crepuscular bajo nubes o tormenta
+    // (La noche casi no cambia porque ya es oscura; el día conserva su identidad diurna sin volverse noche)
+    if ((ship.cloudOvercast || 0) > 0.004 && atmoWeight > 0.01) {
+        const ov = clamp(ship.cloudOvercast, 0, 1) * smoothstep(0.01, 0.25, atmoWeight);
+        const st = clamp(ship.cloudStorm || 0, 0, 1);
+        const sol = ship.currentSolarState;
+        const dayW = sol ? clamp(sol.dayFactor, 0, 1) : 1.0;
+        const twiW = sol ? clamp(sol.twilightFactor, 0, 1) : 0.0;
+        const nightW = sol ? clamp(sol.nightFactor, 0, 1) : 0.0;
+        const wSum = Math.max(0.001, dayW + twiW + nightW);
+
+        const lum = targetSkyRGB[0] * 0.299 + targetSkyRGB[1] * 0.587 + targetSkyRGB[2] * 0.114;
+        const slateRGB = [lum * 0.90, lum * 0.96, lum * 1.06];
+        const desatAmt = ov * (0.56 + st * 0.26) * ((dayW + twiW * 0.65) / wSum);
+
+        const dayDark = 1.0 - ov * (0.42 + st * 0.26);
+        const twiDark = 1.0 - ov * (0.46 + st * 0.24);
+        const nightDark = 1.0 - ov * 0.08;
+        const darkMult = (dayDark * dayW + twiDark * twiW + nightDark * nightW) / wSum;
+
+        targetSkyRGB = [
+            Math.max(1, Math.round(lerp(targetSkyRGB[0], slateRGB[0], desatAmt) * darkMult)),
+            Math.max(1, Math.round(lerp(targetSkyRGB[1], slateRGB[1], desatAmt) * darkMult)),
+            Math.max(2, Math.round(lerp(targetSkyRGB[2], slateRGB[2], desatAmt) * darkMult))
+        ];
+    }
+
+    const activeCavern = !!(nearestPlanet && nearestPlanet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(nearestPlanet, obsX, obsY));
+    ship.insideCavernPlanet = activeCavern ? nearestPlanet : null;
+    ship.cavernDepthBlend = lerp(ship.cavernDepthBlend || 0, activeCavern ? 1 : 0, clamp(dt * 4.5, 0, 1));
+    ship.cavernInvertedGravity = !!(activeCavern && nearestPlanet.hollowPhysicsMode === 'inverted_shell');
+    if (ship.cavernDepthBlend > 0.01 && nearestPlanet && nearestPlanet.isHollow) {
+        const gc = nearestPlanet.cavernGlowColor || [56, 189, 248];
+        const cavernTint = [Math.round(4 + gc[0] * 0.08), Math.round(6 + gc[1] * 0.09), Math.round(12 + gc[2] * 0.11)];
+        targetSkyRGB = lerpRGB(targetSkyRGB, cavernTint, ship.cavernDepthBlend);
     }
 
     camera.skyColor[0] = lerp(camera.skyColor[0], targetSkyRGB[0], dt * 3.0);
@@ -1135,7 +1196,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             ship.sasAssistWeight = lerp(ship.sasAssistWeight, Math.max(0.55 * horizonBlend, lowAltFrac), dt * 4.5);
             ship.landingAssistFactor = lowAltFrac;
 
-            const targetHorizonCamRot = -Math.PI / 2 - localZenith;
+            const flipCavern = ship.cavernInvertedGravity ? Math.PI : 0;
+            const targetHorizonCamRot = -Math.PI / 2 - localZenith + flipCavern;
             const rotDiff = Math.atan2(Math.sin(targetHorizonCamRot - camera.rotation), Math.cos(targetHorizonCamRot - camera.rotation));
             const alignSpeed = ship.isGrounded ? 6.8 : lerp(1.35, 5.2, horizonBlend);
             camera.rotation += rotDiff * clamp(dt * alignSpeed, 0, 1);
@@ -1169,6 +1231,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.warping = false;
         ship.braking = false;
         ship.turnVal = 0;
+        ship.rcsStrafe = 0;
         ship.targetAngle = null;
         if (ship.orbitMode !== 'off') disengageOrbitMode(true);
     }
@@ -2194,7 +2257,44 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // Partículas RCS de gas frío a presión en las toberas reales del cohete
     const allowRcsPuffs = !ship.customRocket || hasCustomRcs;
-    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs;
+    if (ship.rcsStrafe && ship.fuel > 0 && allowRcsPuffs) {
+        const strafeAngle = ship.angle + ship.rcsStrafe * (Math.PI / 2);
+        const strafeAccel = (hasCustomRcs ? (cr.rcsAuthority || 1.0) * 145 : 95) / Math.max(0.6, (ship.mass || 8) / 8);
+        ship.vx += Math.cos(strafeAngle) * strafeAccel * dt;
+        ship.vy += Math.sin(strafeAngle) * strafeAccel * dt;
+        ship.fuel = Math.max(0, ship.fuel - dt * 0.14);
+        if (Math.random() < 0.85) {
+            const exhaustAngle = ship.angle - ship.rcsStrafe * (Math.PI / 2) + (Math.random() - 0.5) * 0.16;
+            if (hasCustomRcs) {
+                for (const rcs of customRcsList) {
+                    const rcsX = ship.x + cosA * rcs.flightX - sinA * rcs.flightY;
+                    const rcsY = ship.y + sinA * rcs.flightX + cosA * rcs.flightY;
+                    rcsParticles.push({
+                        x: rcsX,
+                        y: rcsY,
+                        vx: ship.vx * 0.5 + Math.cos(exhaustAngle) * 85,
+                        vy: ship.vy * 0.5 + Math.sin(exhaustAngle) * 85,
+                        size: (2.0 + Math.random() * 1.2) * Math.min(1.4, rcs.power || 1.0),
+                        life: 0.18,
+                        maxLife: 0.18
+                    });
+                }
+            } else {
+                const rcsX = ship.x + cosA * 4 - sinA * (-ship.rcsStrafe * 5.2);
+                const rcsY = ship.y + sinA * 4 + cosA * (-ship.rcsStrafe * 5.2);
+                rcsParticles.push({
+                    x: rcsX,
+                    y: rcsY,
+                    vx: ship.vx * 0.5 + Math.cos(exhaustAngle) * 80,
+                    vy: ship.vy * 0.5 + Math.sin(exhaustAngle) * 80,
+                    size: 2.1 + Math.random() * 1.0,
+                    life: 0.16,
+                    maxLife: 0.16
+                });
+            }
+        }
+    }
+    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && ship.fuel > 0 && allowRcsPuffs);
     if (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs && Math.random() < 0.78) {
         if (hasCustomRcs) {
             ship.fuel = Math.max(0, ship.fuel - dt * 0.08);
@@ -2304,7 +2404,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 const dy = soiPlanet.y - py;
                 const d = Math.hypot(dx, dy);
                 const pull = getPlanetGravityPull(soiPlanet, d, px, py);
-                return pull > 0 ? [(dx / d) * pull, (dy / d) * pull] : [0, 0];
+                return pull !== 0 ? [(dx / d) * pull, (dy / d) * pull] : [0, 0];
             }
             let ax = 0, ay = 0;
             for (const p of nearby) {
@@ -2312,7 +2412,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 const dy = p.y - py;
                 const d = Math.hypot(dx, dy);
                 const pull = getPlanetGravityPull(p, d, px, py);
-                if (pull > 0) {
+                if (pull !== 0) {
                     ax += (dx / d) * pull;
                     ay += (dy / d) * pull;
                 }
@@ -2332,6 +2432,96 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.y += ship.vy * dt;
     }
 
+    // --- FENÓMENOS ACTIVOS PLANETARIOS (GÉISERES, ANOMALÍAS GRAVITATORIAS, VIENTOS Y CAVERNAS) ---
+    if (nearestPlanet && ship.orbitMode === 'off') {
+        const curT = performance.now() / 1000;
+        const radX = Math.cos(localZenith);
+        const radY = Math.sin(localZenith);
+        const tangX = -radY;
+        const tangY = radX;
+
+        if (nearestPlanet.phenomena && nearestPlanet.phenomena.length > 0) {
+            for (const ph of nearestPlanet.phenomena) {
+                if (ph.type === 'geyser' && !ship.insideCavernPlanet) {
+                    const intensity = (typeof getGeyserIntensity === 'function') ? getGeyserIntensity(ph, curT) : 0;
+                    if (intensity > 0.08) {
+                        const dAng = Math.abs(Math.atan2(Math.sin(localZenith - ph.angle), Math.cos(localZenith - ph.angle)));
+                        if (dAng <= ph.span * 1.45 && altFromSurface <= ph.reachHeight) {
+                            const hFrac = clamp(1 - altFromSurface / ph.reachHeight, 0.08, 1);
+                            const jetAccel = ph.force * 4.5 * intensity * hFrac;
+                            ship.vx += radX * jetAccel * dt;
+                            ship.vy += radY * jetAccel * dt;
+                            if (ph.geyserType === 'spore') {
+                                ship.fuel = Math.min(ship.maxFuel || 100, ship.fuel + dt * 4.5 * intensity);
+                            } else if (ph.geyserType === 'plasma') {
+                                ship.hullTemp = Math.min(1200, (ship.hullTemp || 0) + dt * 85 * intensity);
+                            }
+                        }
+                    }
+                } else if (ph.type === 'gravity_anomaly') {
+                    const axPos = nearestPlanet.x + Math.cos(ph.angle) * ph.radiusPos;
+                    const ayPos = nearestPlanet.y + Math.sin(ph.angle) * ph.radiusPos;
+                    const adx = ship.x - axPos;
+                    const ady = ship.y - ayPos;
+                    const aDist = Math.hypot(adx, ady);
+                    if (aDist < ph.effectRadius && aDist > 2) {
+                        const aFrac = 1 - aDist / ph.effectRadius;
+                        if (ph.anomalyMode === 'antigrav') {
+                            const lift = 68 * ph.strength * aFrac;
+                            ship.vx += (radX * lift - ship.vx * 0.45 * aFrac) * dt;
+                            ship.vy += (radY * lift - ship.vy * 0.45 * aFrac) * dt;
+                        } else {
+                            // Vórtice espiral suave
+                            const rx = -adx / aDist;
+                            const ry = -ady / aDist;
+                            const tx = -ry;
+                            const ty = rx;
+                            const swirl = 58 * ph.strength * aFrac;
+                            ship.vx += (tx * swirl + rx * swirl * 0.25) * dt;
+                            ship.vy += (ty * swirl + ry * swirl * 0.25) * dt;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Microclima interno de caverna hueca
+        if (ship.insideCavernPlanet === nearestPlanet) {
+            const hMode = nearestPlanet.hollowPhysicsMode;
+            if (hMode === 'thermal_forge') {
+                const updraft = (Math.sin(localZenith * 6 + curT * 1.4) * 0.5 + 0.5) * 32;
+                ship.vx += radX * updraft * dt;
+                ship.vy += radY * updraft * dt;
+            } else if (hMode === 'crystal_resonance') {
+                ship.fuel = Math.min(ship.maxFuel || 100, ship.fuel + dt * 2.5);
+            }
+        } else if (atmoInfo.inAtmo && (nearestPlanet.archetype.classId === 'shattered' || nearestPlanet.archetype.classId === 'toxic' || nearestPlanet.archetype.classId === 'gas_giant' || nearestPlanet.archetype.classId === 'temporal')) {
+            const windStrength = nearestPlanet.archetype.classId === 'temporal' ? 32 : (nearestPlanet.archetype.classId === 'shattered' ? 18 : 26);
+            const windPulse = Math.sin(curT * 0.45 + (nearestPlanet.wavePhase || 0)) * windStrength * atmoInfo.density;
+            ship.vx += tangX * windPulse * dt;
+            ship.vy += tangY * windPulse * dt;
+        }
+
+        // Campos extremos de singularidad (arrastre de marco) y magnetar (pulsos polares)
+        if (!ship.insideCavernPlanet) {
+            if ((nearestPlanet.isSingularity || nearestPlanet.archetype?.isSingularity) && altFromSurface < 900) {
+                const prox = clamp(1 - altFromSurface / 900, 0, 1);
+                const frameDrag = 46 * prox * prox;
+                ship.vx += tangX * frameDrag * dt;
+                ship.vy += tangY * frameDrag * dt;
+            }
+            if ((nearestPlanet.isMagnetar || nearestPlanet.archetype?.isMagnetar) && altFromSurface < 550) {
+                const poleAlignment = Math.abs(Math.cos(localZenith - (nearestPlanet.initialRotationPhase || 0)));
+                if (poleAlignment > 0.85) {
+                    const pulse = Math.max(0, Math.sin(curT * 3.2)) * ((poleAlignment - 0.85) / 0.15) * clamp(1 - altFromSurface / 550, 0.15, 1);
+                    const repulse = 120 * pulse;
+                    ship.vx += (radX * repulse + tangX * 38 * pulse) * dt;
+                    ship.vy += (radY * repulse + tangY * 38 * pulse) * dt;
+                }
+            }
+        }
+    }
+
     // --- COLISIÓN DE CUERPO RÍGIDO Y SUSPENSIÓN OLEONEUMÁTICA ---
     const wasGrounded = ship.isGrounded;
     ship.isGrounded = false;
@@ -2345,8 +2535,10 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         let avgNormalX = 0;
         let avgNormalY = 0;
         const collidingContacts = [];
+        let touchedFloatingIsland = false;
 
         const activeContactPoints = (curModel && curModel.contactPoints) ? curModel.contactPoints : CONTACT_POINTS;
+        const inCavern = !!(nearestPlanet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(nearestPlanet, ship.x, ship.y));
         for (const pt of activeContactPoints) {
             const worldX = ship.x + cosA * pt.x - sinA * pt.y;
             const worldY = ship.y + sinA * pt.x + cosA * pt.y;
@@ -2370,35 +2562,57 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 }
             }
 
-            // Detección física en mundos huecos vs superficie exterior
-            const inCavern = !!(nearestPlanet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(nearestPlanet, ship.x, ship.y));
-            const caveAtPt = (nearestPlanet.isHollow && typeof getPlanetCaveEntranceAt === 'function') ? getPlanetCaveEntranceAt(nearestPlanet, angleAtPt) : null;
-
             let contactCollision = false;
             let effectiveR = surfaceR;
             let normalDirSign = 1;
+            let ptOnIsland = false;
 
-            if (inCavern) {
-                const floorR = (typeof getCavernFloorRadius === 'function') ? getCavernFloorRadius(nearestPlanet, angleAtPt) : nearestPlanet.radius * 0.48;
-                const ceilingR = (typeof getCavernCeilingRadius === 'function') ? getCavernCeilingRadius(nearestPlanet, angleAtPt) : nearestPlanet.radius * 0.84;
-                if (distToPt < floorR) {
-                    contactCollision = true;
-                    effectiveR = floorR;
-                    normalDirSign = 1; // rebote hacia arriba desde el suelo de la caverna
-                } else if (distToPt > ceilingR && (!caveAtPt || caveAtPt.normDist > 0.65)) {
-                    contactCollision = true;
-                    effectiveR = ceilingR;
-                    normalDirSign = -1; // rebote hacia abajo desde el techo de la caverna
-                }
-            } else if (caveAtPt && caveAtPt.normDist < 0.65) {
-                // Entrada de cueva abierta: permite descender hacia el interior sin chocar con la corteza externa
-                const throatR = (typeof getCavernFloorRadius === 'function') ? getCavernFloorRadius(nearestPlanet, angleAtPt) : nearestPlanet.radius * 0.48;
-                if (distToPt < throatR) {
-                    contactCollision = true;
-                    effectiveR = throatR;
+            // 1. Islas flotantes / balsas oceánicas / plataformas de caverna
+            const islHit = (typeof getFloatingIslandAt === 'function') ? getFloatingIslandAt(nearestPlanet, angleAtPt, distToPt, true) : null;
+            if (islHit && distToPt <= islHit.topR && distToPt >= islHit.bottomR) {
+                const midI = (islHit.topR + islHit.bottomR) * 0.5;
+                contactCollision = true;
+                ptOnIsland = true;
+                touchedFloatingIsland = true;
+                if (distToPt >= midI) {
+                    effectiveR = islHit.topR;
                     normalDirSign = 1;
+                } else {
+                    effectiveR = islHit.bottomR;
+                    normalDirSign = -1;
+                }
+            } else if (nearestPlanet.isHollow && typeof getHollowBoundsAt === 'function') {
+                // 2. Planetas huecos: geometría continua de boca de cueva, suelo, techo y núcleo interior
+                const bounds = getHollowBoundsAt(nearestPlanet, angleAtPt);
+                if (inCavern) {
+                    if (distToPt < bounds.coreR) {
+                        contactCollision = true;
+                        effectiveR = bounds.coreR;
+                        normalDirSign = 1;
+                    } else if (distToPt < bounds.floorR) {
+                        contactCollision = true;
+                        effectiveR = bounds.floorR;
+                        normalDirSign = 1;
+                    } else if (!bounds.isThroatOpen && distToPt > bounds.effectiveCeilingR) {
+                        contactCollision = true;
+                        effectiveR = bounds.effectiveCeilingR;
+                        normalDirSign = -1;
+                    }
+                } else if (bounds.isThroatOpen) {
+                    if (distToPt < bounds.floorR) {
+                        contactCollision = true;
+                        effectiveR = bounds.floorR;
+                        normalDirSign = 1;
+                    }
+                } else {
+                    if (distToPt < bounds.extR) {
+                        contactCollision = true;
+                        effectiveR = bounds.extR;
+                        normalDirSign = 1;
+                    }
                 }
             } else {
+                // 3. Superficie exterior estándar
                 if (distToPt < surfaceR) {
                     contactCollision = true;
                     effectiveR = surfaceR;
@@ -2412,9 +2626,25 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 let ny = (pToPtY / distToPt) * normalDirSign;
 
                 // Si impacta la plataforma nivelada, la normal es estrictamente vertical (cenit de la base)
-                if (baseUnderPt && normalDirSign > 0) {
+                if (baseUnderPt && normalDirSign > 0 && !ptOnIsland) {
                     nx = Math.cos(baseUnderPt.angle);
                     ny = Math.sin(baseUnderPt.angle);
+                } else if (normalDirSign > 0 && !ptOnIsland && !inCavern && !nearestPlanet.archetype.isLiquid) {
+                    // Normal topográfica según la pendiente local de cráteres, dunas y laderas de montaña
+                    const eps = clamp(10 / Math.max(300, nearestPlanet.radius), 0.00015, 0.015);
+                    const dr = getSurfaceRadius(nearestPlanet, angleAtPt + eps) - getSurfaceRadius(nearestPlanet, angleAtPt - eps);
+                    const slope = clamp(dr / (2 * eps * Math.max(300, effectiveR)), -0.82, 0.82);
+                    if (Math.abs(slope) > 0.02) {
+                        const radX = pToPtX / distToPt;
+                        const radY = pToPtY / distToPt;
+                        const tanX = -radY;
+                        const tanY = radX;
+                        const snx = radX - tanX * slope;
+                        const sny = radY - tanY * slope;
+                        const sLen = Math.hypot(snx, sny) || 1;
+                        nx = snx / sLen;
+                        ny = sny / sLen;
+                    }
                 }
 
                 const tx = -ny;
@@ -2429,22 +2659,26 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                     avgNormalY = ny;
                 }
 
-                const lakeAtPt = getPlanetLakeAtAngle(nearestPlanet, angleAtPt);
-                const isPointInLake = !!lakeAtPt && (distToPt <= lakeAtPt.waterLevel + 3);
-                const isLiquid = nearestPlanet.archetype.isLiquid || isPointInLake;
+                const lakeAtPt = inCavern
+                    ? ((typeof getCavernLakeAtAngle === 'function') ? getCavernLakeAtAngle(nearestPlanet, angleAtPt) : null)
+                    : getPlanetLakeAtAngle(nearestPlanet, angleAtPt);
+                const isPointInLake = !ptOnIsland && !!lakeAtPt && (distToPt <= lakeAtPt.waterLevel + 3);
+                const isLiquid = (!ptOnIsland && nearestPlanet.archetype.isLiquid && !inCavern) || isPointInLake;
 
                 collidingContacts.push({
                     pt, worldX, worldY, angleAtPt, nx, ny, tx, ty, isLiquid
                 });
 
                 // Efectos de inmersión en fluidos peligrosos o corrosivos
-                if (nearestPlanet.archetype.isLiquid) {
-                    takeDamage(dt * 22, 'Fluido corrosivo detectado — mantén ignición de sustentación');
-                } else if (isPointInLake && lakeAtPt) {
-                    if (lakeAtPt.liquidType === 'magma') {
-                        takeDamage(dt * 26, 'Inmersión en caldera de magma piroclástico — temperaturas críticas');
-                    } else if (lakeAtPt.liquidType === 'acid') {
-                        takeDamage(dt * 18, 'Inmersión en cuenca ácida corrosiva — daño estructural');
+                if (!ptOnIsland && !touchedFloatingIsland) {
+                    if (nearestPlanet.archetype.isLiquid && !inCavern) {
+                        takeDamage(dt * 22, 'Fluido corrosivo detectado — mantén ignición de sustentación');
+                    } else if (isPointInLake && lakeAtPt) {
+                        if (lakeAtPt.liquidType === 'magma') {
+                            takeDamage(dt * 26, 'Inmersión en caldera de magma piroclástico — temperaturas críticas');
+                        } else if (lakeAtPt.liquidType === 'acid') {
+                            takeDamage(dt * 18, 'Inmersión en cuenca ácida corrosiva — daño estructural');
+                        }
                     }
                 }
             }
@@ -2576,13 +2810,10 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                     ship.av = lerp(ship.av, 0, dt * 8.0);
                 }
 
-                // Servicio de repostaje y reparación según nivel de la base
-                const refuelRates = [18, 32, 65];
+                // Servicio de reparación estructural según nivel de la base (el combustible requiere extractores y reserva EVA)
                 const repairRates = [12, 22, 45];
-                const rf = refuelRates[baseUnderShip.level - 1] || 15;
                 const rp = repairRates[baseUnderShip.level - 1] || 10;
-                ship.fuel = Math.min(100, ship.fuel + rf * dt);
-                ship.hull = Math.min(100, ship.hull + rp * dt);
+                ship.hull = Math.min(ship.maxHull || 100, ship.hull + rp * dt);
             }
             if (nearestPlanet.archetype.id === 'biolume') {
                 ship.hull = Math.min(100, ship.hull + dt * 6.5);
@@ -2648,13 +2879,18 @@ function updatePhysics(dt, skipExpensiveUI = false) {
     // --- EXTRACCIÓN DE NÚCLEOS DE ÉTER ---
     ship.activeHarvestNode = null;
     ship.activeHarvestPlanet = null;
-    if (nearestPlanet && altFromSurface < 220) {
-        ship.fuel = Math.min(100, ship.fuel + dt * 20);
-        for (const node of nearestPlanet.nodes) {
+    if (nearestPlanet && (altFromSurface < 220 || ship.insideCavernPlanet === nearestPlanet)) {
+        const allNodes = nearestPlanet.isHollow && nearestPlanet.cavernNodes
+            ? nearestPlanet.nodes.concat(nearestPlanet.cavernNodes)
+            : nearestPlanet.nodes;
+        for (const node of allNodes) {
             if (node.harvested) continue;
-            const sr = getSurfaceRadius(nearestPlanet, node.angle);
-            const nx = nearestPlanet.x + Math.cos(node.angle) * (sr + 16);
-            const ny = nearestPlanet.y + Math.sin(node.angle) * (sr + 16);
+            const sr = (typeof getCavernOrSurfaceRadius === 'function')
+                ? getCavernOrSurfaceRadius(nearestPlanet, node.angle, node.inCavern, node.onCeiling)
+                : getSurfaceRadius(nearestPlanet, node.angle);
+            const rOff = node.onCeiling ? (sr - 16) : (sr + 16);
+            const nx = nearestPlanet.x + Math.cos(node.angle) * rOff;
+            const ny = nearestPlanet.y + Math.sin(node.angle) * rOff;
             const dNode = Math.hypot(ship.x - nx, ship.y - ny);
 
             if (dNode < 220) {
@@ -2681,10 +2917,13 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 if (node.value <= 0) {
                     node.harvested = true;
                     ship.artifacts += 1;
-                    ship.fuel = 100;
-                    ship.hull = Math.min(100, ship.hull + 25);
+                    ship.fuel = Math.min(ship.maxFuel || 100, ship.fuel + 25);
+                    if (typeof astronaut !== 'undefined' && typeof getFuelReserveCapacity === 'function') {
+                        astronaut.fuelReserve = Math.min(getFuelReserveCapacity(), (astronaut.fuelReserve || 0) + 15);
+                    }
+                    ship.hull = Math.min(ship.maxHull || 100, ship.hull + 25);
                     audio.playChime();
-                    showHoloCard(nearestPlanet, 'NÚCLEO DE ÉTER ASIMILADO', 'Reservas de plasma y casco restauradas.');
+                    showHoloCard(nearestPlanet, 'NÚCLEO DE ÉTER ASIMILADO', '+25 L de combustible a la sonda y +15 L a reserva EVA.');
                     createShockwave(nx, ny, 240, 480, 'rgba(251, 191, 36, 0.95)', 'ring');
                     createSparks(nx, ny, 26, 0, Math.PI * 2, 80, 250, [254, 240, 138], 0.7);
                 }
@@ -2961,6 +3200,11 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         updateAstronautPhysics(dt);
     }
 
+    // Simulación de máquinas extractoras de recursos planetarios
+    if (typeof updateExtractors === 'function') {
+        updateExtractors(dt, nearby);
+    }
+
     // Física e IA de seres vivos extraterrestres y proyectiles de combate
     if (typeof updatePlanetCreatures === 'function') {
         updatePlanetCreatures(dt, nearby);
@@ -2977,7 +3221,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         const evaUserMult = (camera.userZoomMult !== undefined) ? camera.userZoomMult : 1.0;
         camera.targetZoom = clamp(evaBaseZoom * evaUserMult, 0.08, 3.2);
 
-        const targetHorizonCamRot = -Math.PI / 2 - astronaut.angle;
+        const evaFlip = astronaut.onCeiling ? Math.PI : 0;
+        const targetHorizonCamRot = -Math.PI / 2 - astronaut.angle + evaFlip;
         const rotDiff = Math.atan2(Math.sin(targetHorizonCamRot - camera.rotation), Math.cos(targetHorizonCamRot - camera.rotation));
         camera.rotation += rotDiff * clamp(dt * 6.2, 0, 1);
     } else {

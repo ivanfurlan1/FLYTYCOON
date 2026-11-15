@@ -206,6 +206,10 @@ function captureCurrentGameState() {
         y: astronaut.y,
         selectedBaseLevel: astronaut.selectedBaseLevel || 1,
         selectedRocketModel: astronaut.selectedRocketModel || 'starship',
+        fuelReserve: Number(astronaut.fuelReserve) || 0,
+        fuelReserveLevel: astronaut.fuelReserveLevel || 1,
+        inventory: safeDeepClone(astronaut.inventory || {}),
+        prospectedZones: safeDeepClone(astronaut.prospectedZones || {}),
         plantedBeacons: safeDeepClone(astronaut.plantedBeacons || [])
     } : null;
 
@@ -218,6 +222,7 @@ function captureCurrentGameState() {
         codexEntries,
         waypointsList,
         planetaryBases: typeof planetaryBases !== 'undefined' ? safeDeepClone(planetaryBases) : [],
+        planetaryExtractors: typeof planetaryExtractors !== 'undefined' ? safeDeepClone(planetaryExtractors) : [],
         parkedShips: typeof parkedShips !== 'undefined' ? safeDeepClone(parkedShips) : [],
         freeVessels: typeof freeVessels !== 'undefined' ? safeDeepClone(freeVessels) : [],
         harvestedNodes
@@ -271,23 +276,33 @@ function restoreGameState(state) {
     }
     window._pendingHarvestedNodes = pendingMap;
 
-    // 3. Bases planetarias, naves estacionadas y vehículos libres
+    // 3. Bases planetarias, extractores, naves estacionadas y vehículos libres
     if (typeof planetaryBases !== 'undefined') {
         planetaryBases.length = 0;
         if (Array.isArray(state.planetaryBases)) {
-            planetaryBases.push(...safeDeepClone(state.planetaryBases));
+            const validBases = state.planetaryBases.filter(b => b && typeof b === 'object');
+            planetaryBases.push(...safeDeepClone(validBases));
+        }
+    }
+    if (typeof planetaryExtractors !== 'undefined') {
+        planetaryExtractors.length = 0;
+        if (Array.isArray(state.planetaryExtractors)) {
+            const validExts = state.planetaryExtractors.filter(e => e && typeof e === 'object' && e.planetKey);
+            planetaryExtractors.push(...safeDeepClone(validExts));
         }
     }
     if (typeof parkedShips !== 'undefined') {
         parkedShips.length = 0;
         if (Array.isArray(state.parkedShips)) {
-            parkedShips.push(...safeDeepClone(state.parkedShips));
+            const validParked = state.parkedShips.filter(p => p && typeof p === 'object' && Number.isFinite(p.x) && Number.isFinite(p.y));
+            parkedShips.push(...safeDeepClone(validParked));
         }
     }
     if (typeof freeVessels !== 'undefined') {
         freeVessels.length = 0;
         if (Array.isArray(state.freeVessels)) {
-            freeVessels.push(...safeDeepClone(state.freeVessels));
+            const validVessels = state.freeVessels.filter(v => v && typeof v === 'object' && Number.isFinite(v.x) && Number.isFinite(v.y));
+            freeVessels.push(...safeDeepClone(validVessels));
         }
     }
 
@@ -297,7 +312,7 @@ function restoreGameState(state) {
         codexPlanets.clear();
         if (Array.isArray(state.codexEntries)) {
             for (const entry of state.codexEntries) {
-                if (Array.isArray(entry) && entry.length === 2) {
+                if (Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[1] && typeof entry[1] === 'object') {
                     codexPlanets.set(entry[0], safeDeepClone(entry[1]));
                 }
             }
@@ -311,56 +326,91 @@ function restoreGameState(state) {
     // 6. Restaurar Nave
     if (typeof ship !== 'undefined' && state.ship) {
         const ss = state.ship;
-        if (ss.customRocket) {
-            ship.customRocket = safeDeepClone(ss.customRocket);
-            ship.modelKey = 'custom';
-            if (typeof ROCKET_MODELS !== 'undefined') {
-                ROCKET_MODELS['custom'] = ship.customRocket;
+        try {
+            if (ss.customRocket && typeof ss.customRocket === 'object') {
+                ship.customRocket = safeDeepClone(ss.customRocket);
+                ship.modelKey = 'custom';
+                if (typeof ROCKET_MODELS !== 'undefined') {
+                    ROCKET_MODELS['custom'] = ship.customRocket;
+                }
+                if (typeof applyRocketModel === 'function') {
+                    applyRocketModel(ship, 'custom');
+                }
+            } else {
+                ship.customRocket = null;
+                ship.modelKey = ss.modelKey || 'vesper';
+                if (typeof applyRocketModel === 'function') {
+                    applyRocketModel(ship, ship.modelKey);
+                }
             }
-            if (typeof applyRocketModel === 'function') {
-                applyRocketModel(ship, 'custom');
-            }
-        } else {
+        } catch (e) {
+            console.warn('ÉTER: Modelo de cohete guardado incompatible, usando Vesper por defecto.', e);
             ship.customRocket = null;
-            ship.modelKey = ss.modelKey || 'vesper';
-            if (typeof applyRocketModel === 'function') {
-                applyRocketModel(ship, ship.modelKey);
-            }
+            ship.modelKey = 'vesper';
+            if (typeof applyRocketModel === 'function') applyRocketModel(ship, 'vesper');
         }
-        ship.x = ss.x ?? 0;
-        ship.y = ss.y ?? 0;
-        ship.vx = ss.vx ?? 0;
-        ship.vy = ss.vy ?? 0;
-        ship.angle = ss.angle ?? (-Math.PI / 2);
-        ship.av = ss.av ?? 0;
-        if (ss.mass !== undefined) ship.mass = ss.mass;
-        if (ss.inertia !== undefined) ship.inertia = ss.inertia;
-        ship.maxHull = ss.maxHull ?? 100;
-        ship.hull = ss.hull ?? ship.maxHull;
-        ship.maxFuel = ss.maxFuel ?? 100;
-        ship.fuel = ss.fuel ?? ship.maxFuel;
-        if (ss.scale !== undefined) ship.scale = ss.scale;
-        if (ss.passengers !== undefined) ship.passengers = ss.passengers;
-        if (ss.smokeScale !== undefined) ship.smokeScale = ss.smokeScale;
-        ship.artifacts = ss.artifacts ?? 0;
-        ship.throttle = ss.throttle ?? 0;
+        const fin = (v, fb) => (typeof v === 'number' && Number.isFinite(v)) ? v : fb;
+        const posFin = (v, fb) => (typeof v === 'number' && Number.isFinite(v) && v > 0) ? v : fb;
+
+        ship.x = fin(ss.x, 0);
+        ship.y = fin(ss.y, 0);
+        ship.vx = fin(ss.vx, 0);
+        ship.vy = fin(ss.vy, 0);
+        ship.angle = fin(ss.angle, -Math.PI / 2);
+        ship.av = fin(ss.av, 0);
+        ship.mass = posFin(ss.mass, ship.mass || 1.0);
+        ship.inertia = posFin(ss.inertia, ship.inertia || 1.0);
+        ship.maxHull = posFin(ss.maxHull, 100);
+        ship.hull = Math.max(0, Math.min(ship.maxHull, fin(ss.hull, ship.maxHull)));
+        ship.maxFuel = posFin(ss.maxFuel, 100);
+        ship.fuel = Math.max(0, Math.min(ship.maxFuel, fin(ss.fuel, ship.maxFuel)));
+        ship.scale = posFin(ss.scale, ship.scale || 1.0);
+        ship.passengers = posFin(ss.passengers, ship.passengers || 1);
+        ship.smokeScale = posFin(ss.smokeScale, ship.smokeScale || 1.0);
+        ship.artifacts = Math.max(0, fin(ss.artifacts, 0));
+        ship.throttle = Math.max(0, Math.min(1, fin(ss.throttle, 0)));
         ship.isGrounded = !!ss.isGrounded;
         ship.sasEnabled = ss.sasEnabled !== false;
-        ship.sasHoldAngle = ss.sasHoldAngle ?? null;
-        ship.sasAssistWeight = ss.sasAssistWeight ?? (ship.isGrounded ? 1.0 : 0);
+        ship.sasHoldAngle = (typeof ss.sasHoldAngle === 'number' && Number.isFinite(ss.sasHoldAngle)) ? ss.sasHoldAngle : null;
+        ship.sasAssistWeight = fin(ss.sasAssistWeight, ship.isGrounded ? 1.0 : 0);
         ship.headlightsOn = !!ss.headlightsOn;
-        if (ss.leftGearSpring) ship.leftGearSpring = safeDeepClone(ss.leftGearSpring);
-        else if (ship.leftGearSpring) { ship.leftGearSpring.pos = ship.isGrounded ? 0.32 : 0; ship.leftGearSpring.vel = 0; }
-        if (ss.rightGearSpring) ship.rightGearSpring = safeDeepClone(ss.rightGearSpring);
-        else if (ship.rightGearSpring) { ship.rightGearSpring.pos = ship.isGrounded ? 0.32 : 0; ship.rightGearSpring.vel = 0; }
-        ship.gearCompression = ss.gearCompression ?? (ship.isGrounded ? 0.32 : 0);
-        ship.hullTemp = ss.hullTemp ?? 0;
-        ship.scorch = safeDeepClone(ss.scorch || { amount: 0, dirX: 1, dirY: 0, temp: 0 });
+        if (ss.leftGearSpring && typeof ss.leftGearSpring === 'object') {
+            ship.leftGearSpring = {
+                pos: fin(ss.leftGearSpring.pos, ship.isGrounded ? 0.32 : 0),
+                vel: fin(ss.leftGearSpring.vel, 0),
+                target: fin(ss.leftGearSpring.target, 0)
+            };
+        } else if (ship.leftGearSpring) {
+            ship.leftGearSpring.pos = ship.isGrounded ? 0.32 : 0;
+            ship.leftGearSpring.vel = 0;
+        }
+        if (ss.rightGearSpring && typeof ss.rightGearSpring === 'object') {
+            ship.rightGearSpring = {
+                pos: fin(ss.rightGearSpring.pos, ship.isGrounded ? 0.32 : 0),
+                vel: fin(ss.rightGearSpring.vel, 0),
+                target: fin(ss.rightGearSpring.target, 0)
+            };
+        } else if (ship.rightGearSpring) {
+            ship.rightGearSpring.pos = ship.isGrounded ? 0.32 : 0;
+            ship.rightGearSpring.vel = 0;
+        }
+        ship.gearCompression = fin(ss.gearCompression, ship.isGrounded ? 0.32 : 0);
+        ship.hullTemp = Math.max(0, fin(ss.hullTemp, 0));
+        const sc = (ss.scorch && typeof ss.scorch === 'object') ? ss.scorch : {};
+        ship.scorch = {
+            amount: fin(sc.amount, 0),
+            dirX: fin(sc.dirX, 1),
+            dirY: fin(sc.dirY, 0),
+            temp: fin(sc.temp, 0)
+        };
         ship.orbitMode = ss.orbitMode || 'off';
-        ship.orbitDir = ss.orbitDir || 1;
-        ship.orbitAngle = ss.orbitAngle || 0;
-        ship.orbitTargetRadius = ss.orbitTargetRadius || 0;
+        ship.orbitDir = (ss.orbitDir === -1) ? -1 : 1;
+        ship.orbitAngle = fin(ss.orbitAngle, 0);
+        ship.orbitTargetRadius = Math.max(0, fin(ss.orbitTargetRadius, 0));
         ship.orbitPlanetKey = ss.orbitPlanetKey || null;
+        if (ship.orbitMode !== 'off' && (!ship.orbitPlanetKey || ship.orbitTargetRadius <= 0)) {
+            ship.orbitMode = 'off';
+        }
         ship.thrustIntensity = 0;
         ship.reentryIntensity = 0;
         ship.vaporConeIntensity = 0;
@@ -369,35 +419,42 @@ function restoreGameState(state) {
     // 7. Restaurar Cámara
     if (typeof camera !== 'undefined' && state.camera) {
         const cs = state.camera;
-        camera.x = cs.x ?? ship.x;
-        camera.y = cs.y ?? ship.y;
-        camera.zoom = cs.zoom ?? 1.0;
-        camera.targetZoom = cs.targetZoom ?? camera.zoom;
-        camera.rotation = cs.rotation ?? 0;
-        camera.targetRotation = cs.targetRotation ?? camera.rotation;
-        camera.userZoomMult = cs.userZoomMult ?? 1.0;
+        const finC = (v, fb) => (typeof v === 'number' && Number.isFinite(v)) ? v : fb;
+        const posC = (v, fb) => (typeof v === 'number' && Number.isFinite(v) && v > 0) ? v : fb;
+        camera.x = finC(cs.x, ship.x);
+        camera.y = finC(cs.y, ship.y);
+        camera.zoom = posC(cs.zoom, 1.0);
+        camera.targetZoom = posC(cs.targetZoom, camera.zoom);
+        camera.rotation = finC(cs.rotation, 0);
+        camera.targetRotation = finC(cs.targetRotation, camera.rotation);
+        camera.userZoomMult = posC(cs.userZoomMult, 1.0);
     }
 
     // 8. Restaurar Astronauta EVA
     if (typeof astronaut !== 'undefined' && state.astronaut) {
         const as = state.astronaut;
+        const finA = (v, fb) => (typeof v === 'number' && Number.isFinite(v)) ? v : fb;
         astronaut.active = !!as.active;
         astronaut.planet = as.planetKey ? resolvePlanetByKey(as.planetKey) : null;
         if (astronaut.active && !astronaut.planet) astronaut.active = false;
-        astronaut.angle = as.angle ?? (-Math.PI / 2);
-        astronaut.altitude = as.altitude ?? 0;
-        astronaut.vTangential = as.vTangential ?? 0;
-        astronaut.vRadial = as.vRadial ?? 0;
-        astronaut.facing = as.facing ?? 1;
+        astronaut.angle = finA(as.angle, -Math.PI / 2);
+        astronaut.altitude = finA(as.altitude, 0);
+        astronaut.vTangential = finA(as.vTangential, 0);
+        astronaut.vRadial = finA(as.vRadial, 0);
+        astronaut.facing = (as.facing === -1) ? -1 : 1;
         astronaut.isGrounded = as.isGrounded !== false;
-        astronaut.jetpackFuel = as.jetpackFuel ?? 100;
-        astronaut.suitO2 = as.suitO2 ?? 100;
-        astronaut.headlamp = as.headlamp !== false;
-        astronaut.x = as.x ?? ship.x;
-        astronaut.y = as.y ?? ship.y;
+        astronaut.jetpackFuel = Math.max(0, finA(as.jetpackFuel, 100));
+        astronaut.suitO2 = Math.max(0, finA(as.suitO2, 100));
+        astronaut.headlamp = false;
+        astronaut.x = finA(as.x, ship.x);
+        astronaut.y = finA(as.y, ship.y);
         astronaut.selectedBaseLevel = as.selectedBaseLevel ?? 1;
         astronaut.selectedRocketModel = as.selectedRocketModel ?? 'starship';
-        astronaut.plantedBeacons = safeDeepClone(as.plantedBeacons || []);
+        astronaut.fuelReserve = Math.max(0, finA(as.fuelReserve, 30));
+        astronaut.fuelReserveLevel = Math.max(1, Math.min(4, Math.round(finA(as.fuelReserveLevel, 1))));
+        astronaut.inventory = (as.inventory && typeof as.inventory === 'object') ? safeDeepClone(as.inventory) : {};
+        astronaut.prospectedZones = (as.prospectedZones && typeof as.prospectedZones === 'object') ? safeDeepClone(as.prospectedZones) : {};
+        astronaut.plantedBeacons = Array.isArray(as.plantedBeacons) ? safeDeepClone(as.plantedBeacons) : [];
         astronaut.actionProgress = 0;
         astronaut.actionType = null;
     }
@@ -415,9 +472,8 @@ function restoreGameState(state) {
     }
 
     // 10. Sincronizar UI existente
-    const seedInput = document.getElementById('inSeed');
-    if (seedInput) seedInput.value = universeSeed;
-    if (typeof renderCodexList === 'function') renderCodexList();
+    if (typeof closeExtractorModal === 'function') closeExtractorModal();
+    if (typeof closeResourceInventoryModal === 'function') closeResourceInventoryModal();
     if (typeof updateNavHUD === 'function') updateNavHUD();
     if (typeof getNearbyPlanets === 'function' && typeof ship !== 'undefined') {
         getNearbyPlanets(ship.x, ship.y, 1);
@@ -433,9 +489,65 @@ function persistWorldStore() {
         localStorage.setItem(ETER_SAVES_KEY, JSON.stringify(worldStore));
         return true;
     } catch (e) {
+        // Si se llenó la cuota de localStorage, recortar los snapshots más antiguos
+        try {
+            let trimmed = true;
+            while (trimmed) {
+                trimmed = false;
+                for (let i = worldStore.worlds.length - 1; i >= 0; i--) {
+                    const w = worldStore.worlds[i];
+                    if (w && Array.isArray(w.snapshots) && w.snapshots.length > 0) {
+                        w.snapshots.pop();
+                        trimmed = true;
+                        break;
+                    }
+                }
+                if (trimmed) {
+                    try {
+                        localStorage.setItem(ETER_SAVES_KEY, JSON.stringify(worldStore));
+                        return true;
+                    } catch (_) {}
+                }
+            }
+        } catch (_) {}
         console.warn('ÉTER: Error al guardar en caché local:', e);
         return false;
     }
+}
+
+function normalizeWorldStore(parsed) {
+    if (!parsed || !Array.isArray(parsed.worlds)) return null;
+    const now = Date.now();
+    const validWorlds = parsed.worlds
+        .filter(w => w && typeof w === 'object')
+        .map((w, idx) => ({
+            id: typeof w.id === 'string' && w.id ? w.id : genSaveId('w'),
+            name: typeof w.name === 'string' && w.name.trim() ? w.name : `Mundo ${idx + 1}`,
+            seed: typeof w.seed === 'string' && w.seed.trim() ? w.seed : 'ASTRAL-7',
+            createdAt: Number.isFinite(w.createdAt) ? w.createdAt : now,
+            updatedAt: Number.isFinite(w.updatedAt) ? w.updatedAt : now,
+            liveState: (w.liveState && typeof w.liveState === 'object') ? w.liveState : null,
+            liveSummary: (w.liveSummary && typeof w.liveSummary === 'object') ? w.liveSummary : null,
+            snapshots: Array.isArray(w.snapshots)
+                ? w.snapshots.filter(s => s && typeof s === 'object').map((s, sIdx) => ({
+                    ...s,
+                    id: typeof s.id === 'string' && s.id ? s.id : genSaveId('s'),
+                    name: typeof s.name === 'string' && s.name.trim() ? s.name : `Versión ${sIdx + 1}`,
+                    createdAt: Number.isFinite(s.createdAt) ? s.createdAt : now,
+                    summary: (s.summary && typeof s.summary === 'object') ? s.summary : {}
+                }))
+                : []
+        }));
+
+    if (validWorlds.length === 0) return null;
+    const activeId = validWorlds.some(w => w.id === parsed.activeWorldId)
+        ? parsed.activeWorldId
+        : validWorlds[0].id;
+    return {
+        version: parsed.version || 1,
+        activeWorldId: activeId,
+        worlds: validWorlds
+    };
 }
 
 function loadWorldStoreFromCache() {
@@ -443,9 +555,7 @@ function loadWorldStoreFromCache() {
         const raw = localStorage.getItem(ETER_SAVES_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.worlds)) {
-            return parsed;
-        }
+        return normalizeWorldStore(parsed);
     } catch (e) {
         console.warn('ÉTER: Caché corrupta o inaccesible, se inicializará una nueva.', e);
     }
@@ -465,6 +575,12 @@ function getActiveWorld() {
 function autoSaveActiveWorld(silent = true) {
     const active = getActiveWorld();
     if (!active) return false;
+    if (typeof ship !== 'undefined' && (!Number.isFinite(ship.x) || !Number.isFinite(ship.y))) {
+        return false;
+    }
+    if (typeof camera !== 'undefined' && (!Number.isFinite(camera.zoom) || camera.zoom <= 0)) {
+        return false;
+    }
     const state = captureCurrentGameState();
     active.seed = state.seed;
     active.liveState = state;
@@ -491,6 +607,9 @@ function createNewWorldAndEnter(nameInput, seedInput) {
     window._pendingHarvestedNodes = new Map();
     if (typeof clearAllWaypoints === 'function') clearAllWaypoints();
     if (typeof planetaryBases !== 'undefined') planetaryBases.length = 0;
+    if (typeof planetaryExtractors !== 'undefined') planetaryExtractors.length = 0;
+    if (typeof closeExtractorModal === 'function') closeExtractorModal();
+    if (typeof closeResourceInventoryModal === 'function') closeResourceInventoryModal();
     if (typeof parkedShips !== 'undefined') parkedShips.length = 0;
     if (typeof freeVessels !== 'undefined') freeVessels.length = 0;
     if (typeof ship !== 'undefined') {
@@ -501,12 +620,12 @@ function createNewWorldAndEnter(nameInput, seedInput) {
     }
     if (typeof astronaut !== 'undefined') {
         astronaut.plantedBeacons = [];
+        astronaut.fuelReserve = 30;
+        astronaut.fuelReserveLevel = 1;
+        astronaut.inventory = {};
+        astronaut.prospectedZones = {};
     }
     if (typeof resetOrigin === 'function') resetOrigin();
-
-    const seedEl = document.getElementById('inSeed');
-    if (seedEl) seedEl.value = universeSeed;
-    if (typeof renderCodexList === 'function') renderCodexList();
 
     const initialState = captureCurrentGameState();
     const newWorld = {
@@ -758,16 +877,25 @@ function refreshSavesUI() {
     const active = getActiveWorld();
     if (!active) return;
 
-    // 1. Actualizar Pantalla de Inicio (#introOverlay) - simple y limpio
+    // 1. Actualizar Pantalla de Inicio (#introOverlay)
     const introWorldStatus = document.getElementById('introWorldStatus');
     const introWorldName = document.getElementById('introWorldName');
+    const introWorldSeed = document.getElementById('introWorldSeed');
+    const introWorldMeta = document.getElementById('introWorldMeta');
+    const introWorldsCount = document.getElementById('introWorldsCount');
     const startBtnLabel = document.getElementById('btnStartExpeditionLabel');
     const hudWorldTag = document.getElementById('hudActiveWorldTag');
 
     if (introWorldStatus) introWorldStatus.classList.remove('hidden');
     if (introWorldName) introWorldName.textContent = active.name;
+    if (introWorldSeed) introWorldSeed.textContent = `#${active.seed}`;
+    if (introWorldsCount) introWorldsCount.textContent = worldStore.worlds.length;
 
     const sum = active.liveSummary || buildStateSummary(active.liveState);
+    if (introWorldMeta) {
+        const snapCount = active.snapshots ? active.snapshots.length : 0;
+        introWorldMeta.textContent = `${sum.location || 'Cuna del Éter'} · ${snapCount} ${snapCount === 1 ? 'momento' : 'momentos'} · ${formatRelativeTime(active.updatedAt)}`;
+    }
     if (startBtnLabel) {
         const hasProgress = (sum.cores > 0 || sum.bases > 0 || (active.snapshots && active.snapshots.length > 0) || (active.liveState && active.liveState.cosmosSimTime > 5));
         startBtnLabel.textContent = hasProgress ? 'Continuar Viaje' : 'Comenzar Viaje';
@@ -823,39 +951,42 @@ function refreshSavesUI() {
         }
     }
 
-    // 4. Renderizar Lista de Todos los Mundos
+    // 4. Renderizar Lista de Todos los Mundos (en Modal e Inicio)
+    const renderWorldRowsHtml = () => worldStore.worlds.map(w => {
+        const isActive = w.id === active.id;
+        const snapCount = w.snapshots ? w.snapshots.length : 0;
+        const confirmDelW = pendingConfirmAction && pendingConfirmAction.type === 'delWorld' && pendingConfirmAction.id === w.id && Date.now() < pendingConfirmAction.expiresAt;
+        return `
+        <div class="px-3.5 py-2.5 rounded-2xl ${isActive ? 'bg-amber-400/[0.08] border-amber-300/35' : 'bg-white/[0.03] hover:bg-white/[0.05] border-white/10'} border transition-colors flex items-center justify-between gap-2.5">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="font-display text-xs sm:text-sm font-medium text-white truncate">${escapeHtmlSave(w.name)}</span>
+                    ${isActive ? '<span class="text-[9.5px] px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 shrink-0">Actual</span>' : ''}
+                </div>
+                <div class="text-[10.5px] text-stone-400 mt-0.5 truncate">
+                    #${escapeHtmlSave(w.seed)} · ${snapCount} ${snapCount === 1 ? 'momento' : 'momentos'} · ${formatRelativeTime(w.updatedAt)}
+                </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                ${isActive
+                    ? `<button data-world-action="enter" data-world-id="${w.id}" class="px-3 py-1.5 rounded-xl font-display text-[11px] font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer">Jugar</button>`
+                    : `<button data-world-action="load" data-world-id="${w.id}" class="px-3 py-1.5 rounded-xl font-display text-[11px] font-semibold bg-amber-300 text-stone-950 hover:brightness-110 cursor-pointer">Cargar</button>`
+                }
+                <button data-world-action="rename" data-world-id="${w.id}" class="px-2 py-1.5 rounded-xl text-xs text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer" title="Renombrar">✎</button>
+                ${worldStore.worlds.length > 1 ? `
+                    <button data-world-action="delete" data-world-id="${w.id}" class="px-2 py-1.5 rounded-xl text-xs ${confirmDelW ? 'bg-rose-500 text-white font-semibold' : 'text-stone-400 hover:text-rose-300 hover:bg-rose-500/15'} cursor-pointer" title="Borrar">
+                        ${confirmDelW ? '¿Borrar?' : '✕'}
+                    </button>` : ''
+                }
+            </div>
+        </div>`;
+    }).join('');
+
+    const worldsHtml = renderWorldRowsHtml();
     const worldsList = document.getElementById('allWorldsListContainer');
-    if (worldsList) {
-        worldsList.innerHTML = worldStore.worlds.map(w => {
-            const isActive = w.id === active.id;
-            const snapCount = w.snapshots ? w.snapshots.length : 0;
-            const confirmDelW = pendingConfirmAction && pendingConfirmAction.type === 'delWorld' && pendingConfirmAction.id === w.id && Date.now() < pendingConfirmAction.expiresAt;
-            return `
-            <div class="px-4 py-3 rounded-2xl ${isActive ? 'bg-amber-400/[0.08] border-amber-300/35' : 'bg-white/[0.03] hover:bg-white/[0.05] border-white/10'} border transition-colors flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                        <span class="font-display text-sm font-medium text-white truncate">${escapeHtmlSave(w.name)}</span>
-                        ${isActive ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300">Actual</span>' : ''}
-                    </div>
-                    <div class="text-[11px] text-stone-400 mt-0.5 truncate">
-                        #${escapeHtmlSave(w.seed)} · ${snapCount} ${snapCount === 1 ? 'versión' : 'versiones'} · ${formatRelativeTime(w.updatedAt)}
-                    </div>
-                </div>
-                <div class="flex items-center gap-1.5 shrink-0">
-                    ${isActive
-                        ? `<button data-world-action="enter" data-world-id="${w.id}" class="px-3.5 py-1.5 rounded-xl font-display text-xs font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer">Jugar</button>`
-                        : `<button data-world-action="load" data-world-id="${w.id}" class="px-3.5 py-1.5 rounded-xl font-display text-xs font-semibold bg-amber-300 text-stone-950 hover:brightness-110 cursor-pointer">Cargar</button>`
-                    }
-                    <button data-world-action="rename" data-world-id="${w.id}" class="px-2 py-1.5 rounded-xl text-xs text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer" title="Renombrar">✎</button>
-                    ${worldStore.worlds.length > 1 ? `
-                        <button data-world-action="delete" data-world-id="${w.id}" class="px-2.5 py-1.5 rounded-xl text-xs ${confirmDelW ? 'bg-rose-500 text-white font-semibold' : 'text-stone-400 hover:text-rose-300 hover:bg-rose-500/15'} cursor-pointer" title="Borrar">
-                            ${confirmDelW ? '¿Borrar?' : '✕'}
-                        </button>` : ''
-                    }
-                </div>
-            </div>`;
-        }).join('');
-    }
+    if (worldsList) worldsList.innerHTML = worldsHtml;
+    const introWorldsList = document.getElementById('introWorldsList');
+    if (introWorldsList) introWorldsList.innerHTML = worldsHtml;
 }
 
 // --- EXPORTAR / IMPORTAR RESPALDO JSON ---
@@ -943,6 +1074,23 @@ function initWorldSaveSystem(skipRestore = false) {
     });
 }
 
+function openCreateWorldModal() {
+    const modal = document.getElementById('createWorldModal');
+    if (!modal) return;
+    if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
+    const inName = document.getElementById('inNewWorldName');
+    const inSeed = document.getElementById('inNewWorldSeed');
+    if (inName) inName.value = '';
+    if (inSeed) inSeed.value = '';
+    modal.classList.remove('hidden');
+    if (inName) setTimeout(() => inName.focus(), 40);
+}
+
+function closeCreateWorldModal() {
+    const modal = document.getElementById('createWorldModal');
+    if (modal) modal.classList.add('hidden');
+}
+
 function bindSaveSystemEvents() {
     const btnOpenWorldsIntro = document.getElementById('btnOpenWorldsIntro');
     const btnIntroSwitchWorld = document.getElementById('btnIntroSwitchWorld');
@@ -952,9 +1100,22 @@ function bindSaveSystemEvents() {
 
     if (btnOpenWorldsIntro) btnOpenWorldsIntro.addEventListener('click', () => openWorldsModal('worlds'));
     if (btnIntroSwitchWorld) btnIntroSwitchWorld.addEventListener('click', () => openWorldsModal('worlds'));
+    const btnOpenSnapshotsIntro = document.getElementById('btnOpenSnapshotsIntro');
+    if (btnOpenSnapshotsIntro) btnOpenSnapshotsIntro.addEventListener('click', () => openWorldsModal('snapshots'));
     if (btnOpenWorldsHUD) btnOpenWorldsHUD.addEventListener('click', () => openWorldsModal('snapshots'));
     if (btnQuickSaveHUD) btnQuickSaveHUD.addEventListener('click', openQuickSaveModal);
     if (btnCloseWorlds) btnCloseWorlds.addEventListener('click', closeWorldsModal);
+
+    const btnOpenCreateIntro = document.getElementById('btnOpenCreateWorldIntro');
+    const btnOpenCreateHUD = document.getElementById('btnOpenCreateWorldHUD');
+    const btnOpenCreateFromModal = document.getElementById('btnOpenCreateWorldFromModal');
+    const btnCloseCreate = document.getElementById('btnCloseCreateWorld');
+    const btnCancelCreate = document.getElementById('btnCancelCreateWorld');
+    if (btnOpenCreateIntro) btnOpenCreateIntro.addEventListener('click', openCreateWorldModal);
+    if (btnOpenCreateHUD) btnOpenCreateHUD.addEventListener('click', openCreateWorldModal);
+    if (btnOpenCreateFromModal) btnOpenCreateFromModal.addEventListener('click', openCreateWorldModal);
+    if (btnCloseCreate) btnCloseCreate.addEventListener('click', closeCreateWorldModal);
+    if (btnCancelCreate) btnCancelCreate.addEventListener('click', closeCreateWorldModal);
 
     const tabSnap = document.getElementById('tabBtnWorldSnapshots');
     const tabAll = document.getElementById('tabBtnAllWorlds');
@@ -1004,10 +1165,18 @@ function bindSaveSystemEvents() {
         createNewWorldAndEnter(wName, wSeed);
         if (inNewWorldName) inNewWorldName.value = '';
         if (inNewWorldSeed) inNewWorldSeed.value = '';
+        closeCreateWorldModal();
         closeWorldsModal();
         if (typeof dismissIntro === 'function') dismissIntro();
     };
     if (btnCreateWorld) btnCreateWorld.addEventListener('click', handleCreateWorld);
+    [inNewWorldName, inNewWorldSeed].forEach(inp => {
+        if (!inp) return;
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleCreateWorld();
+            if (e.key === 'Escape') closeCreateWorldModal();
+        });
+    });
 
     // Delegación de eventos en lista de versiones
     const snapList = document.getElementById('snapshotsListContainer');
@@ -1035,10 +1204,10 @@ function bindSaveSystemEvents() {
         });
     }
 
-    // Delegación de eventos en lista de mundos
-    const worldsList = document.getElementById('allWorldsListContainer');
-    if (worldsList) {
-        worldsList.addEventListener('click', (e) => {
+    // Delegación de eventos en lista de mundos (modal e inicio)
+    const bindWorldsListActions = (container) => {
+        if (!container) return;
+        container.addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-world-action]');
             if (!btn) return;
             const action = btn.dataset.worldAction;
@@ -1059,20 +1228,26 @@ function bindSaveSystemEvents() {
                 if (isTwoStepConfirmed('delWorld', id)) deleteWorld(id);
             }
         });
-    }
+    };
+    bindWorldsListActions(document.getElementById('allWorldsListContainer'));
+    bindWorldsListActions(document.getElementById('introWorldsList'));
 
-    // Exportar / Importar JSON
-    const btnExport = document.getElementById('btnExportWorldsJSON');
-    const inImport = document.getElementById('inImportWorldsJSON');
-    if (btnExport) btnExport.addEventListener('click', exportWorldsBackupJSON);
-    if (inImport) {
-        inImport.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                importWorldsBackupJSON(e.target.files[0]);
-                e.target.value = '';
-            }
-        });
-    }
+    // Exportar / Importar JSON (Modal + Pantalla de Inicio)
+    ['btnExportWorldsJSON', 'btnIntroExportJSON'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', exportWorldsBackupJSON);
+    });
+    ['inImportWorldsJSON', 'inIntroImportJSON'].forEach(id => {
+        const inp = document.getElementById(id);
+        if (inp) {
+            inp.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    importWorldsBackupJSON(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
+        }
+    });
 
     // Modal rápido de Guardar Momento
     const btnCloseQS = document.getElementById('btnCloseQuickSave');
@@ -1101,6 +1276,7 @@ function bindSaveSystemEvents() {
             if (intro && !intro.classList.contains('hidden')) return;
             openQuickSaveModal();
         } else if (e.key === 'Escape') {
+            closeCreateWorldModal();
             closeQuickSaveModal();
             closeWorldsModal();
         }
