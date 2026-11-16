@@ -480,6 +480,7 @@ const PlanetSurfaceBake = (function () {
         const isGravitic = (cls === 'gravitic');
         const isArtificial = (cls === 'artificial');
         const isTemporal = (cls === 'temporal');
+        const isMisty = (cls === 'misty');
         const isEyeball = !!(arch.isEyeballWorld || p.isEyeballWorld);
         const isVolcanic = (cls === 'volcanic' || id.includes('magma') || id.includes('caldera') || id.includes('sulfur') || id.includes('obsidian'));
         const isCryo = (cls === 'cryogenic' || id.includes('ice') || id.includes('methane') || id.includes('nitrogen'));
@@ -488,9 +489,9 @@ const PlanetSurfaceBake = (function () {
         const isOceanic = (cls === 'oceanic' || id.includes('ocean') || id.includes('biolume') || id.includes('acid'));
         const isToxic = (cls === 'toxic' || id.includes('uraninite') || id.includes('chlorine'));
         const isHollowOrAnomaly = (cls === 'hollow' || p.isHollow || cls === 'anomaly' || id.includes('hollow') || id.includes('monolith') || id.includes('crater'));
-        const isTerrestrial = (cls === 'terrestrial' || (!isGas && !isShattered && !isMegalithic && !isLiving && !isCometary && !isGravitic && !isArtificial && !isTemporal && !isVolcanic && !isCryo && !isDesert && !isCrystalline && !isOceanic && !isToxic && !isHollowOrAnomaly));
+        const isTerrestrial = (cls === 'terrestrial' || (!isGas && !isShattered && !isMegalithic && !isLiving && !isCometary && !isGravitic && !isArtificial && !isTemporal && !isMisty && !isVolcanic && !isCryo && !isDesert && !isCrystalline && !isOceanic && !isToxic && !isHollowOrAnomaly));
 
-        const hasEmissive = isVolcanic || isShattered || isMegalithic || isLiving || isCometary || isGravitic || isArtificial || isTemporal || id.includes('biolume') || id.includes('phosphor') || id.includes('toxic') || isCrystalline || cls === 'anomaly' || cls === 'hollow' || !!p.isHollow;
+        const hasEmissive = isVolcanic || isShattered || isMegalithic || isLiving || isCometary || isGravitic || isArtificial || isTemporal || id === 'abyssal_shroud' || id.includes('biolume') || id.includes('phosphor') || id.includes('toxic') || isCrystalline || cls === 'anomaly' || cls === 'hollow' || !!p.isHollow;
 
         // Resolución óptima según tamaño del planeta (360px - 440px ofrece gran nitidez y ~15ms de bake único)
         const size = p.radius > 2800 ? 440 : (p.radius < 1500 ? 340 : 384);
@@ -844,6 +845,24 @@ const PlanetSurfaceBake = (function () {
                     col = mixRGB(col, accentCol, arcGlow * 0.92);
                     er = accentCol[0]; eg = accentCol[1]; eb = accentCol[2];
                     ea = arcGlow * 235;
+                    r = col[0]; gr = col[1]; b = col[2];
+
+                } else if (isMisty) {
+                    // === MUNDOS BRUMOSOS: RELIEVES VELADOS POR BANCOS DE NIEBLA SEDOSOS Y HALOS LUMINOSOS ===
+                    const elev = ProceduralNoise.fbm3(nx * 2.5, ny * 2.5, nz * 2.5, 4, seedNum);
+                    const mistSwirl = ProceduralNoise.fbm3(nx * 2.8 + 0.7, ny * 4.4, nz * 2.8 - 0.5, 4, seedNum + 131);
+                    const mistRibbon = ProceduralNoise.fbm3(nx * 4.2 + mistSwirl * 0.9, ny * 7.2, nz * 4.2, 3, seedNum + 241);
+                    let col = mixRGB(coreCol, crustCol, smooth(0.25, 0.65, elev));
+                    col = mixRGB(col, litCol, smooth(0.52, 0.85, elev) * 0.75);
+                    const mistBase = mixRGB(rimCol, colors.cloudColor || arch.cloudColor || rimCol, 0.55);
+                    const mistCover = smooth(0.32, 0.76, mistSwirl * 0.65 + mistRibbon * 0.35) * 0.78;
+                    const limbVeil = smooth(0.85, 0.20, nz0) * 0.42;
+                    col = mixRGB(col, mistBase, clamp01(mistCover + limbVeil));
+                    if (id === 'abyssal_shroud') {
+                        const bioMist = smooth(0.64, 0.88, mistRibbon) * 0.65;
+                        er = accentCol[0]; eg = accentCol[1]; eb = accentCol[2];
+                        ea = bioMist * 180;
+                    }
                     r = col[0]; gr = col[1]; b = col[2];
 
                 } else {

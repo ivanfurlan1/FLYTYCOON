@@ -53,7 +53,8 @@ function initPlanetWeather(planet, rng) {
     const coverRange = (profile && profile.cover) ? profile.cover : [0.50, 0.95];
     const coverTarget = wxLerp(coverRange[0], coverRange[1], prng()) * (arch.cloudDensity || 1.0);
     const windRange = (profile && profile.wind) ? profile.wind : [14, 34];
-    const windBase = wxLerp(windRange[0], windRange[1], prng()) * (prng() > 0.48 ? 1 : -1);
+    const windDir = (planet.wind && planet.wind.dominantDir) ? planet.wind.dominantDir : (prng() > 0.48 ? 1 : -1);
+    const windBase = wxLerp(windRange[0], windRange[1], prng()) * windDir;
 
     const stormProp = (profile.storm && profile.storm.prop !== undefined) ? profile.storm.prop : 0.40;
 
@@ -670,12 +671,16 @@ function updateDelicatePrecipitation(planet, dt, ship, cosmosSimTime) {
 
             const spreadT = (Math.random() - 0.5) * (camViewW + 180);
             const altAbove = 180 + Math.random() * (camViewH * 0.65);
+            const spawnX = ship.x + tanX * spreadT + radX * altAbove;
+            const spawnY = ship.y + tanY * spreadT + radY * altAbove;
+            const localW = (typeof samplePlanetWind === 'function') ? samplePlanetWind(planet, spawnX, spawnY) : null;
+            const windTang = (localW && localW.hasWind) ? localW.tangSpeed : (w.windBase * 0.35);
 
             w.precipParticles.push({
-                x: ship.x + tanX * spreadT + radX * altAbove,
-                y: ship.y + tanY * spreadT + radY * altAbove,
-                vx: -radX * (180 + Math.random() * 100) + tanX * (w.windBase * 0.35),
-                vy: -radY * (180 + Math.random() * 100) + tanY * (w.windBase * 0.35),
+                x: spawnX,
+                y: spawnY,
+                vx: -radX * (180 + Math.random() * 100) + tanX * (windTang * 0.65),
+                vy: -radY * (180 + Math.random() * 100) + tanY * (windTang * 0.65),
                 len: pConf.kind === 'snow' ? (2.5 + Math.random() * 2.5) : (12 + Math.random() * 9),
                 alpha: (0.18 + Math.random() * 0.15) * w.rainIntensity,
                 life: 1.8 + Math.random() * 0.9,
@@ -750,8 +755,8 @@ function drawPlanetWeather(p, timeSec) {
     const sScale = curShip ? (curShip.scale || 1.0) : 1.0;
 
     const isEngineFiring = !!(curShip && (
-        (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && curShip.fuel > 0)) &&
-        (curShip.fuel > 0 || curShip.godMode)
+        (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel))) &&
+        (curShip.fuel > 0 || curShip.godMode || curShip.infiniteFuel)
     ));
 
     let flameInfo = null;
@@ -871,7 +876,10 @@ function drawPlanetWeather(p, timeSec) {
         // B. Estelas de lluvia finas y dinámicas en caída (delicadas líneas atmosféricas, NADA de conos ni polígonos sólidos)
         const streakCount = Math.floor(cl.width / 45);
         const rainDist = Math.max(20, rBase - surfaceR);
-        const windDrift = w.windBase * 0.22;
+        const cloudWind = (typeof samplePlanetWind === 'function')
+            ? samplePlanetWind(p, p.x + Math.cos(cl.angle) * (surfaceR + rainDist * 0.4), p.y + Math.sin(cl.angle) * (surfaceR + rainDist * 0.4))
+            : null;
+        const windDrift = (cloudWind && cloudWind.hasWind) ? (cloudWind.tangSpeed * 0.65) : (w.windBase * 0.22);
 
         ctx.save();
         ctx.lineWidth = 1.1;
@@ -937,11 +945,14 @@ function drawPlanetWeather(p, timeSec) {
             gasCol = cl.exoticData.lit || baseCloudCol;
         }
 
-        // Tinte de tormenta: oscurecimiento profundo y realista en la base
+        // Tinte de tormenta: oscurecimiento profundo y realista en la base según el tipo de clima
+        const stormShade = (profile && profile.stormShade) ? profile.stormShade : null;
         if (cl.isStorm || w.stormIntensity > 0.30) {
-            const stormCol = (profile.id === 'toxic') ? [55, 75, 52] : ((profile.id === 'volcanic') ? [75, 62, 58] : [52, 60, 78]);
-            const sMix = Math.min(1.0, (cl.isStorm ? 0.90 : 0.60) * (0.65 + w.stormIntensity * 0.35));
-            gasCol = wxLerpRGB(gasCol, stormCol, sMix * 0.85);
+            const stormCol = stormShade
+                ? stormShade.tint
+                : ((profile.id === 'toxic') ? [32, 48, 28] : ((profile.id === 'volcanic') ? [32, 24, 24] : [36, 46, 66]));
+            const sMix = Math.min(1.0, (cl.isStorm ? 0.92 : 0.62) * (0.65 + w.stormIntensity * 0.35));
+            gasCol = wxLerpRGB(gasCol, stormCol, sMix * 0.88);
         }
 
         let renderCol = [...gasCol];
@@ -956,11 +967,11 @@ function drawPlanetWeather(p, timeSec) {
 
         const dayTwiCol = [...renderCol];
 
-        const nightSky = (p.colors && p.colors.nightSkyRGB) || [8, 14, 24];
-        const nightGas = wxLerpRGB(nightSky, [20, 28, 44], 0.70);
+        const nightSky = (p.colors && p.colors.nightSkyRGB) || [3, 5, 11];
+        const nightGas = wxLerpRGB(nightSky, [3, 5, 11], 0.82);
 
         if (nightWeight > 0.02) {
-            renderCol = wxLerpRGB(renderCol, nightGas, nightWeight * 0.88);
+            renderCol = wxLerpRGB(renderCol, nightGas, nightWeight * 0.93);
         }
 
         const alphaBase = cl.baseAlpha * cl.growth * (0.50 + 0.50 * dayWeight + 0.35 * twiWeight);
@@ -1059,6 +1070,22 @@ function drawPlanetWeather(p, timeSec) {
                 curB = Math.round(wxLerp(curB, thermalRGB[2], tMix));
             }
 
+            // Iluminación dinámica por luces de superficie, torres o faros del cohete
+            const dynLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(px, py, effRad) : null;
+            const dynIllum = dynLight ? dynLight.illum : 0;
+            if (dynIllum > 0.01 && dynLight) {
+                if (nightWeight > 0.01) {
+                    const liftMix = wxClamp(dynIllum * 0.78 * nightWeight, 0, 0.85);
+                    curR = Math.round(wxLerp(curR, dayTwiCol[0], liftMix));
+                    curG = Math.round(wxLerp(curG, dayTwiCol[1], liftMix));
+                    curB = Math.round(wxLerp(curB, dayTwiCol[2], liftMix));
+                }
+                const dMix = wxClamp(dynIllum * (0.68 + 0.30 * nightWeight), 0, 0.90);
+                curR = Math.round(wxLerp(curR, dynLight.r, dMix));
+                curG = Math.round(wxLerp(curG, dynLight.g, dMix));
+                curB = Math.round(wxLerp(curB, dynLight.b, dMix));
+            }
+
             // Resplandor directo en el núcleo del lóbulo (siempre más claro que el contorno para evitar bolas oscuras)
             const hiR = Math.min(255, Math.round(curR * 1.15 + 15));
             const hiG = Math.min(255, Math.round(curG * 1.15 + 15));
@@ -1069,16 +1096,27 @@ function drawPlanetWeather(p, timeSec) {
             ctx.rotate(pAng + Math.PI * 0.5);
             ctx.scale(pf.scaleX, pf.scaleY);
 
-            // Centro del resplandor estático respecto al sol (nunca cambia de posición cuando el cohete se mueve)
-            const hlX = sunDx * (effRad * 0.22);
-            const hlY = sunDy * (effRad * 0.22);
+            // Centro del resplandor estático respecto al sol (o desplazado ligeramente hacia un haz intenso)
+            let hlX = sunDx * (effRad * 0.22);
+            let hlY = sunDy * (effRad * 0.22);
+            if (dynIllum > 0.15 && dynLight) {
+                const rot = pAng + Math.PI * 0.5;
+                const cosR = Math.cos(rot);
+                const sinR = Math.sin(rot);
+                const lLocalX = (dynLight.dirX * cosR + dynLight.dirY * sinR) * (effRad * 0.24);
+                const lLocalY = (-dynLight.dirX * sinR + dynLight.dirY * cosR) * (effRad * 0.24);
+                const wShift = wxClamp(dynIllum * (0.45 + 0.55 * nightWeight), 0, 0.85);
+                hlX = wxLerp(hlX, lLocalX, wShift);
+                hlY = wxLerp(hlY, lLocalY, wShift);
+            }
 
             // Gradiente limpio: el centro es brillante y se desvanece suavemente hacia el tono del cuerpo,
             // sin oscurecerse en el centro ni en el borde exterior.
+            const effPuffAlpha = wxClamp(puffAlpha + dynIllum * 0.16 * (0.4 + 0.6 * nightWeight), 0, 0.92);
             const grad = ctx.createRadialGradient(hlX, hlY, 0, 0, 0, effRad);
-            grad.addColorStop(0.00, `rgba(${hiR}, ${hiG}, ${hiB}, ${puffAlpha * 0.95})`);
-            grad.addColorStop(0.55, `rgba(${curR}, ${curG}, ${curB}, ${puffAlpha * 0.90})`);
-            grad.addColorStop(0.85, `rgba(${curR}, ${curG}, ${curB}, ${puffAlpha * 0.42})`);
+            grad.addColorStop(0.00, `rgba(${hiR}, ${hiG}, ${hiB}, ${effPuffAlpha * 0.95})`);
+            grad.addColorStop(0.55, `rgba(${curR}, ${curG}, ${curB}, ${effPuffAlpha * 0.90})`);
+            grad.addColorStop(0.85, `rgba(${curR}, ${curG}, ${curB}, ${effPuffAlpha * 0.42})`);
             grad.addColorStop(1.00, `rgba(${curR}, ${curG}, ${curB}, 0.0)`);
 
             ctx.fillStyle = grad;
@@ -1086,14 +1124,16 @@ function drawPlanetWeather(p, timeSec) {
             ctx.arc(0, 0, effRad, 0, Math.PI * 2);
             ctx.fill();
 
-            // Resplandor cálido aditivo al paso del cohete (bloom cinematográfico de motor o reentrada)
-            if (thermalIllum > 0.18 && thermalRGB) {
+            // Resplandor cálido/volumétrico aditivo al paso del cohete o haces de reflectores
+            if ((thermalIllum > 0.18 && thermalRGB) || (dynIllum > 0.15 && dynLight)) {
                 ctx.globalCompositeOperation = 'lighter';
+                const glowRGB = (thermalIllum > dynIllum && thermalRGB) ? thermalRGB : [dynLight.r, dynLight.g, dynLight.b];
+                const glowPeak = Math.max(thermalIllum - 0.18, dynIllum - 0.15);
                 const glowR = effRad * 0.85;
                 const glowGrad = ctx.createRadialGradient(hlX, hlY, 1, 0, 0, glowR);
-                const glowStrength = (thermalIllum - 0.18) * 0.70 * puffAlpha;
-                glowGrad.addColorStop(0.00, `rgba(${thermalRGB[0]}, ${thermalRGB[1]}, ${thermalRGB[2]}, ${glowStrength})`);
-                glowGrad.addColorStop(0.50, `rgba(${thermalRGB[0]}, ${thermalRGB[1]}, ${thermalRGB[2]}, ${glowStrength * 0.35})`);
+                const glowStrength = glowPeak * (0.70 + 0.35 * nightWeight) * effPuffAlpha;
+                glowGrad.addColorStop(0.00, `rgba(${glowRGB[0]}, ${glowRGB[1]}, ${glowRGB[2]}, ${glowStrength})`);
+                glowGrad.addColorStop(0.50, `rgba(${glowRGB[0]}, ${glowRGB[1]}, ${glowRGB[2]}, ${glowStrength * 0.35})`);
                 glowGrad.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
                 ctx.fillStyle = glowGrad;
                 ctx.beginPath();
@@ -1277,4 +1317,45 @@ function getLocalCloudOvercast(planet, obsX, obsY) {
     const storm = wxClamp(rawStorm / Math.max(0.6, rawSky + 0.35), 0, 1) * wxSmoothstep(0.12, 0.52, overcast);
 
     return { overcast, storm, sunOcclusion };
+}
+
+/**
+ * Devuelve los parámetros de oscurecimiento y tinte propios del tipo de tormenta del planeta.
+ */
+function getPlanetStormShadeParams(planet) {
+    const profile = (planet && planet.weather && planet.weather.profile) ? planet.weather.profile : null;
+    const ss = (profile && profile.stormShade) ? profile.stormShade : null;
+    return {
+        skyDark: ss ? ss.skyDark : 0.58,
+        worldDark: ss ? ss.worldDark : 0.52,
+        desat: ss ? ss.desat : 0.62,
+        tint: ss ? ss.tint : [36, 46, 66]
+    };
+}
+
+/**
+ * Calcula el factor unificado de oscurecimiento por nubosidad/tormenta local (0..~0.82) y su tinte.
+ * Usa los valores suavizados del observador cuando el planeta es el planeta más cercano.
+ */
+function getLocalStormDarkness(planet) {
+    if (!planet || typeof ship === 'undefined' || !ship || ship.nearestPlanet !== planet) {
+        return { overcast: 0, storm: 0, worldDark: 0, skyDark: 0, tint: [36, 46, 66], desat: 0.62 };
+    }
+    const atmoW = wxClamp(ship.currentAtmoWeight || 0, 0, 1);
+    const ov = wxClamp(ship.cloudOvercast || 0, 0, 1) * wxSmoothstep(0.01, 0.22, atmoW);
+    const st = wxClamp(ship.cloudStorm || 0, 0, 1);
+    if (ov <= 0.004) {
+        return { overcast: 0, storm: 0, worldDark: 0, skyDark: 0, tint: [36, 46, 66], desat: 0.62 };
+    }
+    const p = getPlanetStormShadeParams(planet);
+    const skyDark = wxClamp(ov * (0.20 + st * Math.max(0.15, p.skyDark - 0.20)), 0, 0.88);
+    const worldDark = wxClamp(ov * (0.16 + st * Math.max(0.12, p.worldDark - 0.16)), 0, 0.82);
+    return {
+        overcast: ov,
+        storm: st,
+        skyDark,
+        worldDark,
+        tint: p.tint,
+        desat: p.desat
+    };
 }

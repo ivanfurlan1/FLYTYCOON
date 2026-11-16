@@ -46,6 +46,7 @@ const LIFE_PROBABILITY_BY_CLASS = {
     temporal:    0.55,
     anomaly:     0.50,
     artificial:  0.65,
+    misty:       0.72,
     // Categorías estériles: siempre 0
     cometary:    0.0,
     gravitic:    0.0,
@@ -1101,6 +1102,81 @@ const CREATURE_SPECIES_BY_CLASS = {
             desc: 'Meca de combate pesado de marcha lentísima, blindaje masivo y reactor expuesto. Bombardeo de plasma continuo contra cohetes.',
             palettes: [
                 { body: '#18181b', secondary: '#3f3f46', accent: '#f59e0b', eye: '#ef4444', horn: '#fde047', glow: 'rgba(245, 158, 11, 0.6)' }
+            ]
+        }
+    ],
+
+    // =========================================================================
+    // 13. MISTY (Brumosos & Nieblas Eternas) — 3 especies únicas
+    // =========================================================================
+    misty: [
+        {
+            id: 'mist_lantern_moth',
+            name: 'Polilla Farol de Bruma',
+            classId: 'misty',
+            renderType: 'mist_lantern_moth',
+            temperamentKey: 'PEACEFUL_BENEVOLENT',
+            locomotion: 'flyer',
+            grouping: 'flock',
+            groupMin: 2, groupMax: 4,
+            sizeClass: 'small',
+            scaleMin: 0.82, scaleMax: 1.05,
+            hp: 36, armor: 0.0, damage: 0, rocketDamageMult: 0,
+            baseSpeed: 12.0, chaseMult: 1.0, fleeMult: 1.9,
+            flyAltitudeMin: 22, flyAltitudeMax: 78,
+            attackMode: 'none', projectileType: null,
+            aggroRange: 110, rocketAggroRange: 95, attacksRocket: false,
+            habitatPref: 'valley',
+            healsO2: true,
+            desc: 'Crisálida alada que ilumina los bancos de neblina con destellos perlados y áureos, guiando a los exploradores en la bruma.',
+            palettes: [
+                { body: '#1e293b', secondary: '#334155', accent: '#7dd3fc', eye: '#e0f2fe', horn: '#bae6fd', glow: 'rgba(125, 211, 252, 0.62)' },
+                { body: '#292524', secondary: '#44403c', accent: '#fcd34d', eye: '#fef3c7', horn: '#fde68a', glow: 'rgba(252, 211, 77, 0.58)' }
+            ]
+        },
+        {
+            id: 'mist_veil_manta',
+            name: 'Mantarraya de Velo Etéreo',
+            classId: 'misty',
+            renderType: 'mist_veil_manta',
+            temperamentKey: 'DOCILE_SHY',
+            locomotion: 'flyer',
+            grouping: 'pair',
+            groupMin: 2, groupMax: 3,
+            sizeClass: 'medium',
+            scaleMin: 0.95, scaleMax: 1.20,
+            hp: 54, armor: 0.05, damage: 0, rocketDamageMult: 0,
+            baseSpeed: 14.5, chaseMult: 1.0, fleeMult: 2.1,
+            flyAltitudeMin: 34, flyAltitudeMax: 115,
+            attackMode: 'none', projectileType: null,
+            aggroRange: 105, rocketAggroRange: 140, attacksRocket: false,
+            habitatPref: 'valley',
+            desc: 'Navega silenciosamente entre las capas de niebla baja ondeando largas cintas translúcidas.',
+            palettes: [
+                { body: '#164e63', secondary: '#155e75', accent: '#a5f3fc', eye: '#ecfeff', horn: '#cffafe', glow: 'rgba(165, 243, 252, 0.52)' },
+                { body: '#312e81', secondary: '#3730a3', accent: '#c4b5fd', eye: '#ede9fe', horn: '#ddd6fe', glow: 'rgba(196, 181, 253, 0.52)' }
+            ]
+        },
+        {
+            id: 'mist_stag_sentinel',
+            name: 'Ciervo Fantasma de la Bruma',
+            classId: 'misty',
+            renderType: 'mist_stag_sentinel',
+            temperamentKey: 'NEUTRAL_TERRITORIAL',
+            locomotion: 'jumper',
+            grouping: 'herd',
+            groupMin: 2, groupMax: 3,
+            sizeClass: 'large',
+            scaleMin: 1.08, scaleMax: 1.28,
+            hp: 135, armor: 0.15, damage: 14, rocketDamageMult: 0.65,
+            baseSpeed: 12.5, chaseMult: 1.5, fleeMult: 1.8,
+            jumpPower: 102, jumpCooldown: 1.8,
+            attackMode: 'melee', projectileType: null,
+            aggroRange: 125, rocketAggroRange: 140, attacksRocket: true,
+            habitatPref: 'ridge',
+            desc: 'Guardián silencioso de los altiplanos brumosos cuyas astas brillan suavemente entre la neblina nocturna.',
+            palettes: [
+                { body: '#1e293b', secondary: '#334155', accent: '#99f6e4', eye: '#f0fdfa', horn: '#5eead4', glow: 'rgba(153, 246, 228, 0.55)' }
             ]
         }
     ]

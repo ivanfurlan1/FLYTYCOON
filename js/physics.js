@@ -17,6 +17,7 @@ const ship = {
     maxHull: 100,
     fuel: 100,
     maxFuel: 100,
+    infiniteFuel: false,
     modelKey: 'vesper',
     scale: 1.0,
     passengers: 1,
@@ -24,6 +25,7 @@ const ship = {
     flapAngleCanard: 0,
     flapAngleAft: 0,
     artifacts: 0,
+    cargo: {},           // Bodega de minerales y materiales del cohete { resourceId: cantidad }
     thrusting: false,
     warping: false,
     braking: false,      // Retro-frenado / amortiguación de descenso (S / Flecha Abajo)
@@ -58,6 +60,7 @@ const ship = {
     gimbalAngle: 0,         // Ángulo de inclinación de la campana del motor (TVC)
     atmoPressure: 1.0,      // Presión barométrica local (controla colimación vs expansión de la llama)
     currentLayerName: 'TROPOSFERA',
+    localWind: null,        // Muestra viva del viento planetario local en la posición del cohete
     verticalSpeed: 0,       // Velocidad vertical respecto a la superficie (+ sube, - baja)
     horizontalSpeed: 0,     // Velocidad tangencial respecto a la superficie
     leftGearSpring: { pos: 0, vel: 0, target: 0 },
@@ -189,32 +192,45 @@ function createSparks(x, y, count, baseAngle, spread, minSpd, maxSpd, color = nu
  * Soporta iluminación interna de llama (heatGlow), cúmulos multi-lóbulo 3D y deriva por viento.
  */
 function createSmoke(x, y, count, baseSize, color, baseVx = 0, baseVy = 0, life = 2.8, drift = 25, options = {}) {
-    const MAX_SMOKE_PUFFS = 380;
+    const MAX_SMOKE_PUFFS = 720;
     if (smokePuffs.length + count > MAX_SMOKE_PUFFS) {
-        const excess = (smokePuffs.length + count) - MAX_SMOKE_PUFFS;
-        smokePuffs.splice(0, Math.min(smokePuffs.length, excess));
+        let excess = (smokePuffs.length + count) - MAX_SMOKE_PUFFS;
+        // Eliminar primero humo realmente casi agotado (< 25% de vida), nunca partículas recién creadas
+        for (let i = 0; i < smokePuffs.length && excess > 0; ) {
+            const p = smokePuffs[i];
+            if ((p.life / p.maxLife) < 0.25) {
+                smokePuffs.splice(i, 1);
+                excess--;
+            } else {
+                i++;
+            }
+        }
+        if (excess > 0 && smokePuffs.length > 0) {
+            smokePuffs.splice(0, Math.min(smokePuffs.length, excess));
+        }
     }
     const cloudType = options.cloudType || 'exhaust'; // 'launch' | 'exhaust' | 'stratosphere' | 'dust'
-    const expansionMult = options.expansionMult || (cloudType === 'stratosphere' ? 3.8 : (cloudType === 'launch' ? 3.5 : 2.7));
-    const baseAlpha = options.alpha || (cloudType === 'stratosphere' ? 0.36 : (cloudType === 'launch' ? 0.56 : 0.42));
+    const expansionMult = options.expansionMult || (cloudType === 'stratosphere' ? 4.0 : (cloudType === 'launch' ? 3.8 : 3.0));
+    const baseAlpha = options.alpha || (cloudType === 'stratosphere' ? 0.40 : (cloudType === 'launch' ? 0.62 : 0.50));
     const heatGlow = options.heatGlow || 0;
     const planetKey = options.planetKey || null;
     const windDrift = options.windDrift || 0;
+    const baseDrag = cloudType === 'stratosphere' ? 0.42 : (cloudType === 'launch' ? 1.35 : (cloudType === 'dust' ? 1.2 : 1.15));
 
     for (let i = 0; i < count; i++) {
         const l = life * (0.8 + Math.random() * 0.4);
         const initSize = baseSize * (0.84 + Math.random() * 0.36);
 
-        // Clúster de 3 a 5 sub-lóbulos volumétricos con órbitas y varianza de escala
-        const lobeCount = cloudType === 'launch' ? 4 : (cloudType === 'stratosphere' ? 3 : 2);
+        // Clúster de 2 a 3 sub-lóbulos para variación adicional en primeros planos
+        const lobeCount = cloudType === 'launch' ? 2 : 1;
         const lobes = [
             { angle: 0, dist: 0, rScale: 1.0, orbitSpeed: 0 }
         ];
         for (let k = 0; k < lobeCount; k++) {
-            const lAng = (k / lobeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.55;
-            const lDist = 0.32 + Math.random() * 0.36;
-            const lScale = 0.55 + Math.random() * 0.32;
-            const orbitSpd = (Math.random() - 0.5) * (cloudType === 'stratosphere' ? 0.25 : 0.85);
+            const lAng = (k / lobeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+            const lDist = 0.28 + Math.random() * 0.32;
+            const lScale = 0.62 + Math.random() * 0.28;
+            const orbitSpd = (Math.random() - 0.5) * (cloudType === 'stratosphere' ? 0.22 : 0.75);
             lobes.push({
                 angle: lAng,
                 dist: lDist,
@@ -223,25 +239,33 @@ function createSmoke(x, y, count, baseSize, color, baseVx = 0, baseVy = 0, life 
             });
         }
 
+        const soot = options.soot !== undefined
+            ? options.soot
+            : (cloudType === 'exhaust' ? (0.10 + Math.random() * 0.22) : (cloudType === 'launch' ? (0.06 + Math.random() * 0.16) : 0));
+
         smokePuffs.push({
-            x: x + (Math.random() - 0.5) * (baseSize * 0.7),
-            y: y + (Math.random() - 0.5) * (baseSize * 0.7),
+            x: x + (Math.random() - 0.5) * (baseSize * 0.65),
+            y: y + (Math.random() - 0.5) * (baseSize * 0.65),
             vx: baseVx + (Math.random() - 0.5) * drift,
             vy: baseVy + (Math.random() - 0.5) * drift,
             size: initSize,
             currentSize: initSize,
-            maxSize: initSize * expansionMult * (0.88 + Math.random() * 0.3),
+            maxSize: initSize * expansionMult * (0.88 + Math.random() * 0.32),
             life: l,
             maxLife: l,
             rot: Math.random() * Math.PI * 2,
-            rotSpeed: (Math.random() - 0.5) * (cloudType === 'stratosphere' ? 0.3 : 1.2),
-            color: color || [215, 225, 238],
-            alpha: baseAlpha * (0.85 + Math.random() * 0.3),
+            rotSpeed: (Math.random() - 0.5) * (cloudType === 'stratosphere' ? 0.28 : 1.35),
+            color: color || [222, 230, 240],
+            alpha: baseAlpha * (0.86 + Math.random() * 0.28),
             heatGlow,
             cloudType,
             planetKey,
             windDrift,
-            drag: cloudType === 'stratosphere' ? 0.38 : (cloudType === 'launch' ? 1.05 : 0.85),
+            drag: baseDrag,
+            variant: (Math.random() * 4) | 0,
+            turbPhase: Math.random() * Math.PI * 2,
+            vortexDir: options.vortexDir || (Math.random() < 0.5 ? 1 : -1),
+            soot,
             lobes
         });
     }
@@ -496,8 +520,16 @@ function updateBiomeParticles(nearestPlanet, dt) {
             driftTang = Math.sin(bp.phase) * 6;
         }
 
-        const driftX = upX * driftUp + tangX * driftTang;
-        const driftY = upY * driftUp + tangY * driftTang;
+        let driftX = upX * driftUp + tangX * driftTang;
+        const driftYBase = upY * driftUp + tangY * driftTang;
+        let driftY = driftYBase;
+        if (typeof samplePlanetWind === 'function' && nearestPlanet.wind && nearestPlanet.wind.hasWind) {
+            const bw = samplePlanetWind(nearestPlanet, bp.x, bp.y);
+            if (bw.hasWind) {
+                driftX += bw.vx * 0.36;
+                driftY += bw.vy * 0.36;
+            }
+        }
 
         // Desplazamiento fluido y proporcional al paso del cohete
         const dShipX = bp.x - ship.x;
@@ -676,7 +708,7 @@ function toggleOrbitMode() {
         return;
     }
 
-    if (ship.fuel <= 0.5) {
+    if (!ship.infiniteFuel && ship.fuel <= 0.5) {
         if (typeof showHoloCard === 'function') {
             showHoloCard(p, 'COMBUSTIBLE INSUFICIENTE', 'Necesitas Éter para realizar la maniobra de inserción orbital.');
         }
@@ -1004,12 +1036,24 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         if (!p.weather && typeof initPlanetWeather === 'function') {
             initPlanetWeather(p);
         }
+        if (!p.wind && typeof initPlanetWind === 'function') {
+            initPlanetWind(p);
+        }
+        if (!p.fog && typeof initPlanetFog === 'function') {
+            initPlanetFog(p);
+        }
+        if (p.wind && typeof updatePlanetWind === 'function') {
+            updatePlanetWind(p, dt, ship, cosmosSimTime);
+        }
         if (p.weather && typeof updatePlanetWeather === 'function') {
             updatePlanetWeather(p, dt, ship, cosmosSimTime);
         } else if (p.cloudBands) {
             for (const cb of p.cloudBands) {
                 cb.angle = (cb.angle + cb.windSpeed * dt) % (Math.PI * 2);
             }
+        }
+        if (p.fog && typeof updatePlanetFog === 'function') {
+            updatePlanetFog(p, dt, ship, cosmosSimTime);
         }
 
         const dx = ship.x - p.x;
@@ -1046,11 +1090,11 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                     Math.min(255, Math.round(rawDayRGB[2] * lumMultiplier + 28 * solar.dayFactor))
                 ];
 
-                // Noche atmosférica profunda: conserva el tinte nocturno propio de cada planeta pero oscureciendo con alto contraste cinematográfico
+                // Noche atmosférica profunda: conserva un sutil matiz propio del planeta con oscuridad nocturna real
                 const deepNightRGB = [
-                    Math.max(1, Math.round(rawNightRGB[0] * 0.40)),
-                    Math.max(1, Math.round(rawNightRGB[1] * 0.40)),
-                    Math.max(2, Math.round(rawNightRGB[2] * 0.46))
+                    Math.max(1, Math.round(Math.min(6, rawNightRGB[0] * 0.16))),
+                    Math.max(1, Math.round(Math.min(8, rawNightRGB[1] * 0.16))),
+                    Math.max(2, Math.round(Math.min(15, rawNightRGB[2] * 0.22)))
                 ];
 
                 // Fusión continua y armónica mediante ponderación de energía normalizada
@@ -1077,7 +1121,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                     Math.min(255, Math.round(dayUpperBase[1] * 1.35 + 14)),
                     Math.min(255, Math.round(dayUpperBase[2] * 1.35 + 18))
                 ];
-                const nightUpper = col.nightUpperSkyRGB || arch.nightUpperSkyRGB || [1, 2, 5];
+                const nightUpper = [1, 2, 4];
                 const upperRGB = lerpRGB(nightUpper, dayUpper, Math.pow(solar.dayFactor, 0.90) + solar.twilightFactor * 0.35);
 
                 if (w > 0.45) {
@@ -1119,11 +1163,38 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.sunCloudOcclusion = lerp(ship.sunCloudOcclusion || 0, 0, wxClear);
     }
 
-    // Oscurecimiento realista y desaturación sutil del cielo diurno/crepuscular bajo nubes o tormenta
-    // (La noche casi no cambia porque ya es oscura; el día conserva su identidad diurna sin volverse noche)
+    // Densidad local continua de neblina sobre el observador (nave o astronauta)
+    if (nearestPlanet && atmoWeight > 0.01 && typeof samplePlanetFog === 'function') {
+        const fogSample = samplePlanetFog(nearestPlanet, obsX, obsY);
+        const fogBlend = clamp(dt * 2.4, 0, 1);
+        ship.localFogDensity = lerp(ship.localFogDensity || 0, fogSample.density, fogBlend);
+        ship.localFogNightGlow = lerp(ship.localFogNightGlow || 0, fogSample.nightGlow || 0, fogBlend);
+        if (fogSample.color) {
+            if (!ship.localFogColor) ship.localFogColor = [...fogSample.color];
+            else {
+                ship.localFogColor[0] = Math.round(lerp(ship.localFogColor[0], fogSample.color[0], fogBlend));
+                ship.localFogColor[1] = Math.round(lerp(ship.localFogColor[1], fogSample.color[1], fogBlend));
+                ship.localFogColor[2] = Math.round(lerp(ship.localFogColor[2], fogSample.color[2], fogBlend));
+            }
+        }
+    } else {
+        ship.localFogDensity = lerp(ship.localFogDensity || 0, 0, clamp(dt * 2.8, 0, 1));
+        ship.localFogNightGlow = lerp(ship.localFogNightGlow || 0, 0, clamp(dt * 2.8, 0, 1));
+    }
+
+    // Oscurecimiento realista y desaturación atmosférica del cielo según el tipo de tormenta y cobertura nubosa
     if ((ship.cloudOvercast || 0) > 0.004 && atmoWeight > 0.01) {
-        const ov = clamp(ship.cloudOvercast, 0, 1) * smoothstep(0.01, 0.25, atmoWeight);
-        const st = clamp(ship.cloudStorm || 0, 0, 1);
+        const stormInfo = (typeof getLocalStormDarkness === 'function')
+            ? getLocalStormDarkness(nearestPlanet)
+            : {
+                overcast: clamp(ship.cloudOvercast, 0, 1) * smoothstep(0.01, 0.25, atmoWeight),
+                storm: clamp(ship.cloudStorm || 0, 0, 1),
+                skyDark: clamp(ship.cloudOvercast, 0, 1) * (0.20 + clamp(ship.cloudStorm || 0, 0, 1) * 0.40),
+                tint: [36, 46, 66],
+                desat: 0.62
+            };
+        const ov = stormInfo.overcast;
+        const st = stormInfo.storm;
         const sol = ship.currentSolarState;
         const dayW = sol ? clamp(sol.dayFactor, 0, 1) : 1.0;
         const twiW = sol ? clamp(sol.twilightFactor, 0, 1) : 0.0;
@@ -1131,18 +1202,23 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         const wSum = Math.max(0.001, dayW + twiW + nightW);
 
         const lum = targetSkyRGB[0] * 0.299 + targetSkyRGB[1] * 0.587 + targetSkyRGB[2] * 0.114;
-        const slateRGB = [lum * 0.90, lum * 0.96, lum * 1.06];
-        const desatAmt = ov * (0.56 + st * 0.26) * ((dayW + twiW * 0.65) / wSum);
+        const tintLum = Math.max(1, stormInfo.tint[0] * 0.299 + stormInfo.tint[1] * 0.587 + stormInfo.tint[2] * 0.114);
+        const scaledTint = [
+            stormInfo.tint[0] * (lum / tintLum) * 0.92,
+            stormInfo.tint[1] * (lum / tintLum) * 0.92,
+            stormInfo.tint[2] * (lum / tintLum) * 0.92
+        ];
+        const desatAmt = ov * (stormInfo.desat * (0.55 + st * 0.45)) * ((dayW + twiW * 0.72) / wSum);
 
-        const dayDark = 1.0 - ov * (0.42 + st * 0.26);
-        const twiDark = 1.0 - ov * (0.46 + st * 0.24);
-        const nightDark = 1.0 - ov * 0.08;
+        const dayDark = 1.0 - stormInfo.skyDark;
+        const twiDark = 1.0 - Math.min(0.88, stormInfo.skyDark * 1.05);
+        const nightDark = 1.0 - ov * 0.24;
         const darkMult = (dayDark * dayW + twiDark * twiW + nightDark * nightW) / wSum;
 
         targetSkyRGB = [
-            Math.max(1, Math.round(lerp(targetSkyRGB[0], slateRGB[0], desatAmt) * darkMult)),
-            Math.max(1, Math.round(lerp(targetSkyRGB[1], slateRGB[1], desatAmt) * darkMult)),
-            Math.max(2, Math.round(lerp(targetSkyRGB[2], slateRGB[2], desatAmt) * darkMult))
+            Math.max(1, Math.round(lerp(targetSkyRGB[0], scaledTint[0], desatAmt) * darkMult)),
+            Math.max(1, Math.round(lerp(targetSkyRGB[1], scaledTint[1], desatAmt) * darkMult)),
+            Math.max(2, Math.round(lerp(targetSkyRGB[2], scaledTint[2], desatAmt) * darkMult))
         ];
     }
 
@@ -1224,6 +1300,9 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     ship.atmoPressure = atmoInfo.pressure;
     ship.currentLayerName = atmoInfo.layerName;
+    ship.localWind = (nearestPlanet && typeof samplePlanetWind === 'function')
+        ? samplePlanetWind(nearestPlanet, ship.x, ship.y)
+        : null;
 
     // Si el astronauta está en EVA, desactivar controles de vuelo de la sonda
     if (typeof astronaut !== 'undefined' && astronaut.active) {
@@ -1245,7 +1324,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         if (!nearestPlanet || !orbInfo || ship.isGrounded || distFromPlanetCenter >= nearestPlanet.gravityRadius * 1.48) {
             disengageOrbitMode(false, 'Fuera del pozo gravitatorio.');
         } else if (ship.orbitMode === 'inserting') {
-            if (ship.fuel <= 0.1) {
+            if (!ship.infiniteFuel && ship.fuel <= 0.1) {
                 disengageOrbitMode(false, 'Combustible agotado durante la inserción orbital.');
             } else {
                 const bounds = orbInfo.bounds;
@@ -1294,10 +1373,11 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // --- PROPULSIÓN, PLUMA MULTI-CAPA Y GENERACIÓN DE NUBES ATMOSFÉRICAS ---
     const sliderThrottle = clamp(ship.throttle !== undefined ? ship.throttle : 0.0, 0, 1);
-    const isWarp = ship.warping && ship.fuel > 0;
+    const hasFuel = ship.fuel > 0 || !!ship.infiniteFuel;
+    const isWarp = ship.warping && hasFuel;
     const isManualThrust = (ship.thrusting || sliderThrottle > 0.005) && !isWarp;
     const manualPower = ship.thrusting ? 1.0 : sliderThrottle;
-    const isFiring = (isManualThrust || isWarp || ship.orbitAutoThrust) && ship.fuel > 0;
+    const isFiring = (isManualThrust || isWarp || ship.orbitAutoThrust) && hasFuel;
     const manualThrottle = isWarp ? 1.38 : (isManualThrust ? manualPower : 0.0);
     const targetIntensity = isFiring ? Math.max(manualThrottle, ship.orbitAutoThrottle || 0) : 0.0;
     ship.thrustIntensity = lerp(ship.thrustIntensity, targetIntensity, dt * (isFiring ? 15 : 9));
@@ -1446,8 +1526,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // Animar piezas desplegables (paneles solares y patas) y calcular potencia solar activa
     let activeSolarWatts = 0;
+    let deployAnimChanged = false;
     if (ship.customRocket && ship.customRocket.customParts && typeof ROCKET_PARTS_CATALOG !== 'undefined') {
-        let deployAnimChanged = false;
         for (const p of ship.customRocket.customParts) {
             const def = ROCKET_PARTS_CATALOG[p.partDefId];
             if (!def) continue;
@@ -1585,7 +1665,9 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             ship.vx += dvx;
             ship.vy += dvy;
         }
-        ship.fuel = Math.max(0, ship.fuel - dt * fuelBurn);
+        if (!ship.infiniteFuel) {
+            ship.fuel = Math.max(0, ship.fuel - dt * fuelBurn);
+        }
 
         const sScale = curModel ? (curModel.scale || 1.0) : 1.0;
 
@@ -1677,33 +1759,41 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         if (nearestPlanet && atmoInfo.inAtmo) {
             const arch = nearestPlanet.archetype;
 
-            // 4A. CAPA TROPOSFÉRICA BAJA: Estela de humo denso y turbulento (proporcional al cohete sin desbordar)
+            // 4A. CAPA TROPOSFÉRICA BAJA: Estela continua de humo denso y turbulento
             if (atmoInfo.troposphereFactor > 0.06) {
-                ship.smokeSpawnAccum += dt * (20 * atmoInfo.troposphereFactor * smokeRateMult);
+                const baseSpawnRate = 38 * atmoInfo.troposphereFactor * smokeRateMult;
+                ship.smokeSpawnAccum += dt * baseSpawnRate;
+                const spawnTotal = Math.floor(ship.smokeSpawnAccum);
+                let spawnIdx = 0;
                 while (ship.smokeSpawnAccum >= 1) {
                     ship.smokeSpawnAccum -= 1;
+                    spawnIdx++;
                     const smNoz = activeNozzles[Math.floor(Math.random() * activeNozzles.length)];
-                    const ejAngle = ship.angle + Math.PI + smNoz.angOff + ship.gimbalAngle * 0.5 + (Math.random() - 0.5) * 0.22;
-                    const ejSpd = 85 + Math.random() * 65;
-                    const smokeCol = arch.launchSmokeColor || [220, 228, 238];
-                    const smokeLife = (2.6 + Math.random() * 1.8) * persistenceMult;
+                    const ejAngle = ship.angle + Math.PI + smNoz.angOff + ship.gimbalAngle * 0.5 + (Math.random() - 0.5) * 0.24;
+                    const ejSpd = (95 + Math.random() * 80) * clamp(ship.thrustIntensity, 0.45, 1.35);
+                    const smokeCol = arch.launchSmokeColor || [226, 232, 240];
+                    const smokeLife = (4.8 + Math.random() * 3.2) * persistenceMult;
+                    // Interpolar posición hacia atrás en el vector de desplazamiento para evitar huecos a alta velocidad
+                    const interpFrac = spawnTotal > 1 ? ((spawnIdx - 1) / spawnTotal) : (Math.random() * 0.45);
+                    const trailX = smNoz.wx - ship.vx * dt * interpFrac + Math.cos(ejAngle) * (8 + Math.random() * 6);
+                    const trailY = smNoz.wy - ship.vy * dt * interpFrac + Math.sin(ejAngle) * (8 + Math.random() * 6);
                     createSmoke(
-                        smNoz.wx + Math.cos(ejAngle) * 5,
-                        smNoz.wy + Math.sin(ejAngle) * 5,
+                        trailX,
+                        trailY,
                         1,
-                        effectivePuffBase + Math.random() * (effectivePuffBase * 0.45),
+                        (effectivePuffBase * 1.18) + Math.random() * (effectivePuffBase * 0.48),
                         smokeCol,
-                        ship.vx * 0.25 + Math.cos(ejAngle) * ejSpd,
-                        ship.vy * 0.25 + Math.sin(ejAngle) * ejSpd,
+                        ship.vx * 0.22 + Math.cos(ejAngle) * ejSpd,
+                        ship.vy * 0.22 + Math.sin(ejAngle) * ejSpd,
                         smokeLife,
-                        24 * Math.max(0.7, Math.min(1.35, smokeRateMult * 0.85)),
+                        28 * Math.max(0.75, Math.min(1.4, smokeRateMult * 0.9)),
                         {
                             cloudType: 'exhaust',
-                            expansionMult: 2.65 * clamp(0.8 + sScale * 0.16, 0.75, 1.18),
-                            alpha: 0.44 * atmoInfo.troposphereFactor,
-                            heatGlow: 0.85,
+                            expansionMult: 3.25 * clamp(0.82 + sScale * 0.16, 0.78, 1.22),
+                            alpha: 0.56 * atmoInfo.troposphereFactor,
+                            heatGlow: 0.92,
                             planetKey: nearestPlanet.key,
-                            windDrift: 0.0018
+                            windDrift: 0.0022
                         }
                     );
                 }
@@ -1712,31 +1802,31 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             // 4B. CAPA ESTRATOSFÉRICA / MESOSFÉRICA DE CONDENSACIÓN:
             // Genera la gran nube nacarada / estela de condensación de alta atmósfera
             if (atmoInfo.condensationFactor > 0.08) {
-                ship.stratoCloudAccum += dt * (16 * atmoInfo.condensationFactor * smokeRateMult);
+                ship.stratoCloudAccum += dt * (26 * atmoInfo.condensationFactor * smokeRateMult);
                 while (ship.stratoCloudAccum >= 1) {
                     ship.stratoCloudAccum -= 1;
                     const stNoz = activeNozzles[Math.floor(Math.random() * activeNozzles.length)];
-                    const ejAngle = ship.angle + Math.PI + stNoz.angOff + (Math.random() - 0.5) * 0.42;
-                    const ejSpd = 45 + Math.random() * 50;
+                    const ejAngle = ship.angle + Math.PI + stNoz.angOff + (Math.random() - 0.5) * 0.44;
+                    const ejSpd = 50 + Math.random() * 55;
                     const condCol = isWarp ? [186, 230, 253] : (arch.condensationColor || [224, 242, 254]);
-                    const condLife = (9.5 + Math.random() * 6.5) * persistenceMult;
+                    const condLife = (14.0 + Math.random() * 8.5) * persistenceMult;
                     createSmoke(
-                        stNoz.wx + Math.cos(ejAngle) * 8,
-                        stNoz.wy + Math.sin(ejAngle) * 8,
+                        stNoz.wx + Math.cos(ejAngle) * 10 - ship.vx * dt * Math.random() * 0.5,
+                        stNoz.wy + Math.sin(ejAngle) * 10 - ship.vy * dt * Math.random() * 0.5,
                         1,
-                        (effectivePuffBase * 1.25) + Math.random() * 3.0,
+                        (effectivePuffBase * 1.32) + Math.random() * 3.4,
                         condCol,
                         ship.vx * 0.15 + Math.cos(ejAngle) * ejSpd,
                         ship.vy * 0.15 + Math.sin(ejAngle) * ejSpd,
                         condLife,
-                        20,
+                        22,
                         {
                             cloudType: 'stratosphere',
-                            expansionMult: 3.6 * clamp(0.85 + sScale * 0.12, 0.8, 1.15),
-                            alpha: 0.36 * atmoInfo.condensationFactor,
-                            heatGlow: 0.45,
+                            expansionMult: 4.1 * clamp(0.85 + sScale * 0.14, 0.8, 1.2),
+                            alpha: 0.42 * atmoInfo.condensationFactor,
+                            heatGlow: 0.5,
                             planetKey: nearestPlanet.key,
-                            windDrift: 0.0032
+                            windDrift: 0.0036
                         }
                     );
                 }
@@ -1748,12 +1838,12 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             const def = ship.flameDeflection;
             const P_prox = clamp(1 - def.sHit / 320, 0, 1);
             const arch = nearestPlanet.archetype;
-            const launchSmokeCol = arch.launchSmokeColor || arch.surfaceDustColor || [225, 232, 240];
+            const launchSmokeCol = arch.launchSmokeColor || arch.surfaceDustColor || [228, 234, 242];
 
             // Tasa volumétrica continua de nubes rodantes sobre el relieve (acotada para realismo y FPS)
-            const groundRate = curModel ? (curModel.groundSmokeRate || 32) : 32;
-            const effGroundRate = Math.min(48, groundRate * 0.65);
-            ship.groundSmokeAccum = (ship.groundSmokeAccum || 0) + dt * (effGroundRate + 26 * P_prox * smokeRateMult) * clamp(ship.thrustIntensity, 0.25, 1.3);
+            const groundRate = curModel ? (curModel.groundSmokeRate || 36) : 36;
+            const effGroundRate = Math.min(72, groundRate * 0.95);
+            ship.groundSmokeAccum = (ship.groundSmokeAccum || 0) + dt * (effGroundRate + 42 * P_prox * smokeRateMult) * clamp(ship.thrustIntensity, 0.25, 1.35);
             while (ship.groundSmokeAccum >= 1) {
                 ship.groundSmokeAccum -= 1;
 
@@ -1763,31 +1853,35 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 const nx = def.normalX;
                 const ny = def.normalY;
 
-                // Alta velocidad tangencial lateral rodando sobre el relieve con convección térmica ascendente
-                const rollSpeed = (80 + Math.random() * 145) * (0.45 + 0.55 * P_prox) * clamp(ship.thrustIntensity, 0.4, 1.25) * Math.max(0.8, Math.min(1.25, smokeRateMult));
-                const bvx = tx * rollSpeed + nx * (18 + Math.random() * 28);
-                const bvy = ty * rollSpeed + ny * (18 + Math.random() * 28);
+                // Alta velocidad tangencial lateral rodando sobre el relieve antes de rizarse hacia arriba
+                const rollSpeed = (105 + Math.random() * 170) * (0.45 + 0.55 * P_prox) * clamp(ship.thrustIntensity, 0.4, 1.3) * Math.max(0.8, Math.min(1.25, smokeRateMult));
+                const bvx = tx * rollSpeed + nx * (16 + Math.random() * 24);
+                const bvy = ty * rollSpeed + ny * (16 + Math.random() * 24);
 
-                const cloudLife = (3.8 + Math.random() * 2.8) * persistenceMult;
-                const puffSize = (effectivePuffBase * 1.45 + Math.random() * 4.0) * (0.65 + 0.45 * P_prox);
+                const cloudLife = (6.5 + Math.random() * 4.5) * persistenceMult;
+                const puffSize = (effectivePuffBase * 1.55 + Math.random() * 4.5) * (0.65 + 0.45 * P_prox);
+                // Nacer siempre por encima de la superficie (a lo largo de la normal) para nunca atravesar el suelo
+                const spawnLift = puffSize * 0.86;
+                const lateralOff = (Math.random() - 0.5) * 10 * Math.min(1.5, sScale) + Math.random() * 10;
 
                 createSmoke(
-                    def.hitX + (Math.random() - 0.5) * 12 * Math.min(1.6, sScale) + tx * (Math.random() * 10),
-                    def.hitY + (Math.random() - 0.5) * 12 * Math.min(1.6, sScale) + ty * (Math.random() * 10),
+                    def.hitX + nx * spawnLift + tx * lateralOff,
+                    def.hitY + ny * spawnLift + ty * lateralOff,
                     1,
                     puffSize,
                     launchSmokeCol,
                     bvx,
                     bvy,
                     cloudLife,
-                    24 * Math.max(0.8, Math.min(1.35, smokeRateMult * 0.9)),
+                    22 * Math.max(0.8, Math.min(1.3, smokeRateMult * 0.85)),
                     {
                         cloudType: 'launch',
-                        expansionMult: 3.5 * clamp(0.82 + sScale * 0.15, 0.78, 1.18),
-                        alpha: 0.56 * (0.45 + 0.55 * P_prox),
-                        heatGlow: 0.95 * P_prox,
+                        expansionMult: 3.9 * clamp(0.84 + sScale * 0.16, 0.8, 1.22),
+                        alpha: 0.64 * (0.48 + 0.52 * P_prox),
+                        heatGlow: 0.98 * P_prox,
                         planetKey: nearestPlanet.key,
-                        windDrift: 0.0018
+                        windDrift: 0.0022,
+                        vortexDir: side
                     }
                 );
             }
@@ -2124,12 +2218,15 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // Audio de viento atmosférico y turbulencia
     if (nearestPlanet) {
-        audio.setAtmosphericFlight(atmoInfo.density, shipSpeed);
+        const ambWind = (typeof astronaut !== 'undefined' && astronaut.active && astronaut.localWind)
+            ? astronaut.localWind.speed
+            : (ship.localWind ? ship.localWind.speed : 0);
+        audio.setAtmosphericFlight(atmoInfo.density, shipSpeed, ambWind);
     }
 
     // --- RETRO-FRENADO Y AMORTIGUACIÓN DE DESCENSO (TECLA S / FLECHA ABAJO) ---
     let isBrakingRcs = false;
-    if (ship.braking && !ship.isGrounded && ship.fuel > 0 && shipSpeed > 4) {
+    if (ship.braking && !ship.isGrounded && hasFuel && shipSpeed > 4) {
         isBrakingRcs = true;
         const refMass = (curModel && curModel.mass) ? curModel.mass : 2.2;
         const curMass = Math.max(0.4, ship.mass || refMass);
@@ -2140,7 +2237,9 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         const dv = Math.min(shipSpeed, brakeAcc * dt);
         ship.vx -= (ship.vx / shipSpeed) * dv;
         ship.vy -= (ship.vy / shipSpeed) * dv;
-        ship.fuel = Math.max(0, ship.fuel - dt * (0.65 * Math.min(1.8, highSpeedAssist)));
+        if (!ship.infiniteFuel) {
+            ship.fuel = Math.max(0, ship.fuel - dt * (0.65 * Math.min(1.8, highSpeedAssist)));
+        }
 
         if (Math.random() < 0.75) {
             const noseX = ship.x + cosA * 14;
@@ -2197,7 +2296,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     const baseTurnRate = curModel ? (curModel.turnRate || 5.2) : 5.2;
     const customRcsList = (ship.customRocket && ship.customRocket.rcsList) ? ship.customRocket.rcsList : null;
-    const hasCustomRcs = !!(customRcsList && customRcsList.length > 0 && ship.fuel > 0);
+    const hasCustomRcs = !!(customRcsList && customRcsList.length > 0 && hasFuel);
     let physTurnAccel = baseTurnRate;
     let maxAv = 4.5;
     if (ship.customRocket) {
@@ -2257,12 +2356,14 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // Partículas RCS de gas frío a presión en las toberas reales del cohete
     const allowRcsPuffs = !ship.customRocket || hasCustomRcs;
-    if (ship.rcsStrafe && ship.fuel > 0 && allowRcsPuffs) {
+    if (ship.rcsStrafe && hasFuel && allowRcsPuffs) {
         const strafeAngle = ship.angle + ship.rcsStrafe * (Math.PI / 2);
         const strafeAccel = (hasCustomRcs ? (cr.rcsAuthority || 1.0) * 145 : 95) / Math.max(0.6, (ship.mass || 8) / 8);
         ship.vx += Math.cos(strafeAngle) * strafeAccel * dt;
         ship.vy += Math.sin(strafeAngle) * strafeAccel * dt;
-        ship.fuel = Math.max(0, ship.fuel - dt * 0.14);
+        if (!ship.infiniteFuel) {
+            ship.fuel = Math.max(0, ship.fuel - dt * 0.14);
+        }
         if (Math.random() < 0.85) {
             const exhaustAngle = ship.angle - ship.rcsStrafe * (Math.PI / 2) + (Math.random() - 0.5) * 0.16;
             if (hasCustomRcs) {
@@ -2294,10 +2395,12 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
     }
-    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && ship.fuel > 0 && allowRcsPuffs);
+    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && hasFuel && allowRcsPuffs);
     if (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs && Math.random() < 0.78) {
         if (hasCustomRcs) {
-            ship.fuel = Math.max(0, ship.fuel - dt * 0.08);
+            if (!ship.infiniteFuel) {
+                ship.fuel = Math.max(0, ship.fuel - dt * 0.08);
+            }
             for (const rcs of customRcsList) {
                 const isFront = rcs.flightX >= 0;
                 const pushDir = isFront ? (rcsTorque > 0 ? -1 : 1) : (rcsTorque > 0 ? 1 : -1);
@@ -2354,7 +2457,20 @@ function updatePhysics(dt, skipExpensiveUI = false) {
     const atmoSpinDamp = atmoInfo.inAtmo ? lerp(0.992, clamp(0.90 - finDampBonus, 0.72, 0.90), clamp(atmoInfo.density, 0, 1)) : 0.996;
     const dampingBase = ship.isGrounded ? 0.86 : (hasPilotInput ? 0.96 : (ship.sasEnabled ? 0.78 : atmoSpinDamp));
     ship.av *= Math.pow(dampingBase, dt * 10);
-    ship.angle += ship.av * dt;
+
+    // Despertar estado de reposo estable ante cualquier entrada de control, ignición, despliegue o perturbación externa
+    const lwWake = ship.localWind;
+    const extremeWindWake = !!(lwWake && lwWake.hasWind && atmoInfo.inAtmo && (lwWake.speed > 175 || (lwWake.inVortex && lwWake.vortexIntensity > 0.45)));
+    if (isFiring || hasPilotInput || ship.rcsStrafe || ship.braking || ship.warping || ship.orbitMode !== 'off' || !nearestPlanet || (nearestPlanet.archetype && nearestPlanet.archetype.isLiquid) || deployAnimChanged || extremeWindWake) {
+        ship.isResting = false;
+    }
+    if (ship.isResting) {
+        ship.vx = 0;
+        ship.vy = 0;
+        ship.av = 0;
+    } else {
+        ship.angle += ship.av * dt;
+    }
 
     // Inercia newtoniana pura: sin freno artificial en el espacio al apagar los motores.
     // La velocidad solo se regula de forma natural mediante el rendimiento relativista del empuje, la gravedad y la atmósfera.
@@ -2393,8 +2509,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.y = nearestPlanet.y + Math.sin(ship.orbitAngle) * ship.orbitTargetRadius;
         ship.vx = -Math.sin(ship.orbitAngle) * ship.orbitDir * targetVCirc;
         ship.vy = Math.cos(ship.orbitAngle) * ship.orbitDir * targetVCirc;
-    } else if (ship.orbitMode === 'off') {
-        // Integración simpléctica Velocity-Verlet en 4 sub-pasos (siempre activa, incluso apoyado en superficie, para gravedad y vuelco real)
+    } else if (ship.orbitMode === 'off' && !ship.isResting) {
+        // Integración simpléctica Velocity-Verlet en 4 sub-pasos (siempre activa salvo en reposo estable)
         const soiPlanet = (nearestPlanet && distFromPlanetCenter < nearestPlanet.gravityRadius) ? nearestPlanet : null;
         const subSteps = 4;
         const subDt = dt / subSteps;
@@ -2485,7 +2601,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
 
-        // Microclima interno de caverna hueca
+        // Microclima interno de caverna hueca y acoplamiento aerodinámico con el Sistema Eólico Planetario
         if (ship.insideCavernPlanet === nearestPlanet) {
             const hMode = nearestPlanet.hollowPhysicsMode;
             if (hMode === 'thermal_forge') {
@@ -2495,11 +2611,59 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             } else if (hMode === 'crystal_resonance') {
                 ship.fuel = Math.min(ship.maxFuel || 100, ship.fuel + dt * 2.5);
             }
-        } else if (atmoInfo.inAtmo && (nearestPlanet.archetype.classId === 'shattered' || nearestPlanet.archetype.classId === 'toxic' || nearestPlanet.archetype.classId === 'gas_giant' || nearestPlanet.archetype.classId === 'temporal')) {
-            const windStrength = nearestPlanet.archetype.classId === 'temporal' ? 32 : (nearestPlanet.archetype.classId === 'shattered' ? 18 : 26);
-            const windPulse = Math.sin(curT * 0.45 + (nearestPlanet.wavePhase || 0)) * windStrength * atmoInfo.density;
-            ship.vx += tangX * windPulse * dt;
-            ship.vy += tangY * windPulse * dt;
+        } else if (ship.localWind && ship.localWind.hasWind && atmoInfo.inAtmo && atmoInfo.density > 0.01) {
+            const lw = ship.localWind;
+            const wSpd = lw.speed || 0;
+            const dragF = atmoInfo.dragFactor !== undefined ? atmoInfo.dragFactor : 1.0;
+
+            if (wSpd > 1 && dragF > 0.01) {
+                const aeroW = (ship.customRocket && ship.customRocket.aero) ? ship.customRocket.aero : null;
+                const windAng = Math.atan2(lw.vy, lw.vx);
+                const relWindAng = Math.atan2(Math.sin(ship.angle - windAng), Math.cos(ship.angle - windAng));
+                const sinW = Math.sin(relWindAng);
+                const frontSp = aeroW ? (aeroW.frontSpan || 1.0) : (curModel ? (curModel.scale || 1.0) : 1.0);
+                const sideSp = aeroW ? (aeroW.sideSpan || 1.2) : (curModel ? (curModel.scale || 1.0) * 1.35 : 1.35);
+                const solarPen = aeroW ? (aeroW.deployedSolarDragFactor || 0) : 0;
+                const exposedSpan = lerp(frontSp, sideSp * (1 + solarPen * 0.45), sinW * sinW);
+                const ballistic = clamp(exposedSpan / Math.pow(Math.max(0.6, ship.mass || 1.0), 0.56), 0.35, 1.85);
+
+                if (ship.isGrounded) {
+                    // En plataforma/suelo: vientos normales o moderados no mueven ni vuelcan el cohete.
+                    // Solo un vendaval extremo o el núcleo de un tornado/huracán logra sacudirlo.
+                    if (wSpd > 175 || (lw.inVortex && lw.vortexIntensity > 0.45)) {
+                        const excess = Math.max(0, wSpd - 165) + (lw.inVortex ? lw.vortexIntensity * 65 : 0);
+                        const padPush = Math.min(95, 0.5 * atmoInfo.density * excess * excess * ballistic * 0.00055);
+                        ship.vx += (lw.vx / wSpd) * padPush * dt;
+                        ship.vy += (lw.vy / wSpd) * padPush * dt;
+                        if (lw.inVortex && lw.vortexIntensity > 0.50) {
+                            camera.shake = Math.max(camera.shake, Math.min(1.6, lw.vortexIntensity * 1.1));
+                        }
+                    }
+                } else {
+                    // En vuelo: umbral realista para que brisas leves no molesten en absoluto al cohete,
+                    // mientras ráfagas aisladas fuertes, vendavales, huracanes y tornados sí lo afecten.
+                    const breezeGate = smoothstep(55, 115, wSpd);
+                    const windEngage = Math.max(breezeGate, lw.inVortex ? clamp(lw.vortexIntensity * 1.15, 0, 1) : 0);
+                    if (windEngage > 0.005) {
+                        const pushAccel = Math.min(
+                            265,
+                            0.5 * atmoInfo.density * (atmoInfo.dragMult || 1.0) * wSpd * wSpd * ballistic * 0.00135 * windEngage * dragF
+                        );
+                        ship.vx += (lw.vx / wSpd) * pushAccel * dt;
+                        ship.vy += (lw.vy / wSpd) * pushAccel * dt;
+
+                        // Par aerodinámico por viento cruzado / ráfaga fuerte
+                        if (wSpd > 105 || (lw.inVortex && lw.vortexIntensity > 0.28)) {
+                            const torqueScale = (aeroW ? (0.35 + Math.abs(aeroW.stabilityMargin || 0) * 0.45) : 0.45) * ballistic;
+                            ship.av += clamp(-sinW * (pushAccel * 0.0105) * torqueScale, -1.6, 1.6) * dt;
+                        }
+
+                        if (lw.vortexIntensity > 0.32 || lw.turbulence > 0.45) {
+                            camera.shake = Math.max(camera.shake, Math.min(2.2, Math.max(lw.vortexIntensity || 0, lw.turbulence || 0) * 1.35));
+                        }
+                    }
+                }
+            }
         }
 
         // Campos extremos de singularidad (arrastre de marco) y magnetar (pulsos polares)
@@ -2531,32 +2695,51 @@ function updatePhysics(dt, skipExpensiveUI = false) {
     let targetRightComp = 0;
 
     if (nearestPlanet) {
+        if (ship.isResting && (Math.hypot(ship.vx, ship.vy) > 0.1 || Math.abs(ship.av) > 0.01)) {
+            ship.isResting = false;
+        }
         let maxPenetration = 0;
         let avgNormalX = 0;
         let avgNormalY = 0;
+        let sumPenNx = 0;
+        let sumPenNy = 0;
+        let sumPenW = 0;
         const collidingContacts = [];
         let touchedFloatingIsland = false;
+        let anyLiquidContact = false;
+        const contactSkin = ship.isResting ? 0.75 : (wasGrounded ? 0.15 : 0);
 
-        const activeContactPoints = (curModel && curModel.contactPoints) ? curModel.contactPoints : CONTACT_POINTS;
+        const activeContactPoints = (ship.customRocket && Array.isArray(ship.customRocket.contactPoints) && ship.customRocket.contactPoints.length > 0)
+            ? ship.customRocket.contactPoints
+            : ((ship.contactPoints && ship.contactPoints.length > 0)
+                ? ship.contactPoints
+                : ((curModel && curModel.contactPoints) ? curModel.contactPoints : CONTACT_POINTS));
         const inCavern = !!(nearestPlanet.isHollow && typeof isShipInsideCavern === 'function' && isShipInsideCavern(nearestPlanet, ship.x, ship.y));
+        const curCosA = Math.cos(ship.angle);
+        const curSinA = Math.sin(ship.angle);
         for (const pt of activeContactPoints) {
-            const worldX = ship.x + cosA * pt.x - sinA * pt.y;
-            const worldY = ship.y + sinA * pt.x + cosA * pt.y;
+            const worldX = ship.x + curCosA * pt.x - curSinA * pt.y;
+            const worldY = ship.y + curSinA * pt.x + curCosA * pt.y;
 
             const pToPtX = worldX - nearestPlanet.x;
             const pToPtY = worldY - nearestPlanet.y;
-            const distToPt = Math.hypot(pToPtX, pToPtY);
+            const distToPt = Math.hypot(pToPtX, pToPtY) || 1;
             const angleAtPt = Math.atan2(pToPtY, pToPtX);
             const surfaceR = getSurfaceRadius(nearestPlanet, angleAtPt);
 
-            // Comprobar si este punto de contacto reposa sobre una plataforma de base
+            // Comprobar si este punto de contacto reposa sobre la cubierta plana de una plataforma de base
             let baseUnderPt = null;
             if (nearestPlanet.bases && nearestPlanet.bases.length > 0) {
                 for (let bi = 0; bi < nearestPlanet.bases.length; bi++) {
                     const b = nearestPlanet.bases[bi];
                     const dAng = Math.abs(Math.atan2(Math.sin(angleAtPt - b.angle), Math.cos(angleAtPt - b.angle)));
-                    if (dAng <= b.angularHalfSpan * 0.88) {
-                        baseUnderPt = b;
+                    if (dAng <= b.angularHalfSpan * 0.85) {
+                        const cosD = Math.cos(dAng);
+                        const deckR = cosD > 0.001 ? (b.deckR / cosD) : b.deckR;
+                        const natR = (typeof getNaturalSurfaceRadius === 'function') ? getNaturalSurfaceRadius(nearestPlanet, angleAtPt) : surfaceR;
+                        if (deckR >= natR - 0.5) {
+                            baseUnderPt = b;
+                        }
                         break;
                     }
                 }
@@ -2566,10 +2749,13 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             let effectiveR = surfaceR;
             let normalDirSign = 1;
             let ptOnIsland = false;
+            let customPenetration = null;
+            let customNx = null;
+            let customNy = null;
 
             // 1. Islas flotantes / balsas oceánicas / plataformas de caverna
             const islHit = (typeof getFloatingIslandAt === 'function') ? getFloatingIslandAt(nearestPlanet, angleAtPt, distToPt, true) : null;
-            if (islHit && distToPt <= islHit.topR && distToPt >= islHit.bottomR) {
+            if (islHit && distToPt <= islHit.topR + contactSkin && distToPt >= islHit.bottomR - contactSkin) {
                 const midI = (islHit.topR + islHit.bottomR) * 0.5;
                 contactCollision = true;
                 ptOnIsland = true;
@@ -2585,35 +2771,49 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 // 2. Planetas huecos: geometría continua de boca de cueva, suelo, techo y núcleo interior
                 const bounds = getHollowBoundsAt(nearestPlanet, angleAtPt);
                 if (inCavern) {
-                    if (distToPt < bounds.coreR) {
+                    if (distToPt < bounds.coreR + contactSkin) {
                         contactCollision = true;
                         effectiveR = bounds.coreR;
                         normalDirSign = 1;
-                    } else if (distToPt < bounds.floorR) {
+                    } else if (distToPt < bounds.floorR + contactSkin) {
                         contactCollision = true;
                         effectiveR = bounds.floorR;
                         normalDirSign = 1;
-                    } else if (!bounds.isThroatOpen && distToPt > bounds.effectiveCeilingR) {
+                    } else if (!bounds.isThroatOpen && distToPt > bounds.effectiveCeilingR - contactSkin) {
                         contactCollision = true;
                         effectiveR = bounds.effectiveCeilingR;
                         normalDirSign = -1;
                     }
                 } else if (bounds.isThroatOpen) {
-                    if (distToPt < bounds.floorR) {
+                    if (distToPt < bounds.floorR + contactSkin) {
                         contactCollision = true;
                         effectiveR = bounds.floorR;
                         normalDirSign = 1;
                     }
                 } else {
-                    if (distToPt < bounds.extR) {
+                    if (distToPt < bounds.extR + contactSkin) {
                         contactCollision = true;
                         effectiveR = bounds.extR;
                         normalDirSign = 1;
                     }
                 }
+            } else if (baseUnderPt) {
+                // 3a. Plataforma nivelada: distancia perpendicular exacta al plano de la cubierta
+                const bnx = Math.cos(baseUnderPt.angle);
+                const bny = Math.sin(baseUnderPt.angle);
+                const projOnBase = pToPtX * bnx + pToPtY * bny;
+                const deckPen = baseUnderPt.deckR - projOnBase;
+                if (deckPen > -contactSkin) {
+                    contactCollision = true;
+                    effectiveR = surfaceR;
+                    normalDirSign = 1;
+                    customPenetration = Math.max(0, deckPen);
+                    customNx = bnx;
+                    customNy = bny;
+                }
             } else {
-                // 3. Superficie exterior estándar
-                if (distToPt < surfaceR) {
+                // 3b. Superficie exterior estándar
+                if (distToPt < surfaceR + contactSkin) {
                     contactCollision = true;
                     effectiveR = surfaceR;
                     normalDirSign = 1;
@@ -2621,15 +2821,13 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
 
             if (contactCollision) {
-                const penetration = Math.abs(effectiveR - distToPt);
-                let nx = (pToPtX / distToPt) * normalDirSign;
-                let ny = (pToPtY / distToPt) * normalDirSign;
+                const rawPen = (customPenetration !== null)
+                    ? customPenetration
+                    : (normalDirSign > 0 ? Math.max(0, effectiveR - distToPt) : Math.max(0, distToPt - effectiveR));
+                let nx = (customNx !== null) ? customNx : ((pToPtX / distToPt) * normalDirSign);
+                let ny = (customNy !== null) ? customNy : ((pToPtY / distToPt) * normalDirSign);
 
-                // Si impacta la plataforma nivelada, la normal es estrictamente vertical (cenit de la base)
-                if (baseUnderPt && normalDirSign > 0 && !ptOnIsland) {
-                    nx = Math.cos(baseUnderPt.angle);
-                    ny = Math.sin(baseUnderPt.angle);
-                } else if (normalDirSign > 0 && !ptOnIsland && !inCavern && !nearestPlanet.archetype.isLiquid) {
+                if (customNx === null && normalDirSign > 0 && !ptOnIsland && !inCavern && !nearestPlanet.archetype.isLiquid) {
                     // Normal topográfica según la pendiente local de cráteres, dunas y laderas de montaña
                     const eps = clamp(10 / Math.max(300, nearestPlanet.radius), 0.00015, 0.015);
                     const dr = getSurfaceRadius(nearestPlanet, angleAtPt + eps) - getSurfaceRadius(nearestPlanet, angleAtPt - eps);
@@ -2653,10 +2851,16 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 ship.contactsCount++;
                 ship.isGrounded = true;
 
-                if (penetration > maxPenetration) {
-                    maxPenetration = penetration;
-                    avgNormalX = nx;
-                    avgNormalY = ny;
+                if (rawPen > 0) {
+                    const w = rawPen + 0.01;
+                    sumPenNx += nx * w;
+                    sumPenNy += ny * w;
+                    sumPenW += w;
+                    if (rawPen > maxPenetration) {
+                        maxPenetration = rawPen;
+                        avgNormalX = nx;
+                        avgNormalY = ny;
+                    }
                 }
 
                 const lakeAtPt = inCavern
@@ -2664,9 +2868,10 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                     : getPlanetLakeAtAngle(nearestPlanet, angleAtPt);
                 const isPointInLake = !ptOnIsland && !!lakeAtPt && (distToPt <= lakeAtPt.waterLevel + 3);
                 const isLiquid = (!ptOnIsland && nearestPlanet.archetype.isLiquid && !inCavern) || isPointInLake;
+                if (isLiquid) anyLiquidContact = true;
 
                 collidingContacts.push({
-                    pt, worldX, worldY, angleAtPt, nx, ny, tx, ty, isLiquid
+                    pt, worldX, worldY, angleAtPt, nx, ny, tx, ty, isLiquid, pen: rawPen
                 });
 
                 // Efectos de inmersión en fluidos peligrosos o corrosivos
@@ -2684,50 +2889,38 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
 
-        if (maxPenetration > 0) {
-            ship.x += avgNormalX * maxPenetration;
-            ship.y += avgNormalY * maxPenetration;
+        if (collidingContacts.length === 0) {
+            ship.isResting = false;
         }
 
-        // Resolución de impulso de cuerpo rígido normalizada entre todos los contactos simultáneos
-        if (collidingContacts.length > 0) {
-            const contactDiv = collidingContacts.length;
+        if (maxPenetration > 0) {
+            const penSlop = (ship.isResting || (wasGrounded && Math.hypot(ship.vx, ship.vy) < 15 && Math.abs(ship.av) < 0.25)) ? 0.03 : 0;
+            const corr = Math.max(0, maxPenetration - penSlop);
+            if (corr > 0) {
+                const nLen = sumPenW > 0 ? Math.hypot(sumPenNx, sumPenNy) : 0;
+                const pushNx = nLen > 0.001 ? (sumPenNx / nLen) : avgNormalX;
+                const pushNy = nLen > 0.001 ? (sumPenNy / nLen) : avgNormalY;
+                ship.x += pushNx * corr;
+                ship.y += pushNy * corr;
+            }
+        }
+
+        // Resolución de impulso de cuerpo rígido mediante Gauss-Seidel secuencial (cero vibración ni rebote residual)
+        if (collidingContacts.length > 0 && !ship.isResting) {
+            const contactCount = collidingContacts.length;
             const shipMass = Math.max(0.5, ship.mass || 1);
             const shipInertia = Math.max(10, ship.inertia || 100);
-            let sumVx = 0, sumVy = 0, sumAv = 0;
 
+            // 1. Efectos visuales y de daño por impacto evaluados una sola vez con la velocidad previa
             for (const c of collidingContacts) {
-                const { pt, worldX, worldY, angleAtPt, nx, ny, tx, ty, isLiquid } = c;
+                const { pt, worldX, worldY, angleAtPt, nx, ny, isLiquid } = c;
                 const rx = worldX - ship.x;
                 const ry = worldY - ship.y;
                 const ptVx = ship.vx - ship.av * ry;
                 const ptVy = ship.vy + ship.av * rx;
-
                 const vn = ptVx * nx + ptVy * ny;
-                const vt = ptVx * tx + ptVy * ty;
 
                 if (vn < 0) {
-                    // Sin rebote residual a baja velocidad para asentamiento estable
-                    const baseRestitution = isLiquid ? 0.03 : (pt.isPad ? 0.06 : 0.14);
-                    const restitution = Math.abs(vn) < 22 ? 0 : baseRestitution;
-
-                    const torque = (rx * ny - ry * nx);
-                    const effDenomN = 1 + (shipMass * torque * torque) / shipInertia;
-                    const jn = (-(1 + restitution) * vn) / (effDenomN * contactDiv);
-
-                    sumVx += jn * nx;
-                    sumVy += jn * ny;
-                    sumAv += (jn * shipMass * torque * 0.72) / shipInertia;
-
-                    const frictionCoeff = isLiquid ? 0.12 : 0.72;
-                    const torqueT = (rx * ty - ry * tx);
-                    const effDenomT = 1 + (shipMass * torqueT * torqueT) / shipInertia;
-                    const jt = (-vt * frictionCoeff) / (effDenomT * contactDiv);
-
-                    sumVx += jt * tx;
-                    sumVy += jt * ty;
-                    sumAv += (jt * shipMass * torqueT * 0.42) / shipInertia;
-
                     const compAmt = clamp(-vn / 120, 0.25, 1.0);
                     if (pt.id === 'left_pad') targetLeftComp = Math.max(targetLeftComp, compAmt);
                     if (pt.id === 'right_pad') targetRightComp = Math.max(targetRightComp, compAmt);
@@ -2776,26 +2969,72 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 }
             }
 
-            ship.vx += sumVx;
-            ship.vy += sumVy;
-            ship.av += clamp(sumAv, -3.5, 3.5);
-            if (contactDiv >= 2 && !isFiring) {
-                ship.av *= 0.82;
-                if (Math.hypot(ship.vx, ship.vy) < 8.0 && Math.abs(ship.av) < 0.18) {
-                    ship.vx *= 0.72;
-                    ship.vy *= 0.72;
+            // 2. Iteraciones secuenciales de impulso normal + fricción tangencial
+            const accumJn = new Array(contactCount).fill(0);
+            const solverIters = 4;
+            for (let iter = 0; iter < solverIters; iter++) {
+                for (let ci = 0; ci < contactCount; ci++) {
+                    const c = collidingContacts[ci];
+                    const { pt, worldX, worldY, nx, ny, tx, ty, isLiquid } = c;
+                    const rx = worldX - ship.x;
+                    const ry = worldY - ship.y;
+                    const ptVx = ship.vx - ship.av * ry;
+                    const ptVy = ship.vy + ship.av * rx;
+
+                    const vn = ptVx * nx + ptVy * ny;
+                    const baseRestitution = isLiquid ? 0.03 : (pt.isPad ? 0.04 : 0.10);
+                    const restitution = (iter === 0 && !wasGrounded && -vn >= 28) ? baseRestitution : 0;
+
+                    const torque = (rx * ny - ry * nx);
+                    const effDenomN = 1 + (shipMass * torque * torque) / shipInertia;
+                    let dJn = (-(1 + restitution) * vn) / effDenomN;
+                    const newAccumJn = Math.max(0, accumJn[ci] + dJn);
+                    dJn = newAccumJn - accumJn[ci];
+                    accumJn[ci] = newAccumJn;
+
+                    if (dJn !== 0) {
+                        ship.vx += dJn * nx;
+                        ship.vy += dJn * ny;
+                        ship.av += clamp((dJn * shipMass * torque * 0.78) / shipInertia, -3.5, 3.5);
+                    }
+
+                    if (vn < 2.0) {
+                        const vt = (ship.vx - ship.av * ry) * tx + (ship.vy + ship.av * rx) * ty;
+                        const frictionCoeff = isLiquid ? 0.12 : 0.78;
+                        const torqueT = (rx * ty - ry * tx);
+                        const effDenomT = 1 + (shipMass * torqueT * torqueT) / shipInertia;
+                        const dJt = (-vt * frictionCoeff) / effDenomT;
+                        ship.vx += dJt * tx;
+                        ship.vy += dJt * ty;
+                        ship.av += clamp((dJt * shipMass * torqueT * 0.45) / shipInertia, -3.5, 3.5);
+                    }
+                }
+            }
+
+            if (!isFiring && !hasPilotInput) {
+                if (contactCount >= 2) {
+                    ship.av *= 0.76;
+                    if (Math.hypot(ship.vx, ship.vy) < 10.0 && Math.abs(ship.av) < 0.22) {
+                        ship.vx *= 0.62;
+                        ship.vy *= 0.62;
+                        ship.av *= 0.55;
+                    }
+                } else if (Math.hypot(ship.vx, ship.vy) < 8.0 && Math.abs(ship.av) < 0.18) {
+                    ship.vx *= 0.78;
+                    ship.vy *= 0.78;
+                    ship.av *= 0.78;
                 }
             }
         }
 
-        // Asentamiento firme en tierra
+        // Asentamiento firme en tierra y transición a reposo estable
         if (ship.isGrounded && !nearestPlanet.archetype.isLiquid) {
             let baseUnderShip = null;
             if (nearestPlanet.bases && nearestPlanet.bases.length > 0) {
                 for (let bi = 0; bi < nearestPlanet.bases.length; bi++) {
                     const b = nearestPlanet.bases[bi];
                     const dAng = Math.abs(Math.atan2(Math.sin(localZenith - b.angle), Math.cos(localZenith - b.angle)));
-                    if (dAng <= b.angularHalfSpan * 0.9) {
+                    if (dAng <= b.angularHalfSpan * 0.88) {
                         baseUnderShip = b;
                         break;
                     }
@@ -2803,11 +3042,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
 
             if (baseUnderShip) {
-                // En plataforma: solo alinea suavemente si ya está casi vertical con 2+ apoyos y sin entrada manual
-                const baseTilt = Math.atan2(Math.sin(ship.angle - baseUnderShip.angle), Math.cos(ship.angle - baseUnderShip.angle));
-                if (collidingContacts.length >= 2 && Math.abs(baseTilt) < 0.08 && !hasPilotInput && !isFiring) {
-                    ship.angle = lerp(ship.angle, baseUnderShip.angle, dt * 6.0);
-                    ship.av = lerp(ship.av, 0, dt * 8.0);
+                if (collidingContacts.length >= 2 && !hasPilotInput && !isFiring) {
+                    ship.av = lerp(ship.av, 0, Math.min(1, dt * 10.0));
                 }
 
                 // Servicio de reparación estructural según nivel de la base (el combustible requiere extractores y reserva EVA)
@@ -2817,6 +3053,19 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
             if (nearestPlanet.archetype.id === 'biolume') {
                 ship.hull = Math.min(100, ship.hull + dt * 6.5);
+            }
+
+            // Activar reposo estable (cero vibración) cuando el cohete está apoyado y detenido
+            if (!anyLiquidContact && !isFiring && !hasPilotInput && !ship.rcsStrafe && !ship.braking && ship.orbitMode === 'off' && !deployAnimChanged && !extremeWindWake) {
+                const spdNow = Math.hypot(ship.vx, ship.vy);
+                const avNow = Math.abs(ship.av);
+                const onStableBase = !!(baseUnderShip && Math.abs(Math.atan2(Math.sin(ship.angle - baseUnderShip.angle), Math.cos(ship.angle - baseUnderShip.angle))) < 0.12);
+                if ((collidingContacts.length >= 2 || onStableBase) && spdNow < 4.5 && avNow < 0.09) {
+                    ship.vx = 0;
+                    ship.vy = 0;
+                    ship.av = 0;
+                    ship.isResting = true;
+                }
             }
         }
 
@@ -2983,17 +3232,38 @@ function updatePhysics(dt, skipExpensiveUI = false) {
     }
 
     // Actualizar humo volumétrico y nubes estratosféricas persistentes
-    const planetTerrainMaxR = nearestPlanet ? (nearestPlanet.radius + 160) : 0;
+    const planetTerrainMaxR = nearestPlanet
+        ? (nearestPlanet.radius + ((nearestPlanet.archetype && nearestPlanet.archetype.radiusJitter) || 500) + 220)
+        : 0;
     for (let i = smokePuffs.length - 1; i >= 0; i--) {
         const sm = smokePuffs[i];
         sm.x += sm.vx * dt;
         sm.y += sm.vy * dt;
-        const dragFactor = Math.max(0.15, 1 - (sm.drag || 1.0) * dt);
+
+        // Arrastre aerodinámico no lineal: el gas eyectado a alta velocidad frena rápido y luego flota
+        const spd = Math.hypot(sm.vx, sm.vy);
+        const effDrag = (sm.drag || 1.0) * (1 + spd * 0.0045);
+        const dragFactor = 1 / (1 + effDrag * dt);
         sm.vx *= dragFactor;
         sm.vy *= dragFactor;
         sm.rot += sm.rotSpeed * dt;
 
-        // Si pertenece a la atmósfera de un planeta, deriva suavemente con las corrientes de viento y flotabilidad térmica
+        const progress = 1 - (sm.life / sm.maxLife);
+        const elapsed = sm.maxLife - sm.life;
+
+        // Expansión rápida inicial por descompresión térmica, seguida de difusión turbulenta gradual
+        const expT = 1 - Math.pow(1 - progress, 2.15);
+        sm.currentSize = lerp(sm.size, sm.maxSize, expT);
+
+        // Turbulencia rotacional suave de baja frecuencia (evita vibración/temblor y produce remolinos fluidos)
+        const turbStrength = sm.cloudType === 'stratosphere' ? 5.5 : (sm.cloudType === 'launch' ? 9.5 : 8.5);
+        const phase = sm.turbPhase || 0;
+        const swX = Math.sin(sm.y * 0.006 + phase + elapsed * 0.45);
+        const swY = Math.cos(sm.x * 0.006 - phase + elapsed * 0.38);
+        sm.vx += swX * turbStrength * dt;
+        sm.vy += swY * turbStrength * dt;
+
+        // Si pertenece a la atmósfera de un planeta, deriva con viento, flotabilidad térmica y deflexión sólida contra el suelo
         if (nearestPlanet && sm.planetKey === nearestPlanet.key) {
             const dx = sm.x - nearestPlanet.x;
             const dy = sm.y - nearestPlanet.y;
@@ -3004,30 +3274,56 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 const ny = dy / dist;
                 const tx = -ny;
                 const ty = nx;
-                // Convección ascendente caliente para el humo de lanzamiento y cizalladura de viento en estratosfera
                 const isStrato = sm.cloudType === 'stratosphere';
-                const buoyancy = sm.cloudType === 'launch' ? 18.0 : (isStrato ? 2.5 : 6.0);
-                const windTang = isStrato ? 16.0 : 6.5;
-                sm.vx += (nx * buoyancy + tx * windTang) * dt;
-                sm.vy += (ny * buoyancy + ty * windTang) * dt;
+                const isLaunch = sm.cloudType === 'launch';
 
-                // Solo consultar colisión con el relieve si el humo está cerca de la superficie
+                // Convección térmica: en lanzamiento, primero rueda por el suelo y luego asciende rizado
+                let buoyancy;
+                if (isLaunch) {
+                    const liftRamp = smoothstep(0.08, 0.45, progress);
+                    buoyancy = (14.0 + 26.0 * (sm.heatGlow || 0)) * (0.22 + 0.98 * liftRamp);
+                } else if (isStrato) {
+                    buoyancy = 3.2;
+                } else {
+                    buoyancy = 7.5 + 14.0 * (sm.heatGlow || 0);
+                }
+                let windTang = isStrato ? 14.0 : 5.0;
+                let windRad = 0;
+                if (typeof samplePlanetWind === 'function' && nearestPlanet.wind && nearestPlanet.wind.hasWind) {
+                    const smWind = samplePlanetWind(nearestPlanet, sm.x, sm.y);
+                    if (smWind.hasWind) {
+                        windTang = smWind.tangSpeed * (isStrato ? 0.55 : 0.42);
+                        windRad = smWind.radSpeed * 0.35;
+                    } else {
+                        windTang = 0;
+                    }
+                }
+                sm.vx += (nx * (buoyancy + windRad) + tx * windTang) * dt;
+                sm.vy += (ny * (buoyancy + windRad) + ty * windTang) * dt;
+
+                // Colisión estricta contra el relieve: el borde inferior de la nube nunca atraviesa la superficie
                 if (!isStrato && dist < planetTerrainMaxR) {
                     const ang = Math.atan2(dy, dx);
                     const sr = getSurfaceRadius(nearestPlanet, ang);
-                    const minR = sr + (sm.currentSize || sm.size) * 0.38;
+                    const minR = sr + sm.currentSize * 0.84;
                     if (dist < minR) {
                         sm.x = nearestPlanet.x + nx * minR;
                         sm.y = nearestPlanet.y + ny * minR;
                         const vn = sm.vx * nx + sm.vy * ny;
                         const vt = sm.vx * tx + sm.vy * ty;
                         if (vn < 0) {
-                            sm.vx -= nx * vn * 1.15;
-                            sm.vy -= ny * vn * 1.15;
+                            // Anular velocidad hacia el suelo y redirigir impulso tangencialmente sobre la superficie
+                            const spreadBoost = -vn * 0.48;
+                            const tangSign = vt !== 0 ? (vt > 0 ? 1 : -1) : (sm.vortexDir || 1);
+                            sm.vx -= nx * vn;
+                            sm.vy -= ny * vn;
+                            sm.vx += tx * tangSign * spreadBoost;
+                            sm.vy += ty * tangSign * spreadBoost;
                         }
-                        // Rodamiento tangencial sobre el suelo inducido por la fricción del terreno
-                        sm.rotSpeed += (vt / Math.max(12, sm.currentSize || sm.size)) * 0.35 * dt;
-                        const groundFric = Math.max(0.2, 1 - 0.45 * dt);
+                        // Rodamiento tangencial sobre el suelo inducido por la fricción del terreno y vórtice
+                        const vDir = sm.vortexDir || 1;
+                        sm.rotSpeed = lerp(sm.rotSpeed, (vt / Math.max(14, sm.currentSize)) * 0.9 + vDir * 0.45, Math.min(1, dt * 4));
+                        const groundFric = Math.max(0.3, 1 - 0.32 * dt);
                         sm.vx *= groundFric;
                         sm.vy *= groundFric;
                     }
@@ -3035,10 +3331,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
 
-        const progress = 1 - (sm.life / sm.maxLife);
-        sm.currentSize = lerp(sm.size, sm.maxSize, Math.pow(progress, 0.48));
         if (sm.heatGlow > 0) {
-            sm.heatGlow = Math.max(0, sm.heatGlow - dt * 1.5);
+            sm.heatGlow = Math.max(0, sm.heatGlow - dt * 1.15);
         }
         sm.life -= dt;
         if (sm.life <= 0) smokePuffs.splice(i, 1);
@@ -3205,6 +3499,11 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         updateExtractors(dt, nearby);
     }
 
+    // Simulación de astronautas colonos, socialización y logística de depósitos/cohetes
+    if (typeof updateColonyColonists === 'function') {
+        updateColonyColonists(dt, nearby);
+    }
+
     // Física e IA de seres vivos extraterrestres y proyectiles de combate
     if (typeof updatePlanetCreatures === 'function') {
         updatePlanetCreatures(dt, nearby);
@@ -3295,7 +3594,11 @@ function updateFreeVessels(dt, nearbyPlanets) {
             }
         }
 
-        if (!v.isGrounded) {
+        if (v.isResting && (Math.hypot(v.vx, v.vy) > 0.1 || Math.abs(v.av) > 0.01)) {
+            v.isResting = false;
+        }
+
+        if (!v.isResting) {
             v.vx += ax * dt;
             v.vy += ay * dt;
             v.x += v.vx * dt;
@@ -3305,11 +3608,15 @@ function updateFreeVessels(dt, nearbyPlanets) {
         }
 
         // Colisión con la superficie del planeta más cercano
+        const vWasGrounded = !!v.isGrounded;
         v.isGrounded = false;
         if (nearP && minDist < nearP.radius * 2.2) {
             const cosA = Math.cos(v.angle);
             const sinA = Math.sin(v.angle);
-            const pts = v.contactPoints || [{ x: -10, y: 0 }, { x: 10, y: 0 }];
+            const pts = (v.customRocket && Array.isArray(v.customRocket.contactPoints) && v.customRocket.contactPoints.length > 0)
+                ? v.customRocket.contactPoints
+                : (v.contactPoints || [{ x: -10, y: 0 }, { x: 10, y: 0 }]);
+            const vSkin = v.isResting ? 0.75 : (vWasGrounded ? 0.15 : 0);
             let maxPen = 0, avgNx = 0, avgNy = 0;
             const vContacts = [];
 
@@ -3322,8 +3629,33 @@ function updateFreeVessels(dt, nearbyPlanets) {
                 const ang = Math.atan2(dy, dx);
                 const sr = getSurfaceRadius(nearP, ang);
 
-                if (d < sr) {
-                    const pen = sr - d;
+                let baseUnderPt = null;
+                if (nearP.bases && nearP.bases.length > 0) {
+                    for (let bi = 0; bi < nearP.bases.length; bi++) {
+                        const b = nearP.bases[bi];
+                        const dAng = Math.abs(Math.atan2(Math.sin(ang - b.angle), Math.cos(ang - b.angle)));
+                        if (dAng <= b.angularHalfSpan * 0.85) {
+                            const cosD = Math.cos(dAng);
+                            const deckR = cosD > 0.001 ? (b.deckR / cosD) : b.deckR;
+                            const natR = (typeof getNaturalSurfaceRadius === 'function') ? getNaturalSurfaceRadius(nearP, ang) : sr;
+                            if (deckR >= natR - 0.5) baseUnderPt = b;
+                            break;
+                        }
+                    }
+                }
+
+                if (baseUnderPt) {
+                    const bnx = Math.cos(baseUnderPt.angle);
+                    const bny = Math.sin(baseUnderPt.angle);
+                    const deckPen = baseUnderPt.deckR - (dx * bnx + dy * bny);
+                    if (deckPen > -vSkin) {
+                        const pen = Math.max(0, deckPen);
+                        v.isGrounded = true;
+                        if (pen > maxPen) { maxPen = pen; avgNx = bnx; avgNy = bny; }
+                        vContacts.push({ pt, wx, wy, nx: bnx, ny: bny, tx: -bny, ty: bnx });
+                    }
+                } else if (d < sr + vSkin) {
+                    const pen = Math.max(0, sr - d);
                     const nx = dx / d;
                     const ny = dy / d;
                     v.isGrounded = true;
@@ -3331,15 +3663,18 @@ function updateFreeVessels(dt, nearbyPlanets) {
                     vContacts.push({ pt, wx, wy, nx, ny, tx: -ny, ty: nx });
                 }
             }
+            if (vContacts.length === 0) v.isResting = false;
             if (maxPen > 0) {
-                v.x += avgNx * maxPen;
-                v.y += avgNy * maxPen;
+                const corr = Math.max(0, maxPen - (vWasGrounded ? 0.03 : 0));
+                if (corr > 0) {
+                    v.x += avgNx * corr;
+                    v.y += avgNy * corr;
+                }
             }
-            if (vContacts.length > 0) {
-                const vDiv = vContacts.length;
+            if (vContacts.length > 0 && !v.isResting) {
+                const vCount = vContacts.length;
                 const vMass = Math.max(0.5, v.mass || 1);
                 const vInertia = Math.max(10, v.inertia || 100);
-                let sVx = 0, sVy = 0, sAv = 0;
                 const brokenChecked = new Set();
                 for (const c of vContacts) {
                     const rx = c.wx - v.x;
@@ -3347,42 +3682,58 @@ function updateFreeVessels(dt, nearbyPlanets) {
                     const ptVx = v.vx - v.av * ry;
                     const ptVy = v.vy + v.av * rx;
                     const vn = ptVx * c.nx + ptVy * c.ny;
-                    const vt = ptVx * c.tx + ptVy * c.ty;
-                    if (vn < 0) {
-                        const restitution = Math.abs(vn) < 20 ? 0 : 0.08;
-                        const torque = rx * c.ny - ry * c.nx;
-                        const effDenomN = 1 + (vMass * torque * torque) / vInertia;
-                        const jn = (-(1 + restitution) * vn) / (effDenomN * vDiv);
-                        sVx += jn * c.nx;
-                        sVy += jn * c.ny;
-                        sAv += (jn * vMass * torque * 0.65) / vInertia;
-
-                        const torqueT = rx * c.ty - ry * c.tx;
-                        const effDenomT = 1 + (vMass * torqueT * torqueT) / vInertia;
-                        const jt = (-vt * 0.68) / (effDenomT * vDiv);
-                        sVx += jt * c.tx;
-                        sVy += jt * c.ty;
-
-                        if (v.customRocket && c.pt && c.pt.partInstanceId && (v.invulnTimer || 0) <= 0 && !brokenChecked.has(c.pt.partInstanceId) && typeof damageCustomRocketPartAt === 'function') {
-                            brokenChecked.add(c.pt.partInstanceId);
-                            const hitPart = v.customRocket.customParts.find(p => p.instanceId === c.pt.partInstanceId);
-                            const hitDef = hitPart && typeof ROCKET_PARTS_CATALOG !== 'undefined' ? ROCKET_PARTS_CATALOG[hitPart.partDefId] : null;
-                            const tol = (typeof getPartImpactTolerance === 'function') ? getPartImpactTolerance(hitDef) : 165;
-                            if (-vn > tol) {
-                                damageCustomRocketPartAt(v, c.pt.partInstanceId, (-vn - tol) * 1.25, c.wx, c.wy, -vn, c.nx, c.ny, nearP);
-                            }
+                    if (vn < 0 && v.customRocket && c.pt && c.pt.partInstanceId && (v.invulnTimer || 0) <= 0 && !brokenChecked.has(c.pt.partInstanceId) && typeof damageCustomRocketPartAt === 'function') {
+                        brokenChecked.add(c.pt.partInstanceId);
+                        const hitPart = v.customRocket.customParts.find(p => p.instanceId === c.pt.partInstanceId);
+                        const hitDef = hitPart && typeof ROCKET_PARTS_CATALOG !== 'undefined' ? ROCKET_PARTS_CATALOG[hitPart.partDefId] : null;
+                        const tol = (typeof getPartImpactTolerance === 'function') ? getPartImpactTolerance(hitDef) : 165;
+                        if (-vn > tol) {
+                            damageCustomRocketPartAt(v, c.pt.partInstanceId, (-vn - tol) * 1.25, c.wx, c.wy, -vn, c.nx, c.ny, nearP);
                         }
                     }
                 }
-                v.vx += sVx;
-                v.vy += sVy;
-                v.av += clamp(sAv, -3.5, 3.5);
-                if (vDiv >= 2) v.av *= 0.82;
+                const accumJn = new Array(vCount).fill(0);
+                for (let iter = 0; iter < 4; iter++) {
+                    for (let ci = 0; ci < vCount; ci++) {
+                        const c = vContacts[ci];
+                        const rx = c.wx - v.x;
+                        const ry = c.wy - v.y;
+                        const vn = (v.vx - v.av * ry) * c.nx + (v.vy + v.av * rx) * c.ny;
+                        const restitution = (iter === 0 && !vWasGrounded && -vn >= 24) ? 0.08 : 0;
+                        const torque = rx * c.ny - ry * c.nx;
+                        const effDenomN = 1 + (vMass * torque * torque) / vInertia;
+                        let dJn = (-(1 + restitution) * vn) / effDenomN;
+                        const newAccum = Math.max(0, accumJn[ci] + dJn);
+                        dJn = newAccum - accumJn[ci];
+                        accumJn[ci] = newAccum;
+                        if (dJn !== 0) {
+                            v.vx += dJn * c.nx;
+                            v.vy += dJn * c.ny;
+                            v.av += clamp((dJn * vMass * torque * 0.72) / vInertia, -3.5, 3.5);
+                        }
+                        if (vn < 2.0) {
+                            const vt = (v.vx - v.av * ry) * c.tx + (v.vy + v.av * rx) * c.ty;
+                            const torqueT = rx * c.ty - ry * c.tx;
+                            const effDenomT = 1 + (vMass * torqueT * torqueT) / vInertia;
+                            const dJt = (-vt * 0.72) / effDenomT;
+                            v.vx += dJt * c.tx;
+                            v.vy += dJt * c.ty;
+                            v.av += clamp((dJt * vMass * torqueT * 0.45) / vInertia, -3.5, 3.5);
+                        }
+                    }
+                }
+                if (vCount >= 2) v.av *= 0.76;
             }
-            if (v.isGrounded && Math.hypot(v.vx, v.vy) < 12) {
-                v.vx *= 0.85;
-                v.vy *= 0.85;
-                v.av *= 0.75;
+            if (v.isGrounded && Math.hypot(v.vx, v.vy) < 10) {
+                v.vx *= 0.75;
+                v.vy *= 0.75;
+                v.av *= 0.70;
+                if (vContacts.length >= 2 && Math.hypot(v.vx, v.vy) < 3.5 && Math.abs(v.av) < 0.08) {
+                    v.vx = 0;
+                    v.vy = 0;
+                    v.av = 0;
+                    v.isResting = true;
+                }
             }
         }
     }

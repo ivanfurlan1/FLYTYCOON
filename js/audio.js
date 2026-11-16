@@ -160,14 +160,16 @@ class SpaceSoundEngine {
         this.rcsGain.gain.setTargetAtTime(isRcsActive ? 0.026 : 0.0001, now, 0.03);
     }
 
-    setAtmosphericFlight(density, speed) {
+    setAtmosphericFlight(density, speed, ambientWindSpeed = 0) {
         if (!this.initialized || this.muted) return;
         const now = this.ctx.currentTime;
-        // El silbido sube con densidad de aire y velocidad
-        const windVol = Math.max(0.0001, Math.min(0.18, (density * (speed / 600)) * 0.15));
-        const windFreq = Math.min(1800, 300 + speed * 1.8);
-        this.windGain.gain.setTargetAtTime(windVol, now, 0.1);
-        this.windFilter.frequency.setTargetAtTime(windFreq, now, 0.1);
+        // El silbido sube con densidad de aire y velocidad, o por ráfagas intensas (> 75 px/s) en superficie/EVA
+        const gustAudible = Math.max(0, ambientWindSpeed - 70) * 0.85;
+        const effAirSpeed = Math.max(speed, gustAudible);
+        const windVol = Math.max(0.0001, Math.min(0.18, (density * (effAirSpeed / 600)) * 0.15));
+        const windFreq = Math.min(1800, 260 + effAirSpeed * 1.75);
+        this.windGain.gain.setTargetAtTime(windVol, now, 0.12);
+        this.windFilter.frequency.setTargetAtTime(windFreq, now, 0.12);
     }
 
     playSonar() {

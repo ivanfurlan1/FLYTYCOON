@@ -30,7 +30,7 @@
 <body class="relative w-full h-full select-none overflow-hidden bg-[#03060c] text-stone-100">
 
     <!-- LIENZO DE SIMULACIÓN HD Y BLOOM ADITIVO -->
-    <canvas id="flightCanvas" class="absolute inset-0 z-0"></canvas>
+    <canvas id="flightCanvas" class="absolute inset-0 z-0 touch-none"></canvas>
 
     <!-- VIÑETA ÓPTICA CINEMATOGRÁFICA -->
     <div class="cinematic-vignette fixed inset-0 z-10 pointer-events-none"></div>
@@ -140,7 +140,7 @@
                             </svg>
                         </button>
 
-                        <div id="systemsDropdown" class="hud-dropdown hidden absolute left-0 mt-2 w-56 rounded-2xl p-1.5 z-50 flex flex-col gap-0.5">
+                        <div id="systemsDropdown" class="hud-dropdown hidden absolute left-0 mt-2 w-60 rounded-2xl p-1.5 z-50 flex flex-col gap-0.5">
                             <div class="px-2.5 py-1.5 border-b border-white/10 mb-0.5 flex items-center justify-between gap-2">
                                 <span class="font-mono-num text-[9px] uppercase tracking-[0.18em] text-stone-400">MENÚ</span>
                                 <span id="hudActiveWorldTag" class="font-mono-num text-[9px] text-emerald-300 truncate max-w-[115px]"></span>
@@ -164,6 +164,14 @@
                                 <kbd class="px-1.5 py-0.5 rounded bg-white/10 font-mono-num text-[9px] text-amber-200">I</kbd>
                             </button>
 
+                            <button id="btnHudColony" class="w-full px-2.5 py-2 rounded-xl flex items-center justify-between text-left hover:bg-emerald-500/10 border border-transparent hover:border-emerald-400/25 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-sm shrink-0">🏘️</span>
+                                    <span class="text-xs font-display font-medium text-emerald-100">Colonia &amp; Viviendas</span>
+                                </div>
+                                <kbd class="px-1.5 py-0.5 rounded bg-white/10 font-mono-num text-[9px] text-emerald-200">B</kbd>
+                            </button>
+
                             <button id="btnOpenBuilderHUD" class="w-full px-2.5 py-2 rounded-xl flex items-center justify-between text-left hover:bg-white/[0.07] transition-colors cursor-pointer">
                                 <div class="flex items-center gap-2.5">
                                     <svg class="w-4 h-4 text-cyan-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -172,6 +180,24 @@
                                     <span class="text-xs font-display font-medium text-cyan-100">Taller VAB</span>
                                 </div>
                                 <span class="font-mono-num text-[9px] text-cyan-300/80">→</span>
+                            </button>
+
+                            <button id="btnToggleInfiniteFuel" type="button" role="switch" aria-checked="false" class="w-full px-2.5 py-2 rounded-xl flex items-center justify-between gap-2 text-left hover:bg-emerald-500/10 border border-transparent hover:border-emerald-400/25 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="text-sm font-mono-num font-bold text-emerald-300 w-4 text-center shrink-0">∞</span>
+                                    <span class="text-xs font-display font-medium text-emerald-100 truncate">Combustible Infinito</span>
+                                </div>
+                                <span id="infiniteFuelTrack" class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-white/15 border border-white/15 transition-all duration-200">
+                                    <span id="infiniteFuelThumb" class="inline-block h-3.5 w-3.5 rounded-full bg-stone-300 shadow transition-transform duration-200 translate-x-0.5"></span>
+                                </span>
+                            </button>
+
+                            <button id="btnWorldCategories" class="w-full px-2.5 py-2 rounded-xl flex items-center justify-between text-left hover:bg-sky-500/10 border border-transparent hover:border-sky-400/25 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-sm shrink-0">🪐</span>
+                                    <span class="text-xs font-display font-medium text-sky-100">Categorías de Mundos</span>
+                                </div>
+                                <span class="font-mono-num text-[9px] text-sky-300/80">→</span>
                             </button>
 
                             <div class="h-[1px] bg-white/10 my-0.5"></div>
@@ -194,6 +220,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                         </svg>
                         <span class="text-[11px] font-display font-semibold">Mapa</span>
+                    </button>
+
+                    <!-- Botón rápido Luces del Cohete (visible cuando el cohete tiene focos VAB) -->
+                    <button id="btnHudRocketLights" class="hidden aero-pill aero-btn px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-display text-amber-200 border-amber-400/50 bg-amber-500/15 cursor-pointer whitespace-nowrap" title="Encender/Apagar Luces del Cohete (L)">
+                        <span class="text-xs leading-none">💡</span>
+                        <span class="text-[11px] font-display font-semibold hidden sm:inline">Luces</span>
                     </button>
                 </div>
 
@@ -229,6 +261,7 @@
                 <div class="hud-text-shadow flex flex-col items-end gap-0.5 pr-0.5 text-[11px] sm:text-xs font-mono-num">
                     <span class="text-stone-300/90">Altitud: <strong id="uiAltVal" class="text-white font-semibold">0</strong> <span class="text-stone-300/80 text-[10px]">m</span></span>
                     <span class="text-stone-300/90">Velocidad: <strong id="uiVelVal" class="text-white font-semibold">0</strong> <span class="text-stone-300/80 text-[10px]">m/s</span></span>
+                    <span id="uiWindLine" class="hidden text-[10px] sm:text-[10.5px] text-stone-300/85">Viento: <strong id="uiWindVal" class="text-sky-200 font-semibold">Calma</strong></span>
                 </div>
             </div>
         </div>
@@ -257,19 +290,8 @@
             </div>
         </div>
 
-        <!-- 2. TARJETA TELEMÉTRICA (TOAST NO INTRUSIVO) -->
-        <div id="planetHoloCard" class="transition-all duration-500 opacity-0 pointer-events-none transform -translate-y-3">
-            <div class="aero-panel px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 max-w-[92vw] sm:max-w-md">
-                <span id="holoDot" class="w-2 h-2 rounded-full bg-amber-300 shrink-0 shadow-[0_0_8px_#f59e0b]"></span>
-                <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                        <span id="holoPlanetName" class="font-display text-[11px] sm:text-sm font-semibold text-white tracking-wide truncate">Cuna del Éter</span>
-                        <span id="holoBiomeBadge" class="text-[8px] sm:text-[8.5px] font-mono-num uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/[0.06] text-amber-200 border border-white/10 truncate max-w-[170px] sm:max-w-[210px]">SANTUARIO</span>
-                    </div>
-                    <span id="holoStatusText" class="text-[10px] sm:text-[10.5px] text-stone-300/90 block mt-0.5 leading-snug line-clamp-1 sm:line-clamp-2">Gravedad nominal. Plataforma lista para operaciones.</span>
-                </div>
-            </div>
-        </div>
+        <!-- 2. TARJETA TELEMÉTRICA (DESHABILITADA PARA HUD LIMPIO) -->
+        <div id="planetHoloCard" class="hidden pointer-events-none"></div>
     </header>
 
     <!-- 2.5 MENÚ CONTEXTUAL INTEGRADO EN EL MUNDO (SE ABRE AL TOCAR COHETE, ASTRONAUTA O BASE EN EL CANVAS) -->
@@ -277,6 +299,21 @@
         <div class="px-1.5 py-0.5 flex items-center justify-between border-b border-white/10">
             <span id="worldMenuTitle" class="font-mono-num text-[9.5px] uppercase tracking-[0.16em] text-amber-200 font-semibold truncate">COHETE</span>
             <button id="btnCloseWorldObjectMenu" class="text-stone-400 hover:text-white text-xs px-1 cursor-pointer" title="Cerrar">✕</button>
+        </div>
+
+        <!-- Estado físico del cohete (casco) -->
+        <div id="worldMenuRocketHullBox" class="hidden px-2.5 py-2 rounded-xl bg-black/35 border border-white/10 flex flex-col gap-1.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="font-mono-num text-[9px] uppercase tracking-wider text-stone-300">Estado físico</span>
+                <span id="worldMenuHullState" class="font-mono-num text-[9.5px] font-semibold text-emerald-300">Óptimo · 100%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-900/90 border border-white/10 overflow-hidden">
+                <div id="worldMenuHullBar" class="h-full bg-emerald-400 rounded-full transition-all duration-150" style="width: 100%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[9px] font-mono-num text-stone-400">
+                <span>Integridad del casco</span>
+                <span id="worldMenuHullHp" class="text-stone-200">100 / 100 HP</span>
+            </div>
         </div>
 
         <!-- Grupo: Clic en Cohete durante Vuelo -->
@@ -389,6 +426,22 @@
                 <span class="font-mono-num text-[8px] text-cyan-300/80 uppercase shrink-0">Hangar</span>
             </button>
 
+            <button id="btnEvaBuildLights" class="w-full aero-pill aero-btn px-2.5 py-2 rounded-xl flex items-center justify-between gap-2 text-amber-100 border-amber-400/45 bg-amber-500/15 hover:brightness-115 cursor-pointer whitespace-nowrap">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-sm leading-none shrink-0">💡</span>
+                    <span class="text-[10px] font-mono-num font-bold uppercase tracking-wider text-amber-100">Luces &amp; Torres</span>
+                </div>
+                <span class="font-mono-num text-[8px] text-amber-300/90 uppercase shrink-0">Construir</span>
+            </button>
+
+            <button id="btnEvaOpenColony" class="w-full aero-pill aero-btn px-2.5 py-2 rounded-xl flex items-center justify-between gap-2 text-emerald-100 border-emerald-400/45 bg-emerald-500/15 hover:brightness-115 cursor-pointer whitespace-nowrap">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-sm leading-none shrink-0">🏘️</span>
+                    <span class="text-[10px] font-mono-num font-bold uppercase tracking-wider text-emerald-100">Casas &amp; Colonia</span>
+                </div>
+                <span id="uiEvaColonyBadge" class="font-mono-num text-[8px] text-emerald-300/90 uppercase shrink-0">Abrir (B)</span>
+            </button>
+
             <button id="btnEvaResources" class="w-full aero-pill aero-btn px-2.5 py-2 rounded-xl flex items-center gap-2 text-amber-200 border-amber-400/35 bg-amber-500/10 hover:brightness-115 cursor-pointer whitespace-nowrap">
                 <span class="text-xs leading-none">📦</span>
                 <span class="text-[10px] font-mono-num font-bold uppercase tracking-wider">Bodega &amp; Reserva</span>
@@ -417,7 +470,237 @@
         </div>
     </div>
 
-    <!-- 2.8 BARRAS INFERIORES IZQUIERDAS VERTICALES (ESTILO SFS: ÉTER Y CASCO VERTICALES) -->
+    <!-- 2.6 BANNER ACTIVO DE MODO COLOCACIÓN DE LUCES EN TERRENO -->
+    <div id="lightPlacementBanner" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-30 aero-pill px-3.5 py-1.5 rounded-full border border-cyan-400/55 bg-[#060c1c]/90 flex items-center gap-2.5 shadow-2xl pointer-events-auto">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span id="lightPlacementLabel" class="text-[10.5px] font-mono-num font-semibold text-cyan-100 whitespace-nowrap">Modo Colocar · Clic en el terreno</span>
+        <button id="btnCancelLightPlacement" class="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[9.5px] font-mono-num font-bold text-white cursor-pointer">Listo</button>
+    </div>
+
+    <!-- 2.65 PANEL DE CONSTRUCCIÓN EVA DE LUCES SIMPLES Y TORRES DE HIERRO -->
+    <div id="evaLightingModal" class="hidden fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-40 aero-panel p-3.5 sm:p-4 rounded-2xl border border-amber-400/35 shadow-2xl w-[310px] sm:w-[345px] space-y-3 pointer-events-auto">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+            <div>
+                <span class="text-[8.5px] font-mono-num uppercase tracking-[0.2em] text-amber-300 block">INGENIERÍA LUMÍNICA EVA</span>
+                <h3 class="font-display text-sm font-bold text-white">Construir Luces y Torres</h3>
+            </div>
+            <button id="btnCloseEvaLightingModal" class="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer text-xs">✕</button>
+        </div>
+
+        <div class="space-y-1.5">
+            <span class="text-[9px] font-mono-num uppercase tracking-wider text-stone-400 block">Luces Simples de Superficie</span>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button data-light-preset="simple_low" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-white/[0.04] border-white/10 text-stone-300 hover:border-amber-300/60">
+                    <div class="text-xs font-semibold text-white">💡 Baja</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-400 mt-0.5">Compacta</div>
+                </button>
+                <button data-light-preset="simple_med" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-amber-400/25 border-amber-300 text-amber-100 hover:border-amber-300/60">
+                    <div class="text-xs font-semibold text-white">🔦 Mediana</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-300 mt-0.5">Trípode</div>
+                </button>
+                <button data-light-preset="simple_high" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-white/[0.04] border-white/10 text-stone-300 hover:border-amber-300/60">
+                    <div class="text-xs font-semibold text-white">🔆 Súper</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-400 mt-0.5">Gran Alcance</div>
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-1.5">
+            <span class="text-[9px] font-mono-num uppercase tracking-wider text-stone-400 block">Torres de Hierro Elevadas</span>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button data-light-preset="tower_med" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-white/[0.04] border-white/10 text-stone-300 hover:border-cyan-300/60">
+                    <div class="text-xs font-semibold text-white">🗼 Mediana</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-400 mt-0.5">Altura 60m</div>
+                </button>
+                <button data-light-preset="tower_tall" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-white/[0.04] border-white/10 text-stone-300 hover:border-cyan-300/60">
+                    <div class="text-xs font-semibold text-white">🏗️ Alta</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-400 mt-0.5">Altura 112m</div>
+                </button>
+                <button data-light-preset="tower_mega" class="p-2 rounded-xl border text-left transition-all cursor-pointer bg-white/[0.04] border-white/10 text-stone-300 hover:border-cyan-300/60">
+                    <div class="text-xs font-semibold text-white">⚡ Muy Alta</div>
+                    <div class="text-[8.5px] font-mono-num text-stone-400 mt-0.5">Colosal 182m</div>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
+            <button id="btnEvaLightPlaceHere" class="py-2 px-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/55 text-amber-100 text-[10px] font-mono-num font-bold uppercase tracking-wide cursor-pointer">
+                ⚡ Colocar Aquí
+            </button>
+            <button id="btnEvaLightPlaceMode" class="py-2 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-100 text-[10px] font-mono-num font-bold uppercase tracking-wide cursor-pointer">
+                🎯 Colocar con Clic
+            </button>
+        </div>
+        <p class="text-[9.5px] text-stone-400 leading-snug">Luego haz clic en cualquier luz para ajustar su potencia, apertura, orientación, altura o color en tiempo real.</p>
+    </div>
+
+    <!-- 2.7 INSPECTOR FLOTANTE EN TIEMPO REAL DE LUZ SELECCIONADA -->
+    <div id="lightInspectorPanel" class="hidden fixed left-2.5 bottom-28 sm:left-6 sm:bottom-32 z-[55] aero-panel rounded-2xl border border-amber-400/35 shadow-2xl w-[260px] sm:w-[285px] max-h-[68vh] flex flex-col overflow-hidden pointer-events-auto">
+        <div class="flex items-center justify-between gap-2 border-b border-white/10 px-3 pt-3 pb-2 shrink-0 bg-[#070c18]/70 backdrop-blur-md">
+            <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span id="lightInspBadge" class="text-[8px] font-mono-num px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-400/35 uppercase">LUZ</span>
+                    <span class="text-[8.5px] font-mono-num text-stone-400 uppercase tracking-wider">Control en Vivo</span>
+                </div>
+                <h4 id="lightInspTitle" class="font-display text-xs font-bold text-white truncate mt-0.5">Proyector</h4>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="btnLightInspPower" class="px-2 py-1 rounded-lg text-[9.5px] font-mono-num font-bold bg-amber-400/20 text-amber-200 border border-amber-400/50 cursor-pointer">💡 ENCENDIDA</button>
+                <button id="btnCloseLightInspector" class="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer text-xs" title="Cerrar">✕</button>
+            </div>
+        </div>
+
+        <div class="overflow-y-auto p-3 pt-2.5 space-y-2.5">
+        <!-- Intensidad -->
+        <div class="space-y-0.5">
+            <div class="flex items-center justify-between text-[10px] font-mono-num">
+                <span class="text-amber-200 uppercase">Potencia / Intensidad</span>
+                <span id="lightInspIntensityVal" class="text-white font-bold">100%</span>
+            </div>
+            <input id="lightInspIntensitySlider" type="range" min="10" max="220" step="5" value="100" class="w-full accent-amber-400 cursor-pointer h-1.5">
+        </div>
+
+        <!-- Apertura (Cerrado vs Abierto) -->
+        <div class="space-y-1">
+            <div class="flex items-center justify-between text-[10px] font-mono-num">
+                <span class="text-cyan-200 uppercase">Apertura del Haz</span>
+                <span id="lightInspSpreadVal" class="text-white font-bold">45°</span>
+            </div>
+            <input id="lightInspSpreadSlider" type="range" min="8" max="130" step="2" value="45" class="w-full accent-cyan-400 cursor-pointer h-1.5">
+            <div class="grid grid-cols-3 gap-1 text-[8.5px] font-mono-num">
+                <button class="light-spread-preset py-0.5 rounded bg-white/10 hover:bg-cyan-500/25 text-stone-200 cursor-pointer" data-spread="16">Cerrada</button>
+                <button class="light-spread-preset py-0.5 rounded bg-white/10 hover:bg-cyan-500/25 text-stone-200 cursor-pointer" data-spread="48">Media</button>
+                <button class="light-spread-preset py-0.5 rounded bg-white/10 hover:bg-cyan-500/25 text-stone-200 cursor-pointer" data-spread="96">Abierta</button>
+            </div>
+        </div>
+
+        <!-- Orientación con Dial Visual 360° -->
+        <div class="space-y-1.5 pt-1 border-t border-white/10">
+            <div class="flex items-center justify-between text-[10px] font-mono-num">
+                <span class="text-sky-200 uppercase">Orientación</span>
+                <div class="flex items-center gap-1.5">
+                    <span id="lightInspAimVal" class="text-white font-bold">0°</span>
+                    <button id="btnLightInspAimRocket" class="px-1.5 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-sky-200 text-[8.5px] cursor-pointer" title="Apuntar automáticamente al cohete">🚀 Al Cohete</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <canvas id="lightAimDialCanvas" width="68" height="68" class="shrink-0 rounded-full cursor-crosshair touch-none border border-white/10" title="Arrastra para orientar el haz"></canvas>
+                <div class="flex-1 space-y-1.5">
+                    <input id="lightInspAimSlider" type="range" min="-180" max="180" step="2" value="0" class="w-full accent-sky-400 cursor-pointer h-1.5">
+                    <div class="grid grid-cols-5 gap-1 text-[9px] font-mono-num">
+                        <button class="light-aim-preset py-0.5 rounded bg-white/10 hover:bg-sky-500/30 text-stone-200 cursor-pointer" data-aim="-125" title="Abajo Izquierda">↙</button>
+                        <button class="light-aim-preset py-0.5 rounded bg-white/10 hover:bg-sky-500/30 text-stone-200 cursor-pointer" data-aim="-45" title="Arriba Izquierda">↖</button>
+                        <button class="light-aim-preset py-0.5 rounded bg-white/10 hover:bg-sky-500/30 text-stone-200 cursor-pointer" data-aim="0" title="Cenit (Arriba)">↑</button>
+                        <button class="light-aim-preset py-0.5 rounded bg-white/10 hover:bg-sky-500/30 text-stone-200 cursor-pointer" data-aim="45" title="Arriba Derecha">↗</button>
+                        <button class="light-aim-preset py-0.5 rounded bg-white/10 hover:bg-sky-500/30 text-stone-200 cursor-pointer" data-aim="125" title="Abajo Derecha">↘</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Altura de Torre (solo torres) -->
+        <div id="lightInspTowerHeightRow" class="hidden space-y-0.5 pt-1 border-t border-white/10">
+            <div class="flex items-center justify-between text-[10px] font-mono-num">
+                <span class="text-emerald-300 uppercase">Altura de Torre</span>
+                <span id="lightInspHeightVal" class="text-white font-bold">100%</span>
+            </div>
+            <input id="lightInspHeightSlider" type="range" min="65" max="155" step="5" value="100" class="w-full accent-emerald-400 cursor-pointer h-1.5">
+        </div>
+
+        <!-- Color / Temperatura de Luz -->
+        <div class="space-y-1 pt-1 border-t border-white/10">
+            <span class="text-[9.5px] font-mono-num uppercase text-stone-400 block">Tono / Color de Luz</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#eef6ff" style="background:#eef6ff" title="Xenón Frío"></button>
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#ffe6b8" style="background:#ffe6b8" title="Halógeno Cálido"></button>
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#fbbf24" style="background:#fbbf24" title="Sodio Ámbar"></button>
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#38bdf8" style="background:#38bdf8" title="Cian Astral"></button>
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#34d399" style="background:#34d399" title="Esmeralda"></button>
+                <button class="light-insp-swatch w-5 h-5 rounded-full border border-white/30 cursor-pointer" data-color="#fb7185" style="background:#fb7185" title="Rojo Táctico"></button>
+                <input id="lightInspCustomColor" type="color" value="#eef6ff" class="w-5 h-5 rounded-full bg-transparent border border-white/30 cursor-pointer p-0" title="Color personalizado">
+            </div>
+        </div>
+
+        <!-- Acciones en Superficie -->
+        <div id="lightInspSurfaceActions" class="grid grid-cols-2 gap-1.5 pt-1 border-t border-white/10">
+            <button id="btnLightInspRelocate" class="py-1.5 px-2 rounded-xl bg-white/10 hover:bg-cyan-500/20 text-[9.5px] font-mono-num font-semibold text-cyan-200 border border-white/10 cursor-pointer">📍 Reubicar</button>
+            <button id="btnLightInspDelete" class="py-1.5 px-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-[9.5px] font-mono-num font-semibold text-rose-200 border border-rose-400/30 cursor-pointer">🗑️ Quitar</button>
+        </div>
+        </div>
+    </div>
+
+    <!-- 2.75 BANNER DE COLOCACIÓN DE VIVIENDAS Y DEPÓSITOS -->
+    <div id="colonyPlacementBanner" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-30 aero-pill px-3.5 py-1.5 rounded-full border border-emerald-400/55 bg-[#060c1c]/90 flex items-center gap-2.5 shadow-2xl pointer-events-auto">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="colonyPlacementLabel" class="text-[10.5px] font-mono-num font-semibold text-emerald-100 whitespace-nowrap">Colocar estructura · Clic en la superficie</span>
+        <button id="btnCancelColonyPlacement" class="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[9.5px] font-mono-num font-bold text-white cursor-pointer">Cancelar</button>
+    </div>
+
+    <!-- 2.76 INSPECTOR FLOTANTE DE CASA, DEPÓSITO O ASTRONAUTA COLONO -->
+    <div id="colonyInspectorPanel" class="hidden fixed left-2.5 bottom-28 sm:left-6 sm:bottom-32 z-35 aero-panel p-3.5 rounded-2xl border border-emerald-400/35 shadow-2xl w-[280px] sm:w-[310px] max-h-[68vh] overflow-y-auto space-y-2.5 pointer-events-auto">
+        <div class="flex items-start justify-between gap-2 border-b border-white/10 pb-1.5">
+            <div class="min-w-0">
+                <span id="colonyInspectorBadge" class="text-[8px] font-mono-num px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/35 uppercase">COLONIA</span>
+                <h4 id="colonyInspectorTitle" class="font-display text-xs font-bold text-white truncate mt-1">Estructura</h4>
+            </div>
+            <button id="btnCloseColonyInspector" class="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer text-xs">✕</button>
+        </div>
+        <div id="colonyInspectorBody" class="space-y-2.5"></div>
+    </div>
+
+    <!-- 2.77 MODAL PRINCIPAL DE COLONIA: VIVIENDAS, ALMACENAMIENTOS Y ASTRONAUTAS -->
+    <div id="colonyModal" class="fixed inset-0 z-50 bg-[#03060c]/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
+        <div class="aero-panel rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-white/15 shadow-2xl">
+            <div class="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+                <div class="min-w-0">
+                    <span class="text-[10px] font-mono-num uppercase tracking-[0.22em] text-emerald-300 block">ARQUITECTURA Y HABITANTES</span>
+                    <h2 class="font-display text-lg sm:text-xl font-bold text-white truncate">Colonia Planetaria: Viviendas, Depósitos y Astronautas</h2>
+                    <p id="colonyStatsLine" class="text-[11px] font-mono-num text-stone-400 mt-0.5">Construye hogares, almacenamientos y asigna tareas logísticas.</p>
+                </div>
+                <button id="btnCloseColonyModal" class="aero-pill aero-btn p-2 rounded-full text-stone-300 hover:text-white cursor-pointer shrink-0" title="Cerrar (Esc / B)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Pestañas + Pool unificado de materiales -->
+            <div class="px-4 sm:px-5 pt-3 pb-2.5 border-b border-white/10 space-y-2.5 shrink-0 bg-[#060a14]/50">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="tabColony_houses" class="px-3.5 py-1.5 rounded-xl font-display text-xs font-bold bg-amber-400/20 text-amber-200 border border-amber-400/50 cursor-pointer">🏠 Viviendas (5)</button>
+                    <button id="tabColony_depots" class="px-3.5 py-1.5 rounded-xl font-display text-xs font-semibold bg-white/[0.04] text-stone-400 border border-white/10 hover:text-white cursor-pointer">🏭 Almacenamientos (3)</button>
+                    <button id="tabColony_colonists" class="px-3.5 py-1.5 rounded-xl font-display text-xs font-semibold bg-white/[0.04] text-stone-400 border border-white/10 hover:text-white cursor-pointer">👨‍🚀 Astronautas &amp; Trabajos</button>
+                </div>
+                <div id="colonyResourcesPoolSummary" class="p-2.5 rounded-xl bg-black/35 border border-white/10"></div>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto flex-1">
+                <!-- TAB 1: VIVIENDAS -->
+                <div id="panelColony_houses" class="space-y-3">
+                    <div id="colonyHousesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                </div>
+
+                <!-- TAB 2: ALMACENAMIENTOS -->
+                <div id="panelColony_depots" class="hidden space-y-3">
+                    <div id="colonyDepotsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                </div>
+
+                <!-- TAB 3: ASTRONAUTAS Y TRABAJOS -->
+                <div id="panelColony_colonists" class="hidden space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
+                        <span class="text-[10.5px] font-mono-num text-stone-300">Asignación rápida del planeta:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button id="btnColonyBulkBalanced" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[10px] font-mono-num font-bold cursor-pointer">⚖️ Equilibrado</button>
+                            <button id="btnColonyBulkLogistics" class="px-2.5 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-200 text-[10px] font-mono-num font-bold cursor-pointer">⚙️ Todos Logística</button>
+                            <button id="btnColonyBulkRocket" class="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-[10px] font-mono-num font-bold cursor-pointer">🚀 Llenar Cohetes</button>
+                            <button id="btnColonyBulkIdle" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-stone-200 text-[10px] font-mono-num cursor-pointer">🧭 Todos Libres</button>
+                        </div>
+                    </div>
+                    <div id="colonyColonistsList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2.8 BARRA INFERIOR IZQUIERDA VERTICAL (ESTILO SFS: ÉTER) -->
     <div id="hudBottomLeftBars" class="fixed bottom-3 left-2.5 sm:bottom-5 sm:left-6 z-20 pointer-events-none select-none flex flex-col gap-1">
         <div id="hudShipVitals" class="hud-text-shadow flex items-end gap-2">
             <!-- Barra Vertical Éter -->
@@ -428,32 +711,21 @@
                 </div>
                 <span class="text-[8px] sm:text-[8.5px] font-mono-num text-stone-200/90 leading-none">Éter</span>
             </div>
-            <!-- Barra Vertical Casco -->
-            <div class="flex flex-col items-center gap-0.5">
-                <span id="uiHullVal" class="text-[8.5px] sm:text-[9.5px] font-mono-num text-stone-100 font-semibold leading-none">100%</span>
-                <div class="w-2.5 sm:w-3 h-20 sm:h-24 rounded-sm bg-black/45 border border-white/15 flex flex-col justify-end overflow-hidden">
-                    <div id="uiHullBar" class="w-full bg-stone-200 transition-all duration-100" style="height: 100%"></div>
-                </div>
-                <span class="text-[8px] sm:text-[8.5px] font-mono-num text-stone-200/90 leading-none">Casco</span>
-            </div>
         </div>
 
-        <div id="hudEvaVitals" class="hidden hud-text-shadow flex flex-col gap-1 w-[84px] sm:w-32 pointer-events-auto">
-            <div class="flex flex-col gap-0.5">
-                <div class="flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-mono-num">
-                    <span class="text-sky-200/90">Jetpack</span>
-                    <span id="uiEvaFuelText" class="text-sky-300 font-semibold">100%</span>
-                </div>
-                <div class="h-1.5 sm:h-2 w-full rounded-sm bg-black/40 border border-white/15 overflow-hidden">
-                    <div id="uiEvaJetpackBar" class="h-full bg-gradient-to-r from-sky-400 to-cyan-200 transition-all duration-100" style="width: 100%"></div>
-                </div>
-            </div>
-            <button id="btnHudReservePill" class="self-start flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-black/35 border border-white/15 hover:border-amber-400/50 text-[9px] sm:text-[10px] font-mono-num text-amber-200 cursor-pointer" title="Abrir Bodega (I)">
-                <span>⛽</span>
-                <span id="uiHudReserveVal" class="font-semibold">30 L</span>
-                <span class="text-white/30">·</span>
-                <span class="text-amber-300">◆ <span id="uiEvaCoresVal">0</span></span>
+        <div id="hudEvaVitals" class="hidden hud-text-shadow flex flex-col items-start gap-1.5 pointer-events-auto">
+            <button id="btnHudReservePill" class="flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl bg-black/45 border border-white/15 hover:border-amber-400/50 text-[8.5px] sm:text-[9.5px] font-mono-num text-amber-200 cursor-pointer leading-tight min-w-[42px]" title="Abrir Bodega (I)">
+                <span class="flex items-center gap-0.5"><span>⛽</span><span id="uiHudReserveVal" class="font-semibold">30 L</span></span>
+                <span class="text-amber-300 font-semibold">◆ <span id="uiEvaCoresVal">0</span></span>
             </button>
+            <!-- Barra Vertical Jetpack -->
+            <div class="flex flex-col items-center gap-0.5 pl-0.5">
+                <span id="uiEvaFuelText" class="text-[8.5px] sm:text-[9.5px] font-mono-num text-sky-300 font-semibold leading-none">100%</span>
+                <div class="w-3 sm:w-3.5 h-20 sm:h-24 rounded-sm bg-black/45 border border-white/15 flex flex-col justify-end overflow-hidden">
+                    <div id="uiEvaJetpackBar" class="w-full bg-gradient-to-t from-sky-500 to-cyan-200 transition-all duration-100" style="height: 100%"></div>
+                </div>
+                <span class="text-[8px] sm:text-[8.5px] font-mono-num text-stone-200/90 leading-none">Jetpack</span>
+            </div>
         </div>
     </div>
 
@@ -669,11 +941,26 @@
 
                 <!-- Inventario de Minerales y Refinería -->
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-mono-num uppercase tracking-[0.2em] text-stone-300">BODEGA MINERAL &amp; REFINERÍA PORTÁTIL</span>
-                        <span class="text-[9.5px] text-stone-400">Los isótopos y resinas pueden refinarse en combustible</span>
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-[10px] font-mono-num uppercase tracking-[0.2em] text-stone-300">BODEGA MINERAL DEL TRAJE &amp; REFINERÍA</span>
+                        <div class="flex items-center gap-2">
+                            <button id="btnInvAllToRocket" class="px-2 py-0.5 rounded-lg text-[9.5px] font-mono-num bg-cyan-500/20 text-cyan-200 border border-cyan-400/40 hover:bg-cyan-500/30 cursor-pointer">🚀 Guardar Todo en Cohete</button>
+                            <span class="text-[9.5px] text-stone-400 hidden sm:inline">Refinables → Éter</span>
+                        </div>
                     </div>
                     <div id="invMineralsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+                </div>
+
+                <!-- Bodega del Cohete -->
+                <div class="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-400/25 space-y-2">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <span class="text-[10px] font-mono-num uppercase tracking-[0.2em] text-cyan-300 block">BODEGA DEL COHETE ACTIVO</span>
+                            <span id="invRocketCargoLabel" class="text-[10.5px] font-mono-num text-stone-300">0 / 100 u</span>
+                        </div>
+                        <button id="btnInvAllToSuit" class="px-2.5 py-1 rounded-lg text-[9.5px] font-mono-num bg-white/10 hover:bg-white/20 text-stone-200 border border-white/15 cursor-pointer">⬇ Pasar Todo al Traje</button>
+                    </div>
+                    <div id="invRocketCargoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
                 </div>
 
                 <!-- Extractores Activos -->
@@ -830,12 +1117,13 @@
             <!-- MENÚ LATERAL / INFERIOR DE PIEZAS -->
             <aside class="relative w-full md:w-72 lg:w-80 h-52 sm:h-60 md:h-auto bg-[#070b16]/90 backdrop-blur-2xl border-t md:border-t-0 md:border-r border-white/10 flex flex-col shrink-0 z-10 shadow-2xl">
                 <!-- Pestañas de Categorías -->
-                <div class="p-2 border-b border-white/10 grid grid-cols-4 gap-1 text-[10px] font-mono-num font-semibold">
+                <div class="p-2 border-b border-white/10 grid grid-cols-3 gap-1 text-[10px] font-mono-num font-semibold">
                     <button class="bld-category-tab active px-2 py-1.5 rounded-lg text-center bg-white/10 text-amber-300 border border-amber-400/40 cursor-pointer transition-all truncate" data-cat="capsules">🚀 Cápsulas</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="tanks">🛢️ Tanques</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="engines">🔥 Motores</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="rcs">💨 RCS</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="solar">☀️ Energía</button>
+                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="lights">💡 Luces</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="structures">🏗️ Estructura</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="aero">📐 Aero</button>
                     <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="fairings">🛡️ Cofias</button>
@@ -1026,6 +1314,60 @@
                         <button id="btnBldInspDeploy" class="w-full py-1.5 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[10px] font-mono-num font-semibold cursor-pointer transition-colors">
                             ☀️ Desplegar / Contraer
                         </button>
+                    </div>
+
+                    <!-- Configuración de Luz del Cohete (Focos, Proyectores, Faros) -->
+                    <div id="bldInspLightRow" class="hidden space-y-2 pt-1.5 border-t border-white/10">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9.5px] font-mono-num uppercase text-amber-300 font-semibold">💡 Parámetros de Luz</span>
+                            <label class="flex items-center gap-1 text-[9.5px] font-mono-num text-stone-200 cursor-pointer">
+                                <input id="bldInspLightEnabled" type="checkbox" checked class="accent-amber-400 cursor-pointer">
+                                <span>Activa</span>
+                            </label>
+                        </div>
+
+                        <div class="space-y-0.5">
+                            <div class="flex items-center justify-between text-[9.5px] font-mono-num">
+                                <span class="text-stone-400">Intensidad</span>
+                                <span id="bldInspLightIntensityVal" class="text-white font-bold">100%</span>
+                            </div>
+                            <input id="bldInspLightIntensitySlider" type="range" min="10" max="220" step="5" value="100" class="w-full accent-amber-400 cursor-pointer h-1.5">
+                        </div>
+
+                        <div class="space-y-0.5">
+                            <div class="flex items-center justify-between text-[9.5px] font-mono-num">
+                                <span class="text-stone-400">Apertura del Haz</span>
+                                <span id="bldInspLightSpreadVal" class="text-white font-bold">45°</span>
+                            </div>
+                            <input id="bldInspLightSpreadSlider" type="range" min="8" max="130" step="2" value="45" class="w-full accent-cyan-400 cursor-pointer h-1.5">
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-[9.5px] font-mono-num">
+                                <span class="text-stone-400">Orientación</span>
+                                <span id="bldInspLightAimVal" class="text-white font-bold">-90°</span>
+                            </div>
+                            <input id="bldInspLightAimSlider" type="range" min="-180" max="180" step="5" value="-90" class="w-full accent-sky-400 cursor-pointer h-1.5">
+                            <div class="grid grid-cols-4 gap-1 text-[8.5px] font-mono-num">
+                                <button class="bld-light-aim-btn py-0.5 rounded bg-white/10 hover:bg-sky-500/25 text-stone-200 cursor-pointer" data-aim="0">↑ Proa</button>
+                                <button class="bld-light-aim-btn py-0.5 rounded bg-white/10 hover:bg-sky-500/25 text-stone-200 cursor-pointer" data-aim="-90">← Lat</button>
+                                <button class="bld-light-aim-btn py-0.5 rounded bg-white/10 hover:bg-sky-500/25 text-stone-200 cursor-pointer" data-aim="-135">↙ Diag</button>
+                                <button class="bld-light-aim-btn py-0.5 rounded bg-white/10 hover:bg-sky-500/25 text-stone-200 cursor-pointer" data-aim="180">↓ Base</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <span class="text-[9px] font-mono-num uppercase text-stone-400 block">Color del Haz</span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#eef6ff" style="background:#eef6ff" title="Xenón Frío"></button>
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#ffe6b8" style="background:#ffe6b8" title="Halógeno Cálido"></button>
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#fbbf24" style="background:#fbbf24" title="Ámbar"></button>
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#38bdf8" style="background:#38bdf8" title="Cian"></button>
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#34d399" style="background:#34d399" title="Esmeralda"></button>
+                                <button class="bld-light-color-swatch w-4 h-4 rounded-full border border-white/30 cursor-pointer" data-color="#fb7185" style="background:#fb7185" title="Rojo"></button>
+                                <input id="bldInspLightColorInput" type="color" value="#eef6ff" class="w-4 h-4 rounded-full bg-transparent border border-white/30 cursor-pointer p-0">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1235,6 +1577,10 @@
                                 <span class="text-stone-400 text-[10px]">PRESIÓN ATMOSFÉRICA:</span>
                                 <strong id="dossierAtmo" class="text-sky-300">1.0 atm</strong>
                             </div>
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-stone-400 text-[10px] shrink-0">RÉGIMEN EÓLICO:</span>
+                                <strong id="dossierWind" class="text-cyan-200 text-right truncate">Brisas Variables</strong>
+                            </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-stone-400 text-[10px]">NIVEL DE PELIGRO:</span>
                                 <span id="dossierHazardBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">Seguro</span>
@@ -1421,6 +1767,25 @@
         </div>
     </div>
 
+    <!-- 7B. MODAL: CATEGORÍAS DE MUNDOS (SALTO AL MÁS CERCANO NO VISITADO) -->
+    <div id="worldCategoriesModal" class="fixed inset-0 z-50 bg-[#03060c]/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
+        <div class="aero-panel w-full max-w-2xl max-h-[85vh] rounded-3xl border border-white/15 shadow-2xl flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+                <div class="min-w-0">
+                    <span class="text-[9.5px] font-mono-num uppercase tracking-[0.2em] text-sky-300/90 block">NAVEGACIÓN POR CATEGORÍA</span>
+                    <h2 class="font-display text-lg sm:text-xl font-bold text-white truncate">Categorías de Mundos</h2>
+                    <p class="text-[11px] text-stone-300/90 mt-0.5">Selecciona una categoría para viajar al mundo no visitado más cercano.</p>
+                </div>
+                <button id="btnCloseWorldCategoriesModal" class="aero-pill aero-btn p-2 rounded-full text-stone-300 hover:text-white cursor-pointer shrink-0" title="Cerrar (Esc)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="worldCategoriesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-4 overflow-y-auto"></div>
+        </div>
+    </div>
+
     <!-- MÓDULOS DE ARQUITECTURA MODULAR JAVASCRIPT -->
     <script>
     (function() {
@@ -1433,11 +1798,16 @@
             'js/creatures.js',
             'js/weather_data.js',
             'js/weather.js',
+            'js/fog.js',
+            'js/wind.js',
             'js/procedural.js',
             'js/physics.js',
             'js/astronaut.js',
             'js/resources.js',
+            'js/colony_buildings.js',
+            'js/colony_colonists.js',
             'js/textures.js',
+            'js/lighting.js',
             'js/renderer.js',
             'js/rocket_builder.js',
             'js/ui.js',

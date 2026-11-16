@@ -38,12 +38,20 @@ for (let w = 0; w < 8; w++) {
 }
 
 function updateWindWisps(dt) {
+    const lw = (typeof ship !== 'undefined' && ship.localWind) ? ship.localWind : null;
+    if (!lw || !lw.hasWind || lw.speed < 85) return;
+    const dir = lw.tangSpeed >= 0 ? 1 : -1;
+    const speedScale = clamp(lw.speed / 120, 0.7, 2.4);
     for (const w of windWisps) {
-        w.x += w.speed * dt;
-        if (w.x > screenW + 150) {
+        w.x += w.speed * speedScale * dir * dt;
+        if (dir > 0 && w.x > screenW + 150) {
             w.x = -w.len - 50;
             w.y = Math.random() * (screenH * 0.85);
-            w.alpha = Math.random() * 0.35 + 0.15;
+            w.alpha = Math.random() * 0.30 + 0.12;
+        } else if (dir < 0 && w.x < -w.len - 150) {
+            w.x = screenW + 50;
+            w.y = Math.random() * (screenH * 0.85);
+            w.alpha = Math.random() * 0.30 + 0.12;
         }
     }
 }
@@ -95,6 +103,9 @@ function render(timeSec) {
     for (const p of nearby) {
         p.lightAngle = getPlanetCurrentLightAngle(p, timeSec);
     }
+    if (typeof LightingEngine !== 'undefined') {
+        LightingEngine.beginFrame(timeSec, nearby);
+    }
 
     // 1. Cielo Cósmico y Bóveda Atmosférica Diurna / Crepuscular / Nocturna
     const hasAtmo = (ship.nearestPlanet && ship.currentAtmoWeight > 0.02);
@@ -115,14 +126,16 @@ function render(timeSec) {
         const nightFactor = solarState ? clamp(solarState.nightFactor, 0, 1) : 0;
         const cloudOvercast = clamp((ship && ship.cloudOvercast) ? ship.cloudOvercast : 0, 0, 1) * atmoW;
         const cloudStorm = clamp((ship && ship.cloudStorm) ? ship.cloudStorm : 0, 0, 1) * atmoW;
-        let topSkyRGB = lerpRGB(camera.skyColor, DEEP_SPACE_RGB, lerp(0.18, 0.92, nightFactor));
+        const stormInfo = (typeof getLocalStormDarkness === 'function') ? getLocalStormDarkness(pNear) : null;
+        let topSkyRGB = lerpRGB(camera.skyColor, DEEP_SPACE_RGB, lerp(0.18, 0.96, nightFactor));
         if (cloudOvercast > 0.01 && dayFactor > 0.01) {
+            const ceilDark = stormInfo ? (0.76 - stormInfo.skyDark * 0.48) : (0.72 - cloudStorm * 0.14);
             const overcastCeiling = [
-                Math.max(2, Math.round(camera.skyColor[0] * (0.72 - cloudStorm * 0.14))),
-                Math.max(3, Math.round(camera.skyColor[1] * (0.74 - cloudStorm * 0.14))),
-                Math.max(4, Math.round(camera.skyColor[2] * (0.78 - cloudStorm * 0.12)))
+                Math.max(2, Math.round(camera.skyColor[0] * ceilDark)),
+                Math.max(3, Math.round(camera.skyColor[1] * ceilDark)),
+                Math.max(4, Math.round(camera.skyColor[2] * Math.min(0.85, ceilDark + 0.04)))
             ];
-            topSkyRGB = lerpRGB(topSkyRGB, overcastCeiling, cloudOvercast * dayFactor * 0.62);
+            topSkyRGB = lerpRGB(topSkyRGB, overcastCeiling, cloudOvercast * dayFactor * 0.72);
         }
 
         const skyGrad = ctx.createLinearGradient(
@@ -155,7 +168,7 @@ function render(timeSec) {
         // Luminiscencia aérea nocturna sutil (Airglow / Brillo químico fino en el horizonte sin velar la noche)
         if (solarState && solarState.nightFactor > 0.05) {
             const airglowCol = col.nightAirglow || arch.nightAirglow || [56, 189, 248];
-            const airglowAlpha = (col.nightAirglowAlpha || 0.45) * solarState.nightFactor * atmoW * 0.09 * (1 - cloudOvercast * 0.72);
+            const airglowAlpha = (col.nightAirglowAlpha || 0.45) * solarState.nightFactor * atmoW * 0.052 * (1 - cloudOvercast * 0.85);
             const agGrad = ctx.createLinearGradient(
                 screenW * 0.5, screenH,
                 screenW * 0.5, screenH * 0.72
@@ -306,7 +319,7 @@ function render(timeSec) {
     }
 
     // Polvo espacial con estela de velocidad real (solo cuando el cohete está acelerando)
-    const isAccelerating = (ship.thrustIntensity > 0.05) || (ship.warping && ship.fuel > 0);
+    const isAccelerating = (ship.thrustIntensity > 0.05) || (ship.warping && (ship.fuel > 0 || ship.infiniteFuel));
     const dustSpan = Math.max(3400, screenW + 500);
     for (const d of spaceDust) {
         const dx = ((d.x - camera.x * 0.55) % dustSpan + dustSpan) % dustSpan - 250;
@@ -372,11 +385,20 @@ function render(timeSec) {
 
         // 7. Iluminación Realista de la Llama sobre el Suelo (Sin círculos gigantes)
         drawDynamicGroundGlow(nearby);
+        if (typeof LightingEngine !== 'undefined') {
+            LightingEngine.drawTerrainLighting(nearby, timeSec);
+        }
 
-        // 8. Nubes Atmosféricas Planetarias (se ocultan al descender al núcleo de cavernas)
+        // 8. Nubes Atmosféricas Planetarias, Neblinas Trasera y Vórtices Eólicos (se ocultan al descender al núcleo de cavernas)
         if (!ship.cavernDepthBlend || ship.cavernDepthBlend < 0.88) {
             for (const p of nearby) {
+                if (typeof drawPlanetWindVortices === 'function') {
+                    drawPlanetWindVortices(p, timeSec);
+                }
                 drawPlanetCloudBands(p, timeSec);
+                if (typeof drawPlanetFogBackground === 'function') {
+                    drawPlanetFogBackground(p, timeSec);
+                }
             }
         }
 
@@ -442,8 +464,11 @@ function render(timeSec) {
         // 15. Estelas Aerodinámicas de Aletas (Wingtip Vortices)
         drawWingTrails();
 
-        // 16. Partículas Ambientales del Bioma
+        // 16. Partículas Ambientales del Bioma y Corrientes Eólicas Delicadas
         drawBiomeParticles(timeSec);
+        if (typeof drawPlanetWindParticles === 'function') {
+            drawPlanetWindParticles(nearby, timeSec);
+        }
     }
 
     // 17. Escombros Físicos (Debris) y Fragmentos Animados de Piezas Rotas
@@ -473,6 +498,16 @@ function render(timeSec) {
         // 21.3 Máquinas Extractoras de Recursos Planetarios (Nv.1 - Nv.4)
         if (typeof drawExtractors === 'function') {
             drawExtractors(timeSec);
+        }
+
+        // 21.35 Viviendas, Casas y Almacenamientos de Colonia
+        if (typeof drawColonyBuildings === 'function') {
+            drawColonyBuildings(timeSec);
+        }
+
+        // 21.4 Luminarias Simples y Torres de Iluminación de Hierro
+        if (typeof LightingEngine !== 'undefined') {
+            LightingEngine.drawSurfaceFixtures(nearby, timeSec);
         }
 
         // 21.5 Deflexión de la Llama del Cohete contra la Superficie
@@ -509,6 +544,9 @@ function render(timeSec) {
     if (typeof drawAstronaut === 'function') {
         drawAstronaut(timeSec);
     }
+    if (typeof drawColonyColonists === 'function') {
+        drawColonyColonists(timeSec);
+    }
     if (typeof drawInteractionEffects === 'function') {
         drawInteractionEffects(timeSec);
     }
@@ -523,6 +561,20 @@ function render(timeSec) {
         }
         if (typeof drawCreatureEtherOrbs === 'function') {
             drawCreatureEtherOrbs(timeSec);
+        }
+        // 23.55. Haces Volumétricos de Iluminación Dinámica y Previsualización de Colocación
+        if (typeof LightingEngine !== 'undefined') {
+            LightingEngine.drawVolumetricBeams(nearby, timeSec);
+            LightingEngine.drawPlacementPreview(timeSec);
+        }
+        if (typeof ColonyBuildings !== 'undefined') {
+            ColonyBuildings.drawPlacementPreview(timeSec);
+        }
+        // 23.6. Capa Frontal Translúcida de Neblinas y Dispersión Volumétrica de Cohete
+        if ((!ship.cavernDepthBlend || ship.cavernDepthBlend < 0.88) && typeof drawPlanetFogForeground === 'function') {
+            for (const p of nearby) {
+                drawPlanetFogForeground(p, timeSec);
+            }
         }
     }
 
@@ -646,9 +698,16 @@ function drawTrajectoryGuide(timeSec) {
  * Renderiza brisas y cintas de viento flotantes (Wind Wisps)
  */
 function drawWindWisps(timeSec) {
+    // Las cintas de viento en espacio mundial (drawPlanetWindParticles) responden a la dirección,
+    // intensidad y calma real de cada planeta; las líneas estáticas de pantalla solo se muestran
+    // muy sutilmente durante ráfagas intensas para no crear falso viento en planetas en calma.
+    const lw = ship.localWind;
+    if (!lw || !lw.hasWind || lw.speed < 85) return;
+
     const pNear = ship.nearestPlanet;
     const nightFactor = (pNear && ship.currentSolarState) ? clamp(ship.currentSolarState.nightFactor, 0, 1) : 0;
-    const wispAlphaMult = lerp(0.32, 0.08, nightFactor);
+    const galeFactor = clamp((lw.speed - 85) / 140, 0, 1);
+    const wispAlphaMult = lerp(0.22, 0.06, nightFactor) * galeFactor;
     const wispCol = lerpRGB([255, 255, 255], [148, 163, 184], nightFactor * 0.75);
 
     ctx.save();
@@ -656,7 +715,7 @@ function drawWindWisps(timeSec) {
     for (const w of windWisps) {
         const waveY = Math.sin(timeSec * 2.2 + w.phase) * w.amp;
         ctx.strokeStyle = `rgba(${wispCol[0]}, ${wispCol[1]}, ${wispCol[2]}, ${w.alpha * wispAlphaMult})`;
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
         ctx.moveTo(w.x, w.y);
         ctx.quadraticCurveTo(w.x + w.len * 0.5, w.y + waveY, w.x + w.len, w.y);
@@ -749,7 +808,8 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
 
     const sunOcc = clamp((typeof ship !== 'undefined' && ship.sunCloudOcclusion ? ship.sunCloudOcclusion : 0) * smoothstep(0.05, 0.35, atmoBlend), 0, 1);
     const cloudOv = clamp((typeof ship !== 'undefined' && ship.cloudOvercast ? ship.cloudOvercast : 0) * smoothstep(0.05, 0.35, atmoBlend), 0, 1);
-    const sunVeil = clamp(Math.max(sunOcc, cloudOv * 0.72), 0, 1);
+    const fogVeil = clamp((typeof ship !== 'undefined' && ship.localFogDensity ? ship.localFogDensity : 0) * 0.72 * smoothstep(0.05, 0.30, atmoBlend), 0, 1);
+    const sunVeil = clamp(Math.max(sunOcc, cloudOv * 0.72, fogVeil), 0, 1);
 
     ctx.save();
     ctx.globalAlpha = nightDim;
@@ -934,26 +994,39 @@ function drawAtmosphericDepthFog(pNear, atmoW, timeSec) {
     const twiW = solar ? solar.twilightFactor : 0.0;
     const nightW = solar ? solar.nightFactor : 0.0;
     const cloudOv = clamp((ship && ship.cloudOvercast) ? ship.cloudOvercast : 0, 0, 1);
+    const localFog = clamp((ship && ship.localFogDensity) ? ship.localFogDensity : 0, 0, 1);
+    const localFogRGB = (ship && ship.localFogColor) ? ship.localFogColor : baseFogCol;
+    const fogNightGlow = clamp((ship && ship.localFogNightGlow) ? ship.localFogNightGlow : 0, 0, 1);
 
     // Fusión cromática de la niebla según el ciclo solar
     let curFog = lerpRGB(baseFogCol, [255, 252, 245], 0.35); // Día brillante
+    if (localFog > 0.02) {
+        curFog = lerpRGB(curFog, localFogRGB, clamp(localFog * 0.75, 0, 0.85));
+    }
     if (twiW > 0.01) curFog = lerpRGB(curFog, sunsetCol, twiW * 0.65);
     if (cloudOv > 0.01 && (dayW + twiW) > 0.01) {
         const overcastMist = lerpRGB(camera.skyColor || [60, 75, 95], baseFogCol, 0.35);
         curFog = lerpRGB(curFog, overcastMist, cloudOv * 0.68 * clamp(dayW + twiW, 0, 1));
     }
-    if (nightW > 0.01) curFog = lerpRGB(curFog, nightSky, nightW * 0.88);
+    if (nightW > 0.01) {
+        const nightMistTarget = lerpRGB(nightSky, localFogRGB, fogNightGlow * 0.42);
+        curFog = lerpRGB(curFog, nightMistTarget, nightW * (0.88 - fogNightGlow * 0.16));
+    }
 
-    // En la noche la niebla es tenue y oscura para preservar el negro profundo nocturno
-    const alpha = (0.24 * dayW + 0.30 * twiW + 0.06 * nightW) * atmoW;
+    // En la noche la niebla es tenue y oscura para preservar el negro profundo nocturno;
+    // al sumergirse en un banco de niebla o mundo brumoso, la bruma de horizonte se intensifica suavemente.
+    const baseAlpha = (0.24 * dayW + 0.30 * twiW + (0.06 + fogNightGlow * 0.10) * nightW) * atmoW;
+    const fogBoost = localFog * (0.24 * dayW + 0.26 * twiW + (0.06 + fogNightGlow * 0.12) * nightW) * smoothstep(0.05, 0.35, atmoW);
+    const alpha = clamp(baseAlpha + fogBoost, 0, 0.56);
+    const fogTopFrac = lerp(0.60, 0.34, localFog);
 
     ctx.save();
-    const fogGrad = ctx.createLinearGradient(0, screenH, 0, screenH * 0.65);
+    const fogGrad = ctx.createLinearGradient(0, screenH, 0, screenH * fogTopFrac);
     fogGrad.addColorStop(0, rgbStr(curFog, alpha));
-    fogGrad.addColorStop(0.5, rgbStr(curFog, alpha * 0.35));
+    fogGrad.addColorStop(0.45, rgbStr(curFog, alpha * 0.42));
     fogGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = fogGrad;
-    ctx.fillRect(0, screenH * 0.6, screenW, screenH * 0.4);
+    ctx.fillRect(0, screenH * Math.max(0.25, fogTopFrac - 0.05), screenW, screenH * (1 - Math.max(0.25, fogTopFrac - 0.05)));
     ctx.restore();
 }
 
@@ -1012,8 +1085,21 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     const crustCol = colors.crustColor || arch.crustColor || [52, 70, 90];
     const hazeCol = colors.condensationColor || arch.condensationColor || skyCol;
     const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-    const nightCol = colors.nightSkyRGB ? lerpRGB(crustCol, colors.nightSkyRGB, 0.85) : [4, 6, 14];
+    const nightDeepSky = colors.nightSkyRGB ? lerpRGB([1, 2, 5], colors.nightSkyRGB, 0.16) : [2, 3, 7];
+    const nightCol = lerpRGB(nightDeepSky, crustCol, 0.10);
     const seed = ((p.surfaceSeed || 0.42) * 17.29) % 10;
+
+    // Estado solar y de tormenta local para coherencia atmosférica de montañas y brumas
+    const localSolar = (typeof getPlanetSolarState === 'function')
+        ? ((p === ship.nearestPlanet && ship.currentSolarState) ? ship.currentSolarState : getPlanetSolarState(p, camera.x, camera.y, timeSec))
+        : null;
+    const localNightF = localSolar ? clamp(localSolar.nightFactor, 0, 1) : 0;
+    const localTwiF = localSolar ? clamp(localSolar.twilightFactor, 0, 1) : 0;
+    const stormInfo = (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet)
+        ? getLocalStormDarkness(p)
+        : { worldDark: 0, tint: [36, 46, 66] };
+    const stormDark = stormInfo.worldDark || 0;
+    const applyStormToRidge = (rgb) => stormDark > 0.01 ? lerpRGB(rgb, stormInfo.tint, stormDark * 0.85) : rgb;
 
     const sunX = p.x + Math.cos(p.lightAngle) * p.radius;
     const sunY = p.y + Math.sin(p.lightAngle) * p.radius;
@@ -1103,11 +1189,12 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
                 ctx.lineTo(vx, vy);
             }
         }
-        if (rimHighlightAlpha > 0.01) {
+        const effRimAlpha = rimHighlightAlpha * (1 - stormDark * 0.85);
+        if (effRimAlpha > 0.01) {
             const crestGrad = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-            crestGrad.addColorStop(0.00, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.45), rimHighlightAlpha * atmoW));
-            crestGrad.addColorStop(0.45, rgbStr(sunsetCol, rimHighlightAlpha * 0.45 * atmoW));
-            crestGrad.addColorStop(0.65, 'rgba(0,0,0,0)');
+            crestGrad.addColorStop(0.00, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.45), effRimAlpha * atmoW));
+            crestGrad.addColorStop(0.45, rgbStr(sunsetCol, effRimAlpha * 0.45 * atmoW));
+            crestGrad.addColorStop(0.62, 'rgba(0,0,0,0)');
             crestGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
             ctx.strokeStyle = crestGrad;
             ctx.lineWidth = 1.25;
@@ -1123,22 +1210,30 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
 
     // Perspectiva aérea opaca: las cordilleras bloquean completamente el fondo estelar/espacial,
     // simulando la dispersión atmosférica y neblina mediante mezcla de color y velos de bruma entre capas.
-    const atmoHaze = lerpRGB(skyCol, hazeCol, 0.38);
-    const twilightHaze = lerpRGB(atmoHaze, sunsetCol, 0.28);
-    const nightSkyBase = colors.nightSkyRGB || arch.nightSkyRGB || [5, 8, 18];
-    const nightAtmo = lerpRGB(nightSkyBase, nightCol, 0.35);
-    const valleyMistCol = lerpRGB(skyCol, hazeCol, 0.55);
+    const atmoHaze = applyStormToRidge(lerpRGB(skyCol, hazeCol, 0.38 * (1 - stormDark * 0.65)));
+    const twilightHaze = applyStormToRidge(lerpRGB(atmoHaze, sunsetCol, 0.28 * (1 - stormDark * 0.70)));
+    const nightAtmo = lerpRGB(nightDeepSky, nightCol, 0.25);
+
+    const dayMistBase = applyStormToRidge(lerpRGB(skyCol, hazeCol, 0.55 * (1 - stormDark * 0.70)));
+    const twiMistBase = applyStormToRidge(lerpRGB(dayMistBase, sunsetCol, 0.30 * (1 - stormDark * 0.65)));
+    const nightMistBase = lerpRGB(nightDeepSky, nightCol, 0.20);
+    const valleyMistCol = lerpRGB(
+        lerpRGB(dayMistBase, twiMistBase, localTwiF),
+        nightMistBase,
+        localNightF
+    );
+    const mistNightFade = lerp(1.0, 0.28, localNightF) * lerp(1.0, 0.65, stormDark);
 
     // --- CAPA 3: CORDILLERA REMOTA FIJA EN LA GEOLOGÍA DEL PLANETA ---
-    const farCol = lerpRGB(atmoHaze, crustCol, 0.16);
-    const twiFarCol = lerpRGB(twilightHaze, crustCol, 0.20);
-    const nightFarCol = lerpRGB(nightAtmo, crustCol, 0.12);
-    const nightDeepFarCol = lerpRGB(nightAtmo, crustCol, 0.07);
+    const farCol = applyStormToRidge(lerpRGB(atmoHaze, crustCol, 0.16));
+    const twiFarCol = applyStormToRidge(lerpRGB(twilightHaze, crustCol, 0.20));
+    const nightFarCol = lerpRGB(nightAtmo, crustCol, 0.04);
+    const nightDeepFarCol = lerpRGB(nightAtmo, crustCol, 0.02);
     const ridgeGrad3 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
     ridgeGrad3.addColorStop(0.00, rgbStr(farCol, 1.0));
     ridgeGrad3.addColorStop(0.35, rgbStr(farCol, 1.0));
     ridgeGrad3.addColorStop(0.55, rgbStr(twiFarCol, 1.0));
-    ridgeGrad3.addColorStop(0.75, rgbStr(nightFarCol, 1.0));
+    ridgeGrad3.addColorStop(0.70, rgbStr(nightFarCol, 1.0));
     ridgeGrad3.addColorStop(1.00, rgbStr(nightDeepFarCol, 1.0));
     buildAndDrawRidgeLayer(7, 15, 31, seed, 72, 54, ridgeGrad3, 0.16);
 
@@ -1147,8 +1242,8 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     const hazeR3 = Math.max(p.radius + 42 * relief, minSurfR + 60);
     const hazeGrad3 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR3 + 42);
     hazeGrad3.addColorStop(0.00, 'rgba(0,0,0,0)');
-    hazeGrad3.addColorStop(0.28, rgbStr(valleyMistCol, 0.34));
-    hazeGrad3.addColorStop(0.65, rgbStr(valleyMistCol, 0.15));
+    hazeGrad3.addColorStop(0.28, rgbStr(valleyMistCol, 0.34 * mistNightFade));
+    hazeGrad3.addColorStop(0.65, rgbStr(valleyMistCol, 0.15 * mistNightFade));
     hazeGrad3.addColorStop(1.00, 'rgba(0,0,0,0)');
     ctx.fillStyle = hazeGrad3;
     ctx.beginPath();
@@ -1156,15 +1251,15 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     ctx.fill();
 
     // --- CAPA 2: MACIZO INTERMEDIO FIJO ---
-    const midCol = lerpRGB(atmoHaze, crustCol, 0.44);
-    const twiMidCol = lerpRGB(twilightHaze, crustCol, 0.46);
-    const nightMidCol = lerpRGB(nightAtmo, crustCol, 0.30);
-    const nightDeepMidCol = lerpRGB(nightAtmo, crustCol, 0.22);
+    const midCol = applyStormToRidge(lerpRGB(atmoHaze, crustCol, 0.44));
+    const twiMidCol = applyStormToRidge(lerpRGB(twilightHaze, crustCol, 0.46));
+    const nightMidCol = lerpRGB(nightAtmo, crustCol, 0.08);
+    const nightDeepMidCol = lerpRGB(nightAtmo, crustCol, 0.05);
     const ridgeGrad2 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
     ridgeGrad2.addColorStop(0.00, rgbStr(midCol, 1.0));
     ridgeGrad2.addColorStop(0.35, rgbStr(midCol, 1.0));
     ridgeGrad2.addColorStop(0.55, rgbStr(twiMidCol, 1.0));
-    ridgeGrad2.addColorStop(0.75, rgbStr(nightMidCol, 1.0));
+    ridgeGrad2.addColorStop(0.70, rgbStr(nightMidCol, 1.0));
     ridgeGrad2.addColorStop(1.00, rgbStr(nightDeepMidCol, 1.0));
     buildAndDrawRidgeLayer(11, 23, 43, seed * 2.2, 48, 30, ridgeGrad2, 0.24);
 
@@ -1172,8 +1267,8 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     const hazeR2 = Math.max(p.radius + 24 * relief, minSurfR + 40);
     const hazeGrad2 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR2 + 28);
     hazeGrad2.addColorStop(0.00, 'rgba(0,0,0,0)');
-    hazeGrad2.addColorStop(0.32, rgbStr(valleyMistCol, 0.24));
-    hazeGrad2.addColorStop(0.70, rgbStr(valleyMistCol, 0.09));
+    hazeGrad2.addColorStop(0.32, rgbStr(valleyMistCol, 0.24 * mistNightFade));
+    hazeGrad2.addColorStop(0.70, rgbStr(valleyMistCol, 0.09 * mistNightFade));
     hazeGrad2.addColorStop(1.00, 'rgba(0,0,0,0)');
     ctx.fillStyle = hazeGrad2;
     ctx.beginPath();
@@ -1181,15 +1276,15 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     ctx.fill();
 
     // --- CAPA 1: COLINAS DE FONDO PRÓXIMAS FIJAS ---
-    const nearCol = lerpRGB(atmoHaze, crustCol, 0.74);
-    const twiNearCol = lerpRGB(twilightHaze, crustCol, 0.72);
-    const nightNearCol = lerpRGB(nightAtmo, crustCol, 0.50);
-    const nightDeepNearCol = lerpRGB(nightAtmo, crustCol, 0.38);
+    const nearCol = applyStormToRidge(lerpRGB(atmoHaze, crustCol, 0.74));
+    const twiNearCol = applyStormToRidge(lerpRGB(twilightHaze, crustCol, 0.72));
+    const nightNearCol = lerpRGB(nightAtmo, crustCol, 0.14);
+    const nightDeepNearCol = lerpRGB(nightAtmo, crustCol, 0.09);
     const ridgeGrad1 = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
     ridgeGrad1.addColorStop(0.00, rgbStr(nearCol, 1.0));
     ridgeGrad1.addColorStop(0.35, rgbStr(nearCol, 1.0));
     ridgeGrad1.addColorStop(0.55, rgbStr(twiNearCol, 1.0));
-    ridgeGrad1.addColorStop(0.75, rgbStr(nightNearCol, 1.0));
+    ridgeGrad1.addColorStop(0.70, rgbStr(nightNearCol, 1.0));
     ridgeGrad1.addColorStop(1.00, rgbStr(nightDeepNearCol, 1.0));
     buildAndDrawRidgeLayer(17, 31, 59, seed * 3.4, 30, 16, ridgeGrad1, 0.32);
 
@@ -1197,8 +1292,8 @@ function drawPlanetBackgroundRidges(p, timeSec, colors, arch) {
     const hazeR1 = Math.max(p.radius + 14 * relief, minSurfR + 26);
     const hazeGrad1 = ctx.createRadialGradient(p.x, p.y, minSurfR, p.x, p.y, hazeR1 + 18);
     hazeGrad1.addColorStop(0.00, 'rgba(0,0,0,0)');
-    hazeGrad1.addColorStop(0.35, rgbStr(valleyMistCol, 0.14));
-    hazeGrad1.addColorStop(0.75, rgbStr(valleyMistCol, 0.04));
+    hazeGrad1.addColorStop(0.35, rgbStr(valleyMistCol, 0.14 * mistNightFade));
+    hazeGrad1.addColorStop(0.75, rgbStr(valleyMistCol, 0.04 * mistNightFade));
     hazeGrad1.addColorStop(1.00, 'rgba(0,0,0,0)');
     ctx.fillStyle = hazeGrad1;
     ctx.beginPath();
@@ -1399,8 +1494,8 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
     const accentCol = colors.accentColor || arch.accentColor || rimCol;
     const topsoilCol = colors.topsoilColor || arch.topsoilColor || litCol;
     const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-    const nightCol = colors.nightSkyRGB ? lerpRGB(coreCol, colors.nightSkyRGB, 0.82) : lerpRGB(coreCol, [3, 5, 12], 0.82);
-    const deepNightCol = lerpRGB(nightCol, [1, 2, 5], 0.65);
+    const nightCol = lerpRGB(coreCol, [2, 4, 9], 0.90);
+    const deepNightCol = [1, 2, 4];
 
     const brightLitCol = [
         Math.min(255, Math.round(litCol[0] * 1.28 + 24)),
@@ -1479,16 +1574,27 @@ function drawPlanetMacroSurface(p, timeSec, colors, arch) {
         darkFocusX, darkFocusY, maxR * 0.10,
         darkFocusX, darkFocusY, shadowRad
     );
-    globeShadow.addColorStop(0.00, rgbStr(deepNightCol, 0.94));
-    globeShadow.addColorStop(0.35, rgbStr(nightCol, 0.82));
-    globeShadow.addColorStop(0.58, rgbStr(nightCol, 0.45));
-    globeShadow.addColorStop(0.76, 'rgba(0, 0, 0, 0.10)');
+    globeShadow.addColorStop(0.00, rgbStr(deepNightCol, 0.98));
+    globeShadow.addColorStop(0.38, rgbStr(nightCol, 0.92));
+    globeShadow.addColorStop(0.58, rgbStr(nightCol, 0.62));
+    globeShadow.addColorStop(0.75, 'rgba(0, 0, 0, 0.18)');
     globeShadow.addColorStop(0.92, 'rgba(0, 0, 0, 0)');
     globeShadow.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
     ctx.beginPath();
     ctx.arc(p.x, p.y, maxR * 1.05, 0, Math.PI * 2);
     ctx.fillStyle = globeShadow;
     ctx.fill();
+
+    // B2. Velo de tormenta local sobre la superficie macroscópica cuando el observador está bajo frente de tormenta
+    if (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet) {
+        const stInfo = getLocalStormDarkness(p);
+        if (stInfo.worldDark > 0.01) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, maxR * 1.05, 0, Math.PI * 2);
+            ctx.fillStyle = rgbStr(stInfo.tint, stInfo.worldDark * 0.78);
+            ctx.fill();
+        }
+    }
 
     // C. Emisión nocturna que resplandece en la oscuridad (magma, bioluminiscencia, uraninita, fallas y cristales)
     if (bakedMaps && bakedMaps.emissive && macroFade > 0.03) {
@@ -2603,19 +2709,19 @@ function drawCinematicPlanet(p, timeSec) {
     termGrad.addColorStop(0.00, 'rgba(255,255,255,0)');
     termGrad.addColorStop(0.42, 'rgba(255,255,255,0)');
     termGrad.addColorStop(0.54, rgbStr(sunsetCol, 0.16));
-    termGrad.addColorStop(0.64, 'rgba(4, 8, 20, 0.22)');
-    termGrad.addColorStop(1.00, 'rgba(2, 4, 12, 0.42)');
+    termGrad.addColorStop(0.62, 'rgba(3, 5, 12, 0.45)');
+    termGrad.addColorStop(1.00, 'rgba(1, 2, 6, 0.80)');
     ctx.fillStyle = termGrad;
     ctx.fillRect(p.x - maxGlowR - 120, p.y - maxGlowR - 120, (maxGlowR + 120) * 2, (maxGlowR + 120) * 2);
 
     const fresnelGrad = ctx.createRadialGradient(
-        p.x - sunDirX * maxGlowR * 0.12, p.y - sunDirY * maxGlowR * 0.12, maxGlowR * 0.72,
+        p.x - sunDirX * maxGlowR * 0.24, p.y - sunDirY * maxGlowR * 0.24, maxGlowR * 0.74,
         p.x, p.y, maxGlowR * 1.02
     );
     fresnelGrad.addColorStop(0.00, 'rgba(0,0,0,0)');
-    fresnelGrad.addColorStop(0.75, rgbStr(atmoGlowCol, 0.08));
-    fresnelGrad.addColorStop(0.95, rgbStr(lerpRGB(atmoGlowCol, [255, 255, 255], 0.35), 0.26));
-    fresnelGrad.addColorStop(1.00, rgbStr(rimCol, 0.32));
+    fresnelGrad.addColorStop(0.75, rgbStr(atmoGlowCol, 0.05));
+    fresnelGrad.addColorStop(0.95, rgbStr(lerpRGB(atmoGlowCol, [255, 255, 255], 0.30), 0.18));
+    fresnelGrad.addColorStop(1.00, rgbStr(rimCol, 0.22));
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = fresnelGrad;
@@ -2898,6 +3004,10 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
     const lightAng = (p.lightAngle !== undefined) ? p.lightAngle : -Math.PI * 0.35;
     const sunVecX = Math.cos(lightAng);
     const sunVecY = Math.sin(lightAng);
+    const stormInfo = (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet)
+        ? getLocalStormDarkness(p)
+        : { worldDark: 0, tint: [36, 46, 66] };
+    const stormDark = stormInfo.worldDark || 0;
 
     for (const lake of p.lakes) {
         const spanHalf = lake.span;
@@ -2914,8 +3024,12 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
         const twiLake = Math.exp(-Math.pow(sunDot / 0.24, 2));
         const nightLake = smoothstep(0.25, -0.35, sunDot);
 
-        // Radiancia diurna viva vs espejo nocturno oscuro
-        const sunIntensity = clamp(0.06 + 1.20 * dayLake + 0.40 * twiLake, 0.05, 1.45);
+        const isSelfLuminous = (lake.liquidType === 'magma' || lake.liquidType === 'biolume' || lake.liquidType === 'acid');
+        // Radiancia diurna viva vs espejo nocturno oscuro (los lagos no emisivos se oscurecen profundamente de noche y en tormenta)
+        const stormDim = isSelfLuminous ? 1.0 : (1.0 - stormDark * 0.72);
+        const sunIntensity = isSelfLuminous
+            ? clamp(0.45 + 0.85 * dayLake + 0.30 * twiLake, 0.45, 1.35)
+            : clamp((0.08 + 1.15 * dayLake + 0.38 * twiLake) * stormDim, 0.06, 1.40);
 
         // Determinación de paletas cromáticas según el tipo de fluido
         let deepCol, shallowCol, shoreCol, specCol;
@@ -2949,6 +3063,19 @@ function drawCinematicPlanetLakes(p, timeSec, colors, arch) {
             shallowCol = [45, 212, 191];
             shoreCol = [254, 243, 199];
             specCol = [255, 255, 255];
+        }
+
+        if (!isSelfLuminous) {
+            if (stormDark > 0.01) {
+                deepCol = lerpRGB(deepCol, stormInfo.tint, stormDark * 0.72);
+                shallowCol = lerpRGB(shallowCol, stormInfo.tint, stormDark * 0.75);
+                shoreCol = lerpRGB(shoreCol, stormInfo.tint, stormDark * 0.80);
+            }
+            if (nightLake > 0.01) {
+                deepCol = lerpRGB(deepCol, [2, 4, 10], nightLake * 0.90);
+                shallowCol = lerpRGB(shallowCol, [3, 6, 14], nightLake * 0.88);
+                shoreCol = lerpRGB(shoreCol, [4, 8, 16], nightLake * 0.90);
+            }
         }
 
         const steps = 48;
@@ -3124,6 +3251,14 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
     const crustCol = colors.crustColor || arch.crustColor;
     const accentCol = colors.accentColor || arch.accentColor;
 
+    const stormInfo = (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet)
+        ? getLocalStormDarkness(p)
+        : { worldDark: 0, tint: [36, 46, 66] };
+    const stormDark = stormInfo.worldDark || 0;
+    const applyStorm = (rgb) => stormDark > 0.01 ? lerpRGB(rgb, stormInfo.tint, stormDark * 0.85) : rgb;
+    const effRimCol = applyStorm(rimCol);
+    const effTopsoilCol = applyStorm(topsoilCol);
+
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -3152,14 +3287,15 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
             ctx.lineTo(p.x + Math.cos(theta) * r, p.y + Math.sin(theta) * r);
         }
         if (!arc.partialArc) ctx.closePath();
-        ctx.strokeStyle = rgbStr(topsoilCol, 0.45);
+        ctx.strokeStyle = rgbStr(effTopsoilCol, 0.45 * (1 - stormDark * 0.4));
         ctx.lineWidth = 5.5;
         ctx.stroke();
 
         const oceanRim = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-        oceanRim.addColorStop(0, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.35), 0.90));
-        oceanRim.addColorStop(0.55, rgbStr(rimCol, 0.65));
-        oceanRim.addColorStop(1, rgbStr(topsoilCol, 0.30));
+        oceanRim.addColorStop(0, rgbStr(lerpRGB(effRimCol, [255, 255, 255], 0.35 * (1 - stormDark * 0.8)), 0.90 * (1 - stormDark * 0.55)));
+        oceanRim.addColorStop(0.55, rgbStr(effRimCol, 0.55 * (1 - stormDark * 0.55)));
+        oceanRim.addColorStop(0.78, 'rgba(3, 6, 14, 0.25)');
+        oceanRim.addColorStop(1, 'rgba(1, 2, 6, 0.10)');
         ctx.strokeStyle = oceanRim;
         ctx.lineWidth = 1.8;
         ctx.stroke();
@@ -3232,22 +3368,22 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
     }
 
     const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-    const nightCol = colors.nightSkyRGB ? lerpRGB(subcrustCol, colors.nightSkyRGB, 0.85) : lerpRGB(subcrustCol, [3, 5, 12], 0.85);
-    const deepNightCol = lerpRGB(nightCol, [1, 2, 5], 0.65);
+    const nightCol = lerpRGB(subcrustCol, [2, 3, 7], 0.92);
+    const deepNightCol = [1, 2, 4];
     const nightAirglow = colors.nightAirglow || arch.nightAirglow || rimCol;
 
-    const brightTopsoil = [
+    const brightTopsoil = applyStorm([
         Math.min(255, Math.round(topsoilCol[0] * 1.25 + 22)),
         Math.min(255, Math.round(topsoilCol[1] * 1.25 + 22)),
         Math.min(255, Math.round(topsoilCol[2] * 1.25 + 22))
-    ];
+    ]);
 
     const topsoilGrad = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
     topsoilGrad.addColorStop(0.00, rgbStr(brightTopsoil, 0.96));
-    topsoilGrad.addColorStop(0.35, rgbStr(topsoilCol, 0.92));
-    topsoilGrad.addColorStop(0.55, rgbStr(lerpRGB(topsoilCol, nightCol, 0.45), 0.88));
-    topsoilGrad.addColorStop(0.78, rgbStr(nightCol, 0.90));
-    topsoilGrad.addColorStop(1.00, rgbStr(deepNightCol, 0.95));
+    topsoilGrad.addColorStop(0.35, rgbStr(effTopsoilCol, 0.92));
+    topsoilGrad.addColorStop(0.55, rgbStr(lerpRGB(effTopsoilCol, nightCol, 0.65), 0.92));
+    topsoilGrad.addColorStop(0.72, rgbStr(lerpRGB(nightCol, deepNightCol, 0.55), 0.96));
+    topsoilGrad.addColorStop(1.00, rgbStr(deepNightCol, 0.98));
     ctx.fillStyle = topsoilGrad;
     ctx.fill();
 
@@ -3311,9 +3447,9 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
                 }
             };
 
-            const highPeakCol = colors.highPeakCapColor || arch.highPeakCapColor || lerpRGB(rimCol, [255, 255, 255], 0.45);
+            const highPeakCol = applyStorm(colors.highPeakCapColor || arch.highPeakCapColor || lerpRGB(rimCol, [255, 255, 255], 0.45));
             const hScale = p.heightScale || 1;
-            const elevAlphaBase = clamp((camera.zoom - 0.14) * 1.1, 0, 0.46);
+            const elevAlphaBase = clamp((camera.zoom - 0.14) * 1.1, 0, 0.46) * (1 - stormDark * 0.72);
             const sunVecX = Math.cos(p.lightAngle);
             const sunVecY = Math.sin(p.lightAngle);
             const ribbonScale = Math.min(2.1, scaleFactor);
@@ -3329,9 +3465,9 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
                 if (h > 24 * hScale) {
                     const theta = k * arc.dTheta;
                     const sunDot = Math.cos(theta) * sunVecX + Math.sin(theta) * sunVecY;
-                    if (sunDot > -0.25) {
+                    if (sunDot > -0.15) {
                         const strength = clamp((h - 24 * hScale) / (68 * hScale), 0, 1);
-                        const lightMult = clamp((sunDot + 0.25) * 0.85, 0.2, 1.0);
+                        const lightMult = clamp((sunDot + 0.15) * 1.15, 0.0, 1.0);
                         peakDepths[i] = (3.5 + strength * 7.5) * ribbonScale * lightMult;
                     }
                 } else if (h < -16 * hScale) {
@@ -3341,10 +3477,10 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
             }
 
             drawTaperedRibbon(peakDepths, rgbStr(highPeakCol, elevAlphaBase));
-            drawTaperedRibbon(basinDepths, rgbStr(lerpRGB(subcrustCol, [3, 6, 16], 0.58), elevAlphaBase * 0.65));
+            drawTaperedRibbon(basinDepths, rgbStr(lerpRGB(subcrustCol, [2, 4, 10], 0.72), elevAlphaBase * 0.65));
 
             if (camera.zoom > 0.22) {
-                const hillAlphaBase = clamp((camera.zoom - 0.22) * 0.9, 0, 0.44);
+                const hillAlphaBase = clamp((camera.zoom - 0.22) * 0.9, 0, 0.44) * (1 - stormDark * 0.80);
                 const sunSlopeDepths = new Float32Array(nS);
                 const shadeSlopeDepths = new Float32Array(nS);
 
@@ -3367,7 +3503,7 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
                     const nY = radY - radX * slope;
                     const nLen = Math.hypot(nX, nY) || 1;
                     const sunDot = (nX * sunVecX + nY * sunVecY) / nLen;
-                    if (sunDot < -0.28) continue;
+                    if (sunDot < -0.12) continue;
 
                     const slopeBias = sunDot - (radX * sunVecX + radY * sunVecY);
                     if (slopeBias > 0.05) {
@@ -3377,7 +3513,7 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
                     }
                 }
 
-                drawTaperedRibbon(sunSlopeDepths, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.45), 0.50 * hillAlphaBase));
+                drawTaperedRibbon(sunSlopeDepths, rgbStr(lerpRGB(effRimCol, [255, 255, 255], 0.45 * (1 - stormDark * 0.8)), 0.50 * hillAlphaBase));
                 drawTaperedRibbon(shadeSlopeDepths, `rgba(2, 5, 14, ${0.46 * hillAlphaBase})`);
             }
         }
@@ -3432,11 +3568,13 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
         }
     }
 
+    const rimStormFade = 1 - stormDark * 0.78;
     const rimGrad = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-    rimGrad.addColorStop(0.00, rgbStr(lerpRGB(rimCol, [255, 255, 255], 0.6), 0.98));
-    rimGrad.addColorStop(0.35, rgbStr(rimCol, 0.90));
-    rimGrad.addColorStop(0.55, rgbStr(lerpRGB(rimCol, nightCol, 0.35), 0.45));
-    rimGrad.addColorStop(0.78, rgbStr(lerpRGB(nightAirglow, nightCol, 0.25), 0.10));
+    rimGrad.addColorStop(0.00, rgbStr(lerpRGB(effRimCol, [255, 255, 255], 0.6 * (1 - stormDark * 0.85)), 0.98 * rimStormFade));
+    rimGrad.addColorStop(0.35, rgbStr(effRimCol, 0.90 * rimStormFade));
+    rimGrad.addColorStop(0.55, rgbStr(lerpRGB(effRimCol, nightCol, 0.55), 0.35 * rimStormFade));
+    rimGrad.addColorStop(0.70, rgbStr(lerpRGB(nightAirglow, nightCol, 0.75), 0.04));
+    rimGrad.addColorStop(0.86, 'rgba(0, 0, 0, 0)');
     rimGrad.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
 
     // Halo exterior cálido de dunas / cumbres
@@ -3446,10 +3584,10 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
 
     // Trazo nítido interior iluminado por el sol SOLO en el hemisferio iluminado (sin halo blanco nocturno ni aristas duras)
     const sunStrokeGrad = ctx.createLinearGradient(sunX, sunY, antiSunX, antiSunY);
-    sunStrokeGrad.addColorStop(0.00, 'rgba(255, 252, 242, 0.85)');
-    sunStrokeGrad.addColorStop(0.30, 'rgba(255, 252, 242, 0.60)');
-    sunStrokeGrad.addColorStop(0.50, 'rgba(254, 215, 170, 0.20)');
-    sunStrokeGrad.addColorStop(0.70, 'rgba(255, 252, 242, 0.0)');
+    sunStrokeGrad.addColorStop(0.00, `rgba(255, 252, 242, ${(0.85 * (1 - stormDark * 0.88)).toFixed(3)})`);
+    sunStrokeGrad.addColorStop(0.30, `rgba(255, 252, 242, ${(0.60 * (1 - stormDark * 0.88)).toFixed(3)})`);
+    sunStrokeGrad.addColorStop(0.50, `rgba(254, 215, 170, ${(0.20 * (1 - stormDark * 0.88)).toFixed(3)})`);
+    sunStrokeGrad.addColorStop(0.62, 'rgba(255, 252, 242, 0.0)');
     sunStrokeGrad.addColorStop(1.00, 'rgba(255, 252, 242, 0.0)');
 
     ctx.strokeStyle = sunStrokeGrad;
@@ -3534,15 +3672,15 @@ function drawPlanetCloudBands(p, timeSec) {
             let lightDy = -0.866;
             const curShip = (typeof ship !== 'undefined' && ship) ? ship : null;
             const isEngineFiring = !!(curShip && (
-                (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && curShip.fuel > 0)) &&
-                (curShip.fuel > 0 || curShip.godMode)
+                (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel))) &&
+                (curShip.fuel > 0 || curShip.godMode || curShip.infiniteFuel)
             ));
 
             let flameInfo = null;
             if (isEngineFiring) {
                 flameInfo = (typeof getRocketFlameInfo === 'function')
                     ? getRocketFlameInfo(curShip)
-                    : { flameColor: 'standard', rgb: (curShip.warping && curShip.fuel > 0) ? [125, 211, 252] : [251, 175, 60] };
+                    : { flameColor: 'standard', rgb: (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel)) ? [125, 211, 252] : [251, 175, 60] };
 
                 const sScale = curShip.scale || 1.0;
                 const nozDist = 16 * sScale;
@@ -3570,11 +3708,28 @@ function drawPlanetCloudBands(p, timeSec) {
                 cCol = lerpRGB(cCol, flameInfo.rgb, clamp(thrusterGlow * (0.90 + 0.35 * nightWeight), 0, 0.95));
             }
 
+            // Iluminación dinámica por reflectores de superficie, torres o faros del cohete
+            const dynLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(px, py, sp.rad) : null;
+            let dynIllum = 0;
+            if (dynLight && dynLight.illum > 0.01) {
+                dynIllum = dynLight.illum;
+                const dynRGB = [dynLight.r, dynLight.g, dynLight.b];
+                if (nightWeight > 0.01) {
+                    const baseCloud = (p.colors && p.colors.cloudColor) || [235, 245, 255];
+                    cCol = lerpRGB(cCol, baseCloud, clamp(dynIllum * 0.85 * nightWeight, 0, 0.88));
+                }
+                cCol = lerpRGB(cCol, dynRGB, clamp(dynIllum * (0.68 + 0.32 * nightWeight), 0, 0.90));
+                if (thrusterGlow <= 0.02) {
+                    lightDx = -dynLight.dirX;
+                    lightDy = -dynLight.dirY;
+                }
+            }
+
             const cR = cCol[0];
             const cG = cCol[1];
             const cB = cCol[2];
-            // De noche las nubes son velos sutiles oscuros, salvo que la llama las ilumine
-            const aPeak = sp.alpha * (0.09 + 0.91 * dayWeight + 0.35 * twiWeight + thrusterGlow * 0.55);
+            // De noche las nubes son velos sutiles oscuros, salvo que la llama o los reflectores las iluminen
+            const aPeak = sp.alpha * (0.09 + 0.91 * dayWeight + 0.35 * twiWeight + thrusterGlow * 0.55 + dynIllum * 0.48);
 
             ctx.save();
             ctx.translate(px, py);
@@ -3582,7 +3737,7 @@ function drawPlanetCloudBands(p, timeSec) {
             ctx.scale(2.1, 0.52);
 
             let hlX = 0, hlY = 0;
-            if (thrusterGlow > 0.02) {
+            if (thrusterGlow > 0.02 || dynIllum > 0.02) {
                 const rot = ang + Math.PI * 0.5;
                 const cosR = Math.cos(rot);
                 const sinR = Math.sin(rot);
@@ -3601,12 +3756,13 @@ function drawPlanetCloudBands(p, timeSec) {
             ctx.arc(0, 0, sp.rad, 0, Math.PI * 2);
             ctx.fill();
 
-            if (thrusterGlow > 0.16 && flameInfo) {
+            if ((thrusterGlow > 0.16 && flameInfo) || dynIllum > 0.14) {
                 ctx.globalCompositeOperation = 'lighter';
-                const fRGB = flameInfo.rgb;
+                const fRGB = (thrusterGlow > dynIllum && flameInfo) ? flameInfo.rgb : [dynLight ? dynLight.r : 238, dynLight ? dynLight.g : 246, dynLight ? dynLight.b : 255];
+                const peakGlow = Math.max(thrusterGlow - 0.16, dynIllum - 0.14);
                 const glowR = sp.rad * 0.65;
                 const glowGrad = ctx.createRadialGradient(hlX, hlY, 1, 0, 0, glowR);
-                const gStr = (thrusterGlow - 0.16) * (0.75 + 0.45 * nightWeight) * aPeak;
+                const gStr = peakGlow * (0.75 + 0.45 * nightWeight) * aPeak;
                 glowGrad.addColorStop(0, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr})`);
                 glowGrad.addColorStop(0.45, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr * 0.35})`);
                 glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -4089,6 +4245,10 @@ function drawSurfaceProps(p, timeSec) {
     const coreCol = colors.coreColor || arch.coreColor;
 
     const viewRange = (Math.max(screenW, screenH) / Math.max(0.22, camera.zoom)) * 0.85 + 320;
+    const stormInfo = (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet)
+        ? getLocalStormDarkness(p)
+        : { worldDark: 0, tint: [36, 46, 66] };
+    const stormDark = stormInfo.worldDark || 0;
 
     ctx.save();
     ctx.lineJoin = 'round';
@@ -4113,7 +4273,7 @@ function drawSurfaceProps(p, timeSec) {
         const twiWeight = Math.exp(-Math.pow(sunDot / 0.24, 2));
 
         const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-        const nightPropCol = colors.nightSkyRGB ? lerpRGB(crustCol, colors.nightSkyRGB, 0.85) : lerpRGB(crustCol, [2, 4, 10], 0.85);
+        const nightPropCol = lerpRGB(crustCol, [2, 3, 7], 0.93);
 
         // Día brillante: iluminamos la cresta con luz solar directa viva
         const brightTopsoil = [
@@ -4121,19 +4281,37 @@ function drawSurfaceProps(p, timeSec) {
             Math.min(255, Math.round(topsoilCol[1] * 1.25 + 24)),
             Math.min(255, Math.round(topsoilCol[2] * 1.25 + 24))
         ];
-        let crestCol = lerpRGB(topsoilCol, brightTopsoil, dayWeight * 0.75);
+        let crestCol = lerpRGB(topsoilCol, brightTopsoil, dayWeight * 0.75 * (1 - stormDark * 0.85));
         let baseCol = lerpRGB(crustCol, subcrustCol, 0.5);
 
         // Transición crepuscular continua y cálida en el terminador
         if (twiWeight > 0.01) {
-            crestCol = lerpRGB(crestCol, sunsetCol, 0.55 * twiWeight);
-            baseCol = lerpRGB(baseCol, sunsetCol, 0.35 * twiWeight);
+            crestCol = lerpRGB(crestCol, sunsetCol, 0.55 * twiWeight * (1 - stormDark * 0.75));
+            baseCol = lerpRGB(baseCol, sunsetCol, 0.35 * twiWeight * (1 - stormDark * 0.75));
         }
 
-        // Noche profunda: se oscurece con suavidad analógica preservando la paleta nocturna
+        // Oscurecimiento por tormenta atmosférica en la cara iluminada / crepuscular
+        if (stormDark > 0.01 && nightWeight < 0.98) {
+            const stMix = stormDark * 0.84 * (1 - nightWeight * 0.7);
+            crestCol = lerpRGB(crestCol, stormInfo.tint, stMix);
+            baseCol = lerpRGB(baseCol, stormInfo.tint, stMix);
+        }
+
+        // Iluminación dinámica sobre rocas, árboles, arcos y formaciones del terreno
+        const propLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(cx, cy, maxH * 1.1) : null;
+        const propIllum = propLight ? propLight.illum : 0;
+
+        // Noche profunda: se oscurece con suavidad analógica preservando la paleta nocturna (salvo donde impacte un foco)
         if (nightWeight > 0.01) {
-            crestCol = lerpRGB(crestCol, nightPropCol, 0.88 * nightWeight);
-            baseCol = lerpRGB(baseCol, nightPropCol, 0.94 * nightWeight);
+            const effNight = nightWeight * (1.0 - clamp(propIllum * 1.15, 0, 0.94));
+            crestCol = lerpRGB(crestCol, nightPropCol, 0.94 * effNight);
+            baseCol = lerpRGB(baseCol, [1, 2, 5], 0.96 * effNight);
+        }
+
+        if (propIllum > 0.01 && propLight) {
+            const pRGB = [propLight.r, propLight.g, propLight.b];
+            crestCol = lerpRGB(crestCol, pRGB, clamp(propIllum * (0.48 + 0.34 * nightWeight), 0, 0.85));
+            baseCol = lerpRGB(baseCol, pRGB, clamp(propIllum * (0.28 + 0.24 * nightWeight), 0, 0.65));
         }
 
         const gx0 = p.x + Math.cos(prop.angle) * (centerR - 6);
@@ -4798,25 +4976,30 @@ function drawDynamicGroundGlow(planets) {
             const towardGround = -(exX * nx + exY * ny);
 
             if (towardGround > 0.05) {
+                const fogD = clamp(ship.localFogDensity || 0, 0, 1);
                 const prox = clamp(1 - alt / 260, 0, 1);
                 const intensity = prox * prox * clamp(towardGround, 0, 1) * clamp(ship.thrustIntensity, 0, 1.25);
-                const spreadTang = 75 * (0.6 + 0.4 * prox);
+                const spreadTang = 75 * (0.6 + 0.4 * prox) * (1.0 + fogD * 0.68);
                 const gx = p.x + nx * sr;
                 const gy = p.y + ny * sr;
+
+                const flameInfo = (typeof getRocketFlameInfo === 'function') ? getRocketFlameInfo(ship) : null;
+                const fRGB = flameInfo ? flameInfo.rgb : [245, 158, 11];
+                const hRGB = flameInfo ? flameInfo.highlightRGB : [254, 243, 199];
 
                 ctx.save();
                 ctx.translate(gx, gy);
                 ctx.rotate(angleFromCenter + Math.PI / 2);
-                ctx.scale(1.0, 0.28); // Achatado rasante sobre la superficie del planeta
+                ctx.scale(1.0, 0.28 + fogD * 0.16); // Más difuso y volumétrico dentro de neblina
                 ctx.globalCompositeOperation = 'lighter';
 
                 const lightGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, spreadTang);
                 if (ship.warping) {
-                    lightGrad.addColorStop(0, `rgba(186, 230, 253, ${0.65 * intensity})`);
-                    lightGrad.addColorStop(0.45, `rgba(56, 189, 248, ${0.24 * intensity})`);
+                    lightGrad.addColorStop(0, `rgba(186, 230, 253, ${(0.65 + fogD * 0.14) * intensity})`);
+                    lightGrad.addColorStop(0.45, `rgba(56, 189, 248, ${(0.24 + fogD * 0.16) * intensity})`);
                 } else {
-                    lightGrad.addColorStop(0, `rgba(254, 243, 199, ${0.72 * intensity})`);
-                    lightGrad.addColorStop(0.42, `rgba(245, 158, 11, ${0.32 * intensity})`);
+                    lightGrad.addColorStop(0, `rgba(${hRGB[0]}, ${hRGB[1]}, ${hRGB[2]}, ${(0.72 + fogD * 0.12) * intensity})`);
+                    lightGrad.addColorStop(0.42, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${(0.32 + fogD * 0.18) * intensity})`);
                 }
                 lightGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
@@ -4864,55 +5047,124 @@ function drawHeadlights(timeSec) {
 
 const _smokeSpriteCache = new Map();
 const _fireGlowSpriteCache = new Map();
+const _smokeTemplates = [];
+const _hotSmokeGlows = [];
 
 /**
- * Devuelve un sprite offscreen pre-renderizado de lóbulo volumétrico 3D
- * cuantizado por color y nivel de luz para evitar createRadialGradient por frame.
+ * Pre-genera 4 plantillas procedurales de nubes tipo coliflor (billowing smoke)
+ * con bordes turbulentos y volumen orgánico para renderizado de alto rendimiento.
  */
-function getSmokePuffSprite(r, g, b, lightPower) {
-    const qr = Math.min(255, (Math.round(r / 12) * 12) | 0);
-    const qg = Math.min(255, (Math.round(g / 12) * 12) | 0);
-    const qb = Math.min(255, (Math.round(b / 12) * 12) | 0);
-    const qLight = Math.max(0, Math.min(6, Math.round(lightPower * 4)));
-    const key = ((qr & 255) << 19) | ((qg & 255) << 11) | ((qb & 255) << 3) | (qLight & 7);
+function getSmokeTemplates() {
+    if (_smokeTemplates.length > 0) return _smokeTemplates;
+    const size = 112;
+    const half = 56;
+
+    // Semilla determinista por variante para generar 4 nubes coliflor con volumen interno 3D
+    for (let v = 0; v < 4; v++) {
+        let seed = 1337 + v * 7919;
+        const rand = () => {
+            seed = (seed * 16807) % 2147483647;
+            return (seed - 1) / 2147483646;
+        };
+
+        const c = document.createElement('canvas');
+        c.width = size;
+        c.height = size;
+        const tctx = c.getContext('2d');
+
+        // Núcleo denso central con ligero sombreado interno para dar volumen
+        const coreGrad = tctx.createRadialGradient(half, half - 4, 4, half, half, 36);
+        coreGrad.addColorStop(0, 'rgba(255,255,255,0.98)');
+        coreGrad.addColorStop(0.55, 'rgba(232,236,242,0.78)');
+        coreGrad.addColorStop(1, 'rgba(195,202,212,0)');
+        tctx.fillStyle = coreGrad;
+        tctx.beginPath();
+        tctx.arc(half, half, 36, 0, Math.PI * 2);
+        tctx.fill();
+
+        // 13 sub-lóbulos periféricos con relieve y auto-sombreado interno
+        const lobeCount = 13;
+        for (let i = 0; i < lobeCount; i++) {
+            const ang = (i / lobeCount) * Math.PI * 2 + (rand() - 0.5) * 0.42;
+            const dist = 10 + rand() * 20;
+            const lx = half + Math.cos(ang) * dist;
+            const ly = half + Math.sin(ang) * dist;
+            const lRad = 14 + rand() * 15;
+            const maxAlpha = 0.58 + rand() * 0.36;
+            const lum = Math.round(225 + rand() * 30);
+            const midLum = Math.round(lum * 0.84);
+
+            const g = tctx.createRadialGradient(lx, ly - lRad * 0.15, lRad * 0.1, lx, ly, lRad);
+            g.addColorStop(0, `rgba(${lum},${lum},${lum},${maxAlpha.toFixed(2)})`);
+            g.addColorStop(0.55, `rgba(${midLum},${midLum},${midLum + 4},${(maxAlpha * 0.62).toFixed(2)})`);
+            g.addColorStop(1, `rgba(${midLum},${midLum},${midLum + 6},0)`);
+            tctx.fillStyle = g;
+            tctx.beginPath();
+            tctx.arc(lx, ly, lRad, 0, Math.PI * 2);
+            tctx.fill();
+        }
+
+        _smokeTemplates.push(c);
+    }
+    return _smokeTemplates;
+}
+
+/**
+ * Devuelve un sprite offscreen pre-renderizado de nube volumétrica tipo coliflor
+ * cuantizado por color, nivel de luz y variante para evitar gradientes por frame.
+ */
+function getSmokePuffSprite(r, g, b, lightPower, variant = 0) {
+    const qr = Math.min(255, (Math.round(r / 16) * 16) | 0);
+    const qg = Math.min(255, (Math.round(g / 16) * 16) | 0);
+    const qb = Math.min(255, (Math.round(b / 16) * 16) | 0);
+    const qLight = Math.max(0, Math.min(5, Math.round(lightPower * 3.5)));
+    const v = variant & 3;
+    const key = ((qr & 255) << 21) | ((qg & 255) << 13) | ((qb & 255) << 5) | ((qLight & 7) << 2) | v;
 
     let sprite = _smokeSpriteCache.get(key);
     if (sprite) return sprite;
 
-    if (_smokeSpriteCache.size >= 96) {
+    if (_smokeSpriteCache.size >= 360) {
         _smokeSpriteCache.delete(_smokeSpriteCache.keys().next().value);
     }
 
-    const size = 96;
-    const half = 48;
-    const lRad = 46;
-    const lp = qLight * 0.25;
+    const templates = getSmokeTemplates();
+    const mask = templates[v];
+    const size = 112;
+    const lp = qLight / 3.5;
 
-    const hiR = Math.min(255, Math.round(qr * (0.75 + 0.45 * lp) + 20 * lp));
-    const hiG = Math.min(255, Math.round(qg * (0.75 + 0.45 * lp) + 20 * lp));
-    const hiB = Math.min(255, Math.round(qb * (0.75 + 0.45 * lp) + 25 * lp));
+    const hiR = Math.min(255, Math.round(qr * (0.86 + 0.30 * lp) + 18 * lp));
+    const hiG = Math.min(255, Math.round(qg * (0.86 + 0.30 * lp) + 18 * lp));
+    const hiB = Math.min(255, Math.round(qb * (0.86 + 0.30 * lp) + 22 * lp));
 
-    const shR = Math.max(4, Math.round(qr * 0.52));
-    const shG = Math.max(6, Math.round(qg * 0.52));
-    const shB = Math.max(10, Math.round(qb * 0.55));
+    const shR = Math.max(4, Math.round(qr * 0.56));
+    const shG = Math.max(6, Math.round(qg * 0.58));
+    const shB = Math.max(10, Math.round(qb * 0.62));
 
     sprite = document.createElement('canvas');
     sprite.width = size;
     sprite.height = size;
     const sctx = sprite.getContext('2d');
 
-    const hlX = half + lRad * 0.28;
-    const grad = sctx.createRadialGradient(hlX, half, lRad * 0.06, half, half, lRad);
-    grad.addColorStop(0, `rgba(${hiR}, ${hiG}, ${hiB}, 1)`);
-    grad.addColorStop(0.38, `rgba(${qr}, ${qg}, ${qb}, 0.88)`);
-    grad.addColorStop(0.72, `rgba(${shR}, ${shG}, ${shB}, 0.52)`);
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    // Paso 1: Gradiente de volumen suave centro-exterior (sin rotación brusca al moverse)
+    const half = size * 0.5;
+    const volGrad = sctx.createRadialGradient(half, half * 0.85, size * 0.06, half, half, size * 0.48);
+    volGrad.addColorStop(0, `rgb(${hiR}, ${hiG}, ${hiB})`);
+    volGrad.addColorStop(0.55, `rgb(${qr}, ${qg}, ${qb})`);
+    volGrad.addColorStop(1, `rgb(${shR}, ${shG}, ${shB})`);
 
-    sctx.fillStyle = grad;
-    sctx.beginPath();
-    sctx.arc(half, half, lRad, 0, Math.PI * 2);
-    sctx.fill();
+    sctx.fillStyle = volGrad;
+    sctx.fillRect(0, 0, size, size);
 
+    // Paso 2: Multiplicar por el volumen interno de los lóbulos
+    sctx.globalCompositeOperation = 'multiply';
+    sctx.drawImage(mask, 0, 0);
+
+    // Paso 3: Recortar exactamente al canal alfa de la silueta coliflor
+    sctx.globalCompositeOperation = 'destination-in';
+    sctx.drawImage(mask, 0, 0);
+
+    sctx.globalCompositeOperation = 'source-over';
     _smokeSpriteCache.set(key, sprite);
     return sprite;
 }
@@ -4947,8 +5199,8 @@ function getFireGlowSprite(fireRGB) {
 }
 
 /**
- * Renderiza el humo volumétrico multi-lóbulo 3D de lanzamiento y las nubes estratosféricas persistentes
- * con iluminación direccional solar, incandescencia interna de tobera y sprites cacheados de alto rendimiento.
+ * Renderiza el humo volumétrico tipo coliflor de lanzamiento y las nubes estratosféricas persistentes
+ * con iluminación direccional solar, enfriamiento cromático, incandescencia por lotes y sprites cacheados.
  */
 function drawSmokePuffs() {
     if (smokePuffs.length === 0) return;
@@ -4956,10 +5208,10 @@ function drawSmokePuffs() {
     const nozzleX = ship.x - Math.cos(ship.angle) * 16;
     const nozzleY = ship.y - Math.sin(ship.angle) * 16;
     const isEngineFiring = ship.thrustIntensity > 0.05;
-    const isWarp = ship.warping && ship.fuel > 0;
+    const isWarp = ship.warping && (ship.fuel > 0 || ship.infiniteFuel);
     const zoom = Math.max(0.2, camera.zoom);
-    const halfW = (screenW * 0.5) / zoom + 200;
-    const halfH = (screenH * 0.5) / zoom + 200;
+    const halfW = (screenW * 0.5) / zoom + 220;
+    const halfH = (screenH * 0.5) / zoom + 220;
     const minX = camera.x - halfW;
     const maxX = camera.x + halfW;
     const minY = camera.y - halfH;
@@ -4979,8 +5231,12 @@ function drawSmokePuffs() {
     const nightSmokeCol = lerpRGB([10, 14, 22], planetNightSky, 0.55);
     const sunsetCol = (pSm && pSm.colors && pSm.colors.sunsetRGB) || [251, 146, 60];
     const pSmAtmoLimit = pSm ? pSm.atmoRadius + 400 : 0;
+    const pSmAtmoLimitSq = pSmAtmoLimit * pSmAtmoLimit;
+
+    _hotSmokeGlows.length = 0;
 
     ctx.save();
+    const baseT = ctx.getTransform();
     for (let i = 0; i < smokePuffs.length; i++) {
         const sm = smokePuffs[i];
         const rad = sm.currentSize || sm.size;
@@ -4992,29 +5248,25 @@ function drawSmokePuffs() {
         const lifeRatio = clamp(sm.life / sm.maxLife, 0, 1);
         const ageRatio = 1 - lifeRatio;
 
-        // Curva de densidad suave: entrada rápida sin sobresalto y desvanecimiento orgánico
-        const fadeCurve = ageRatio < 0.08
-            ? (ageRatio / 0.08)
-            : Math.pow(lifeRatio, 0.82);
+        // Curva de densidad suave: entrada rápida sin sobresalto y desvanecimiento orgánico prolongado
+        const fadeCurve = ageRatio < 0.06
+            ? (ageRatio / 0.06)
+            : Math.pow(lifeRatio, 0.72);
 
-        const alpha = clamp(sm.alpha * fadeCurve, 0, 0.82);
+        const alpha = clamp(sm.alpha * fadeCurve, 0, 0.86);
         if (alpha <= 0.008) continue;
 
-        // Iluminación interna de la nube cuando está cerca de la llama del cohete o recién eyectada
+        // Iluminación interna suave cuando está cerca de la llama del cohete o recién eyectada
         let fireIllum = sm.heatGlow || 0;
-        let lightDx = 0.5;
-        let lightDy = -0.866;
-
         if (isEngineFiring) {
             const dxN = sm.x - nozzleX;
             const dyN = sm.y - nozzleY;
             const dNozSq = dxN * dxN + dyN * dyN;
-            if (dNozSq < 32400) { // 180^2
+            if (dNozSq < 38025) { // 195^2
                 const dNozzle = Math.sqrt(dNozSq);
-                const proxIllum = (1 - dNozzle / 180) * clamp(ship.thrustIntensity, 0, 1.25);
+                const tProx = 1 - dNozzle / 195;
+                const proxIllum = tProx * tProx * clamp(ship.thrustIntensity, 0, 1.25);
                 fireIllum = Math.max(fireIllum, proxIllum * 0.95);
-                lightDx = dxN / (dNozzle || 1);
-                lightDy = dyN / (dNozzle || 1);
             }
         }
 
@@ -5024,7 +5276,7 @@ function drawSmokePuffs() {
         if (pSm) {
             const dxP = sm.x - pSm.x;
             const dyP = sm.y - pSm.y;
-            if (dxP * dxP + dyP * dyP < pSmAtmoLimit * pSmAtmoLimit) {
+            if (dxP * dxP + dyP * dyP < pSmAtmoLimitSq) {
                 const smAng = Math.atan2(dyP, dxP);
                 const curLight = pSmHasLight ? pSm.lightAngle : -Math.PI * 0.35;
                 const smSunDot = Math.cos(smAng - curLight);
@@ -5035,35 +5287,47 @@ function drawSmokePuffs() {
             }
         }
 
-        if (fireIllum <= 0.1 && pSm && sm.planetKey === pSm.key) {
-            const lAng = pSmHasLight ? pSm.lightAngle : Math.atan2(sm.y - pSm.y, sm.x - pSm.x);
-            lightDx = Math.cos(lAng);
-            lightDy = Math.sin(lAng);
-        }
-
         const baseCol = sm.color;
         let r = baseCol[0], g = baseCol[1], b = baseCol[2];
 
+        // 0. Enfriamiento cromático natural (de vapor denso brillante a humo/hollín más frío al disiparse)
+        if (sm.soot > 0 && ageRatio > 0.14) {
+            const coolMix = smoothstep(0.14, 0.86, ageRatio) * sm.soot;
+            r = Math.round(lerp(r, 98, coolMix));
+            g = Math.round(lerp(g, 105, coolMix));
+            b = Math.round(lerp(b, 118, coolMix));
+        }
+
+        const dynLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(sm.x, sm.y, rad) : null;
+        const dynIllum = dynLight ? dynLight.illum : 0;
+        const totalReveal = clamp(fireIllum * 1.25 + dynIllum * 1.05, 0, 1.0);
+
         // 1. Modulación por noche/crepúsculo planetario para el humo ambiental
         if (smNight > 0.02) {
-            const nightBlend = smNight * (1.0 - clamp(fireIllum * 1.25, 0, 1.0));
+            const nightBlend = smNight * (1.0 - totalReveal);
             r = Math.round(lerp(r, nightSmokeCol[0], nightBlend * 0.90));
             g = Math.round(lerp(g, nightSmokeCol[1], nightBlend * 0.90));
             b = Math.round(lerp(b, nightSmokeCol[2], nightBlend * 0.90));
         }
-        if (smTwi > 0.02 && fireIllum < 0.25) {
-            const twiBlend = smTwi * (1.0 - clamp(fireIllum * 2.0, 0, 1.0)) * 0.55;
+        if (smTwi > 0.02 && fireIllum < 0.25 && dynIllum < 0.35) {
+            const twiBlend = smTwi * (1.0 - clamp(fireIllum * 2.0 + dynIllum * 1.4, 0, 1.0)) * 0.55;
             r = Math.round(lerp(r, sunsetCol[0], twiBlend));
             g = Math.round(lerp(g, sunsetCol[1], twiBlend));
             b = Math.round(lerp(b, sunsetCol[2], twiBlend));
         }
 
-        // 2. Mezcla de incandescencia interna de fuego
+        // 2. Mezcla de incandescencia interna de fuego y reflectores dinámicos
         if (fireIllum > 0.02) {
-            const fMix = clamp(fireIllum * (0.95 + 0.35 * smNight), 0, 0.95);
+            const fMix = clamp(fireIllum * (0.92 + 0.32 * smNight), 0, 0.92);
             r = Math.round(lerp(r, fireRGB[0], fMix));
             g = Math.round(lerp(g, fireRGB[1], fMix));
             b = Math.round(lerp(b, fireRGB[2], fMix));
+        }
+        if (dynIllum > 0.02 && dynLight) {
+            const dMix = clamp(dynIllum * (0.68 + 0.32 * smNight), 0, 0.88);
+            r = Math.round(lerp(r, dynLight.r, dMix));
+            g = Math.round(lerp(g, dynLight.g, dMix));
+            b = Math.round(lerp(b, dynLight.b, dMix));
         }
 
         // 3. Efecto Nacarado / Iridiscente para nubes estratosféricas
@@ -5074,42 +5338,49 @@ function drawSmokePuffs() {
             b = clamp(b + Math.cos(iridPhase * 1.3) * (22 * iridPower), 15, 255);
         }
 
-        const lightPower = clamp(smDay * 1.0 + fireIllum * 1.5, 0.12, 1.35);
-        const puffSprite = getSmokePuffSprite(r, g, b, lightPower);
+        const lightPower = clamp(smDay * 1.0 + fireIllum * 1.35 + dynIllum * 1.15, 0.14, 1.35);
+        const variant = sm.variant !== undefined ? sm.variant : (i & 3);
+        const puffSprite = getSmokePuffSprite(r, g, b, lightPower, variant);
 
-        const lobes = sm.lobes || [{ angle: 0, dist: 0, rScale: 1.0 }];
-        const maxLobes = screenRad < 8 ? 1 : (screenRad < 20 ? Math.min(2, lobes.length) : lobes.length);
-        const lightAngle = Math.atan2(lightDy, lightDx);
-        const cosL = Math.cos(lightAngle);
-        const sinL = Math.sin(lightAngle);
-        const elapsed = sm.maxLife - sm.life;
+        // Rotación continua propia de cada nube mediante matriz directa (sin deriva de punto flotante)
+        const drawRot = sm.rot || 0;
+        const cosR = Math.cos(drawRot);
+        const sinR = Math.sin(drawRot);
+        ctx.setTransform(
+            baseT.a * cosR + baseT.c * sinR,
+            baseT.b * cosR + baseT.d * sinR,
+            baseT.c * cosR - baseT.a * sinR,
+            baseT.d * cosR - baseT.b * sinR,
+            baseT.a * sm.x + baseT.c * sm.y + baseT.e,
+            baseT.b * sm.x + baseT.d * sm.y + baseT.f
+        );
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(puffSprite, -rad, -rad, rad * 2, rad * 2);
 
-        ctx.save();
-        ctx.translate(sm.x, sm.y);
-        ctx.rotate(lightAngle);
-
-        for (let k = 0; k < maxLobes; k++) {
-            const lb = lobes[k];
-            const currentAng = sm.rot + (lb.angle || 0) + (lb.orbitSpeed || 0) * elapsed;
-            const distFrac = lb.dist !== undefined ? lb.dist : 0;
-            const lx = Math.cos(currentAng) * (distFrac * rad);
-            const ly = Math.sin(currentAng) * (distFrac * rad);
-            const rx = lx * cosL + ly * sinL;
-            const ry = -lx * sinL + ly * cosL;
-            const lRad = rad * (lb.rScale || 1.0);
-            ctx.globalAlpha = k === 0 ? alpha : alpha * 0.72;
-            ctx.drawImage(puffSprite, rx - lRad, ry - lRad, lRad * 2, lRad * 2);
+        // Encolar brillo aditivo caliente con transición suave para evitar parpadeos
+        if (fireIllum > 0.08) {
+            const glowStrength = smoothstep(0.08, 0.45, fireIllum);
+            const glowAlpha = clamp(glowStrength * (0.62 + 0.35 * smNight) * alpha, 0, 0.9);
+            if (glowAlpha > 0.012) {
+                _hotSmokeGlows.push({
+                    x: sm.x,
+                    y: sm.y,
+                    r: rad * (0.65 + 0.30 * smNight),
+                    a: glowAlpha
+                });
+            }
         }
+    }
 
-        // Núcleo incandescente aditivo cuando el humo está caliente de combustión
-        if (fireIllum > 0.20) {
-            ctx.globalCompositeOperation = 'lighter';
-            const coreGlowR = rad * (0.55 + 0.35 * smNight);
-            ctx.globalAlpha = clamp((fireIllum - 0.20) * (0.75 + 0.45 * smNight) * alpha, 0, 1);
-            ctx.drawImage(glowSprite, -coreGlowR, -coreGlowR, coreGlowR * 2, coreGlowR * 2);
+    // Pasada 2: Brillo incandescente aditivo por lotes
+    if (_hotSmokeGlows.length > 0) {
+        ctx.setTransform(baseT);
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < _hotSmokeGlows.length; i++) {
+            const gItem = _hotSmokeGlows[i];
+            ctx.globalAlpha = gItem.a;
+            ctx.drawImage(glowSprite, gItem.x - gItem.r, gItem.y - gItem.r, gItem.r * 2, gItem.r * 2);
         }
-
-        ctx.restore();
     }
     ctx.restore();
 }
@@ -5532,7 +5803,7 @@ function drawGroundFlameDeflection(def, timeSec) {
     const p = def.planet;
     if (!p) return;
 
-    const isWarp = ship.warping && ship.fuel > 0;
+    const isWarp = ship.warping && (ship.fuel > 0 || ship.infiniteFuel);
     const thr = clamp(ship.thrustIntensity, 0.2, 1.4);
     const intens = clamp(def.intensity, 0.05, 1.3);
 
@@ -5702,9 +5973,62 @@ function drawGroundFlameDeflection(def, timeSec) {
 let _presetRocketNightCanvas = null;
 let _presetRocketNightCtx = null;
 
+/**
+ * Aplica sombreado nocturno y revelado direccional por luces dinámicas sobre un lienzo offscreen del cohete.
+ */
+function applyRocketNightAndLightShading(targetCtx, s, night, minX, minY, boxW, boxH, customSpan) {
+    const rl = (typeof LightingEngine !== 'undefined') ? LightingEngine.sampleRocketLighting(s) : null;
+    const cx = minX + boxW * 0.5;
+    const cy = minY + boxH * 0.5;
+    const span = customSpan || Math.max(18, Math.min(boxW, boxH) * 0.38);
+
+    targetCtx.save();
+    targetCtx.globalCompositeOperation = 'source-atop';
+
+    if (night > 0.005) {
+        if (rl && rl.strength > 0.02) {
+            const grad = targetCtx.createLinearGradient(
+                cx + rl.dirX * span, cy + rl.dirY * span,
+                cx - rl.dirX * span, cy - rl.dirY * span
+            );
+            const litDarkA = (0.90 * night * (1 - clamp(rl.ambientLift * 1.45, 0, 1.0))).toFixed(3);
+            const midDarkA = (0.88 * night * (1 - clamp(rl.ambientLift * 0.78, 0, 0.86))).toFixed(3);
+            const shdDarkA = (0.94 * night * (1 - clamp(rl.ambientLift * 0.22, 0, 0.38))).toFixed(3);
+            grad.addColorStop(0.00, `rgba(10, 16, 30, ${litDarkA})`);
+            grad.addColorStop(0.50, `rgba(5, 8, 17, ${midDarkA})`);
+            grad.addColorStop(1.00, `rgba(2, 4, 9, ${shdDarkA})`);
+            targetCtx.fillStyle = grad;
+            targetCtx.fillRect(minX, minY, boxW, boxH);
+        } else {
+            const nightGrad = targetCtx.createLinearGradient(cx, minY + boxH * 0.15, cx, minY + boxH * 0.85);
+            nightGrad.addColorStop(0.0, `rgba(10, 16, 30, ${(0.85 * night).toFixed(3)})`);
+            nightGrad.addColorStop(0.5, `rgba(5, 8, 17, ${(0.90 * night).toFixed(3)})`);
+            nightGrad.addColorStop(1.0, `rgba(2, 4, 9, ${(0.94 * night).toFixed(3)})`);
+            targetCtx.fillStyle = nightGrad;
+            targetCtx.fillRect(minX, minY, boxW, boxH);
+        }
+    }
+
+    if (rl && rl.strength > 0.03) {
+        const specGrad = targetCtx.createLinearGradient(
+            cx + rl.dirX * span, cy + rl.dirY * span,
+            cx - rl.dirX * span * 0.45, cy - rl.dirY * span * 0.45
+        );
+        const peakA = clamp(rl.strength * (0.36 + 0.30 * night), 0, 0.68);
+        specGrad.addColorStop(0.00, `rgba(${rl.r}, ${rl.g}, ${rl.b}, ${peakA.toFixed(3)})`);
+        specGrad.addColorStop(0.52, `rgba(${rl.r}, ${rl.g}, ${rl.b}, ${(peakA * 0.34).toFixed(3)})`);
+        specGrad.addColorStop(1.00, `rgba(${rl.r}, ${rl.g}, ${rl.b}, 0)`);
+        targetCtx.fillStyle = specGrad;
+        targetCtx.fillRect(minX, minY, boxW, boxH);
+    }
+
+    targetCtx.restore();
+}
+
 function drawPresetRocketWithNightShade(drawFn, s, timeSec, localNight, sScale, thr) {
     const night = clamp(localNight || 0, 0, 1);
-    if (night <= 0.005 || typeof document === 'undefined') {
+    const rl = (typeof LightingEngine !== 'undefined') ? LightingEngine.sampleRocketLighting(s) : null;
+    if ((night <= 0.005 && (!rl || rl.strength <= 0.06)) || typeof document === 'undefined') {
         drawFn(s, timeSec, night, sScale, thr);
         return;
     }
@@ -5744,15 +6068,7 @@ function drawPresetRocketWithNightShade(drawFn, s, timeSec, localNight, sScale, 
         ctx = mainCtx;
     }
 
-    _presetRocketNightCtx.save();
-    _presetRocketNightCtx.globalCompositeOperation = 'source-atop';
-    const nightGrad = _presetRocketNightCtx.createLinearGradient(0, -halfBox * 0.45, 0, halfBox * 0.45);
-    nightGrad.addColorStop(0.0, `rgba(22, 32, 52, ${(0.64 * night).toFixed(3)})`);
-    nightGrad.addColorStop(0.5, `rgba(14, 21, 37, ${(0.72 * night).toFixed(3)})`);
-    nightGrad.addColorStop(1.0, `rgba(7, 11, 22, ${(0.80 * night).toFixed(3)})`);
-    _presetRocketNightCtx.fillStyle = nightGrad;
-    _presetRocketNightCtx.fillRect(-halfBox, -halfBox, boxSize, boxSize);
-    _presetRocketNightCtx.restore();
+    applyRocketNightAndLightShading(_presetRocketNightCtx, s, night, -halfBox, -halfBox, boxSize, boxSize, 32 * Math.max(1, sScale || 1));
 
     _presetRocketNightCtx.restore();
     ctx.drawImage(_presetRocketNightCanvas, -halfBox, -halfBox, boxSize, boxSize);
@@ -5767,7 +6083,7 @@ function drawRocket(timeSec, customShip) {
     ctx.rotate(s.angle);
 
     const thr = s.thrustIntensity || 0;
-    const isWarp = s.warping && s.fuel > 0;
+    const isWarp = s.warping && (s.fuel > 0 || s.infiniteFuel);
     const mKey = s.modelKey || 'vesper';
     const curModel = (typeof getRocketModel === 'function') ? getRocketModel(mKey) : null;
     const sScale = curModel ? (curModel.scale || 1.0) : 1.0;
@@ -5790,7 +6106,12 @@ function drawRocket(timeSec, customShip) {
     const solar = (pNear && atmoW > 0.02)
         ? (s.currentSolarState || (isMainShip ? ship.currentSolarState : null) || getPlanetSolarState(pNear, s.x, s.y, timeSec))
         : null;
-    const localNight = solar ? clamp(solar.nightFactor, 0, 1) : 0;
+    const rawNight = solar ? clamp(solar.nightFactor, 0, 1) : 0;
+    const stormInfo = (pNear && atmoW > 0.02 && typeof getLocalStormDarkness === 'function')
+        ? getLocalStormDarkness(pNear)
+        : null;
+    const stormDark = (stormInfo && pNear === ship.nearestPlanet) ? (stormInfo.worldDark || 0) : 0;
+    const localNight = clamp(1 - (1 - rawNight) * (1 - stormDark * 0.88), 0, 1);
 
     // 1. PLUMA DE PROPULSIÓN PERSONALIZADA SEGÚN EL COHETE
     if (thr > 0.02) {
@@ -5817,7 +6138,7 @@ function drawRocket(timeSec, customShip) {
     } else if (mKey === 'drone') {
         drawPresetRocketWithNightShade(drawRocket_Drone, s, timeSec, localNight, sScale, thr);
     } else {
-        drawRocket_Vesper(s, timeSec, localNight, sScale, thr);
+        drawPresetRocketWithNightShade((sObj, t, n, sc, th) => drawRocket_Vesper(sObj, t, 0, sc, th), s, timeSec, localNight, sScale, thr);
     }
 
     // Desgaste térmico direccional para cohetes predefinidos
@@ -5854,6 +6175,16 @@ function drawRocketPlume(s, timeSec, localNight, mKey, sScale, isWarp, thr) {
         : null;
     let nozzleOffsets = flameInfo ? flameInfo.nozzleOffsets : [{ x: -14.5 * sScale, y: 0, scale: 1.0 }];
     const defaultFlameColor = flameInfo ? flameInfo.flameColor : (isWarp ? 'warp' : 'standard');
+    const fRGB = (flameInfo && flameInfo.rgb) ? flameInfo.rgb : [251, 175, 60];
+    const hRGB = (flameInfo && flameInfo.highlightRGB) ? flameInfo.highlightRGB : [254, 240, 138];
+
+    // Densidad local de neblina alrededor del cohete para dispersión volumétrica de la llamarada
+    let fogFactor = 0;
+    if (s === ship) {
+        fogFactor = clamp(s.localFogDensity || 0, 0, 1);
+    } else if (s.nearestPlanet && s.nearestPlanet.fog && s.nearestPlanet.fog.hasFog && typeof samplePlanetFog === 'function') {
+        fogFactor = clamp(samplePlanetFog(s.nearestPlanet, s.x, s.y).density, 0, 1);
+    }
 
     for (const noz of nozzleOffsets) {
         const flameColor = noz.flameColor || defaultFlameColor;
@@ -5862,7 +6193,7 @@ function drawRocketPlume(s, timeSec, localNight, mKey, sScale, isWarp, thr) {
         ctx.rotate((noz.angleOffset || 0) + (noz.gimbalEnabled === false ? 0 : (s.gimbalAngle || 0)));
 
         const baseLen = (isWarp ? 78 : lerp(42, 62, vacFactor)) * clamp(thr, 0.25, 1.35) * noz.scale * Math.max(0.7, sScale * 0.85) + flicker;
-        const baseWid = (isWarp ? 11.5 : lerp(7.2, 16.5, vacFactor)) * clamp(thr, 0.3, 1.25) * noz.scale * Math.max(0.7, sScale * 0.85);
+        const baseWid = (isWarp ? 11.5 : lerp(7.2, 16.5, vacFactor)) * clamp(thr, 0.3, 1.25) * noz.scale * Math.max(0.7, sScale * 0.85) * (1.0 + fogFactor * 0.18);
 
         // Halo Lumínico
         const bloomR = (isWarp ? 130 : 100) * clamp(thr, 0.3, 1.25) * noz.scale * (1.0 + 0.8 * localNight);
@@ -5903,6 +6234,39 @@ function drawRocketPlume(s, timeSec, localNight, mKey, sScale, isWarp, thr) {
         ctx.beginPath();
         ctx.arc(-baseLen * 0.3, 0, bloomR, 0, Math.PI * 2);
         ctx.fill();
+
+        // Dispersión Volumétrica de la Llamarada dentro de Neblina (Halo Tyndall + Jirones Envolventes)
+        if (fogFactor > 0.015) {
+            const fogBloomR = bloomR * (1.35 + 0.72 * fogFactor);
+            const fogCx = -baseLen * (0.42 + fogFactor * 0.12);
+            const fogBloom = ctx.createRadialGradient(fogCx, 0, 4, fogCx, 0, fogBloomR);
+            const fAlpha = fogFactor * clamp(thr, 0.25, 1.2) * (0.42 + 0.24 * localNight);
+            fogBloom.addColorStop(0.00, `rgba(${hRGB[0]}, ${hRGB[1]}, ${hRGB[2]}, ${fAlpha * 0.72})`);
+            fogBloom.addColorStop(0.28, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${fAlpha * 0.48})`);
+            fogBloom.addColorStop(0.64, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${fAlpha * 0.16})`);
+            fogBloom.addColorStop(1.00, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fogBloom;
+            ctx.beginPath();
+            ctx.ellipse(fogCx, 0, fogBloomR * 1.18, fogBloomR * 0.92, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Jirones de neblina iluminados envolviendo la estela de la llamarada
+            if (typeof getFogMistSprite === 'function') {
+                const billowCol = lerpRGB([236, 244, 250], fRGB, 0.68);
+                for (let b = 0; b < 3; b++) {
+                    const bFrac = 0.25 + b * 0.36;
+                    const bx = -baseLen * bFrac - Math.sin(timeSec * 16 + b * 2.1) * 3.5;
+                    const by = Math.sin(timeSec * 12 + b * 3.4) * (4 + b * 3) * fogFactor;
+                    const bw = baseLen * (0.95 + b * 0.38) * (0.85 + 0.35 * fogFactor);
+                    const bh = baseWid * (2.6 + b * 0.95) * (0.85 + 0.45 * fogFactor);
+                    const mistSp = getFogMistSprite(billowCol[0], billowCol[1], billowCol[2], (b + 1) & 3);
+                    ctx.save();
+                    ctx.globalAlpha = clamp(fogFactor * (0.34 - b * 0.06) * clamp(thr, 0.3, 1.15), 0, 0.42);
+                    ctx.drawImage(mistSp, bx - bw * 0.5, by - bh * 0.5, bw, bh);
+                    ctx.restore();
+                }
+            }
+        }
 
         // Manto de fuego curvado suave
         const outerGrad = ctx.createLinearGradient(0, 0, -baseLen, 0);
@@ -5992,7 +6356,7 @@ function drawRocketPlume(s, timeSec, localNight, mKey, sScale, isWarp, thr) {
  * 1. VESPER-IX: Sonda Clásica de Exploración Equilibrada
  */
 function drawRocket_Vesper(s, timeSec, localNight, sScale, thr) {
-    const isWarp = s.warping && s.fuel > 0;
+    const isWarp = s.warping && (s.fuel > 0 || s.infiniteFuel);
 
     // Tren de aterrizaje articulado
     const compL = (s.leftGearSpring ? s.leftGearSpring.pos : 0) * 3.5;
@@ -6000,7 +6364,7 @@ function drawRocket_Vesper(s, timeSec, localNight, sScale, thr) {
     const padLX = -15 + compL;
     const padRX = -15 + compR;
 
-    const gearCol = lerpRGB([148, 163, 184], [51, 65, 85], localNight * 0.72);
+    const gearCol = lerpRGB([148, 163, 184], [12, 17, 28], localNight * 0.92);
     ctx.strokeStyle = rgbStr(gearCol, 1);
     ctx.lineWidth = 1.6;
     ctx.lineCap = 'round';
@@ -6018,7 +6382,7 @@ function drawRocket_Vesper(s, timeSec, localNight, sScale, thr) {
     ctx.lineTo(padRX, 11.5);
     ctx.stroke();
 
-    const padCol = lerpRGB([226, 232, 240], [71, 85, 105], localNight * 0.75);
+    const padCol = lerpRGB([226, 232, 240], [18, 24, 38], localNight * 0.92);
     ctx.fillStyle = rgbStr(padCol, 1);
     ctx.fillRect(padLX - 2, -12.5, 4.5, 2.0);
     ctx.fillRect(padRX - 2, 10.5, 4.5, 2.0);
@@ -6058,13 +6422,13 @@ function drawRocket_Vesper(s, timeSec, localNight, sScale, thr) {
     ctx.restore();
 
     // Aletas Delta Escandinavas con bisel iluminado
-    const finCol = lerpRGB([15, 23, 42], [8, 12, 22], localNight * 0.65);
-    const finLight = lerpRGB([51, 65, 85], [20, 28, 44], localNight * 0.65);
+    const finCol = lerpRGB([15, 23, 42], [3, 5, 11], localNight * 0.92);
+    const finLight = lerpRGB([51, 65, 85], [8, 12, 22], localNight * 0.92);
     const finGradTop = ctx.createLinearGradient(0, -13.5, 0, -5.5);
     finGradTop.addColorStop(0, rgbStr(finLight, 1));
     finGradTop.addColorStop(1, rgbStr(finCol, 1));
     ctx.fillStyle = finGradTop;
-    ctx.strokeStyle = `rgba(244, 162, 97, ${lerp(0.65, 0.3, localNight)})`;
+    ctx.strokeStyle = `rgba(244, 162, 97, ${lerp(0.65, 0.14, localNight)})`;
     ctx.lineWidth = 0.95;
 
     ctx.beginPath();
@@ -6090,18 +6454,18 @@ function drawRocket_Vesper(s, timeSec, localNight, sScale, thr) {
     ctx.stroke();
 
     // Fuselaje Cerámico Marfil con sombreado cilíndrico realista y costuras de paneles
-    let col0 = lerpRGB([255, 255, 255], [48, 58, 76], localNight * 0.72);
-    let col1 = lerpRGB([186, 198, 214], [18, 24, 36], localNight * 0.80);
+    let col0 = lerpRGB([255, 255, 255], [14, 20, 34], localNight * 0.94);
+    let col1 = lerpRGB([186, 198, 214], [4, 7, 14], localNight * 0.96);
 
     const hullGrad = ctx.createLinearGradient(0, -8.5, 0, 8.5);
     hullGrad.addColorStop(0.00, rgbStr(col0, 1));
-    hullGrad.addColorStop(0.24, rgbStr(lerpRGB(col0, [255, 255, 255], 0.35), 1));
+    hullGrad.addColorStop(0.24, rgbStr(lerpRGB(col0, [255, 255, 255], 0.35 * (1 - localNight * 0.90)), 1));
     hullGrad.addColorStop(0.55, rgbStr(lerpRGB(col0, col1, 0.42), 1));
     hullGrad.addColorStop(0.88, rgbStr(lerpRGB(col0, col1, 0.88), 1));
     hullGrad.addColorStop(1.00, rgbStr(col1, 1));
 
     ctx.fillStyle = hullGrad;
-    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.65, 0.25, localNight)})`;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.65, 0.08, localNight)})`;
     ctx.lineWidth = 1.05;
     ctx.beginPath();
     ctx.moveTo(21.5, 0);

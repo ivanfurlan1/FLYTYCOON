@@ -238,6 +238,7 @@ function boardShip() {
             angle: ship.angle, av: 0,
             hull: ship.hull, maxHull: ship.maxHull || 100,
             fuel: ship.fuel, maxFuel: ship.maxFuel || 100,
+            cargo: (ship.cargo && typeof ship.cargo === 'object') ? JSON.parse(JSON.stringify(ship.cargo)) : {},
             scale: ship.scale || 1.0,
             isGrounded: true,
             leftGearSpring: { pos: 0.8, vel: 0, target: 0 },
@@ -256,6 +257,7 @@ function boardShip() {
         applyRocketModel(ship, ps.modelKey || 'vesper');
         ship.hull = ps.hull !== undefined ? ps.hull : ship.maxHull;
         ship.fuel = ps.fuel !== undefined ? ps.fuel : ship.maxFuel;
+        ship.cargo = (ps.cargo && typeof ps.cargo === 'object') ? JSON.parse(JSON.stringify(ps.cargo)) : {};
     }
 
     astronaut.active = false;
@@ -263,6 +265,14 @@ function boardShip() {
     astronaut.onCeiling = false;
     astronaut.actionProgress = 0;
     astronaut.actionType = null;
+    if (typeof LightingEngine !== 'undefined' && LightingEngine.exitPlacementMode) {
+        LightingEngine.exitPlacementMode();
+    }
+    if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.exitPlacementMode) {
+        ColonyBuildings.exitPlacementMode();
+    }
+    const evaLightMod = document.getElementById('evaLightingModal');
+    if (evaLightMod) evaLightMod.classList.add('hidden');
 
     // Efecto de sellado de esclusa y presurización
     sfx('playAirlock', false);
@@ -370,12 +380,14 @@ function updateAstronautPhysics(dt) {
             const dustSign = astronaut.onCeiling ? 1 : -1;
             const pNorm = astronaut.angle;
             createSmoke(astronaut.x, astronaut.y, isSprinting ? 4 : 3, 2.5, p.archetype.surfaceDustColor, dustSign * Math.cos(pNorm) * 10, dustSign * Math.sin(pNorm) * 10, 0.35);
-        } else if (astronaut.jetpackFuel > 0) {
+        } else if (astronaut.jetpackFuel > 0 || (typeof ship !== 'undefined' && ship.infiniteFuel)) {
             // Sustentación sostenida por micro-propulsores de mochila PLSS
             const thrustAcc = Math.max(g * 1.65, 95);
             const maxAscent = isSprinting ? 56.0 : 46.0;
             astronaut.vRadial = Math.min(maxAscent, astronaut.vRadial + thrustAcc * dt);
-            astronaut.jetpackFuel = Math.max(0, astronaut.jetpackFuel - dt * 18.0);
+            if (!(typeof ship !== 'undefined' && ship.infiniteFuel)) {
+                astronaut.jetpackFuel = Math.max(0, astronaut.jetpackFuel - dt * 18.0);
+            }
 
             // Emisión de micro-chorros de gas frío
             astronaut.puffTimer += dt;
@@ -420,6 +432,25 @@ function updateAstronautPhysics(dt) {
             if (dAng <= ph.span * 1.4 && astronaut.altitude <= ph.reachHeight) {
                 astronaut.vRadial = Math.min(140, astronaut.vRadial + ph.force * 2.2 * intensity * dt);
                 astronaut.isGrounded = false;
+            }
+        }
+    }
+
+    // Interacción eólica realista para el cosmonauta EVA (botas imantadas resisten brisas normales)
+    astronaut.localWind = (typeof samplePlanetWind === 'function')
+        ? samplePlanetWind(p, astronaut.x, astronaut.y)
+        : null;
+    if (astronaut.localWind && astronaut.localWind.hasWind && !astronaut.inCavern) {
+        const aw = astronaut.localWind;
+        const threshold = astronaut.isGrounded ? 130 : 80;
+        if (aw.speed > threshold || (aw.inVortex && aw.vortexIntensity > 0.35)) {
+            const excess = Math.max(0, aw.speed - threshold);
+            const tangPush = Math.sign(aw.tangSpeed || 1) * Math.min(48, excess * (astronaut.isGrounded ? 0.16 : 0.32));
+            astronaut.vTangential += tangPush * dt;
+            if (aw.inVortex && aw.radSpeed > 45 && aw.vortexIntensity > 0.35) {
+                const lift = Math.min(g * 1.25, aw.radSpeed * 0.45 * aw.vortexIntensity);
+                astronaut.vRadial = Math.min(72, astronaut.vRadial + lift * dt);
+                if (lift > g * 0.72) astronaut.isGrounded = false;
             }
         }
     }
@@ -828,11 +859,13 @@ function deployNewRocket(planet, angle, modelKey) {
             maxHull: ship.maxHull || 100,
             fuel: ship.fuel,
             maxFuel: ship.maxFuel || 100,
+            cargo: (ship.cargo && typeof ship.cargo === 'object') ? JSON.parse(JSON.stringify(ship.cargo)) : {},
             scale: ship.scale || 1.0,
             isGrounded: true,
             leftGearSpring: { pos: 0.85, vel: 0, target: 0 },
             rightGearSpring: { pos: 0.85, vel: 0, target: 0 }
         });
+        ship.cargo = {};
     }
 
     // Posicionar el nuevo cohete en la superficie usando el punto de apoyo inferior real
@@ -1886,6 +1919,24 @@ function drawBases(timeSec) {
                 ctx.restore();
             }
 
+            // Iluminación dinámica reflejada sobre la plataforma de hierro y estructura
+            const baseLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(bx, by, b.halfWidth * 0.95) : null;
+            if (baseLight && baseLight.illum > 0.02) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const bRad = b.halfWidth * 1.05;
+                const bGlow = ctx.createRadialGradient(0, -8, 2, 0, -4, bRad);
+                const ba = clamp(baseLight.illum * 0.34, 0, 0.42);
+                bGlow.addColorStop(0.0, `rgba(${baseLight.r}, ${baseLight.g}, ${baseLight.b}, ${ba.toFixed(3)})`);
+                bGlow.addColorStop(0.55, `rgba(${baseLight.r}, ${baseLight.g}, ${baseLight.b}, ${(ba * 0.35).toFixed(3)})`);
+                bGlow.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = bGlow;
+                ctx.beginPath();
+                ctx.ellipse(0, -4, bRad, Math.max(14, bRad * 0.42), 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
             // ==============================================================
             // 7. RÓTULO HOLOGRÁFICO EN PANTALLA
             // ==============================================================
@@ -2017,7 +2068,15 @@ function drawAstronaut(timeSec) {
     const solar = (pNear && pNear.atmoRadius && typeof getPlanetSolarState === 'function')
         ? (pNear.currentSolarState || getPlanetSolarState(pNear, astronaut.x, astronaut.y, timeSec))
         : null;
-    const localNight = solar ? clamp(solar.nightFactor, 0, 1) : 0;
+    const rawNight = solar ? clamp(solar.nightFactor, 0, 1) : 0;
+    const stormInfo = (pNear && pNear === ship.nearestPlanet && typeof getLocalStormDarkness === 'function')
+        ? getLocalStormDarkness(pNear)
+        : null;
+    const stormDark = stormInfo ? (stormInfo.worldDark || 0) : 0;
+    const rawEffNight = clamp(1 - (1 - rawNight) * (1 - stormDark * 0.88), 0, 1);
+    const astroLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(astronaut.x, astronaut.y, 12) : null;
+    const astroLitBoost = astroLight ? clamp(astroLight.illum * 1.15, 0, 1) : 0;
+    const localNight = clamp(rawEffNight * (1 - astroLitBoost * 0.90), 0, 1);
 
     ctx.save();
     ctx.translate(astronaut.x, astronaut.y);
@@ -2050,16 +2109,28 @@ function drawAstronaut(timeSec) {
     const armL = -Math.sin(legPhase) * 3.2;
     const armR = Math.sin(legPhase) * 3.2;
 
-    // 3.5 BUFANDA FLUIDA DE MÚLTIPLES SEGMENTOS (FIRMA VISUAL DE ALTO'S ADVENTURE)
+    // 3.5 BUFANDA FLUIDA DE MÚLTIPLES SEGMENTOS (DINÁMICA DE VIENTO REAL Y LUZ DÍA/NOCHE)
     const scarfSegs = 6;
-    const scarfLen = isMoving ? 22 : 14;
+    const lw = (!astronaut.inCavern && astronaut.localWind && astronaut.localWind.hasWind) ? astronaut.localWind : null;
+    const windLocalX = lw ? (lw.tangSpeed || 0) * (astronaut.onCeiling ? -1 : 1) * astronaut.facing : 0;
+    const windLocalY = lw ? -(lw.radSpeed || 0) * (astronaut.onCeiling ? -1 : 1) : 0;
+    const windSpeedNorm = lw ? clamp((lw.speed || 0) / 140, 0, 1.6) : 0;
+    const moveDirX = isMoving ? -1 : -0.75;
+    const baseTrailX = moveDirX * (isMoving ? 20 : 12);
+    const windPushX = clamp(windLocalX * 0.16, -24, 24);
+    const windLiftY = clamp(windLocalY * 0.12, -12, 8);
+    const tailEndX = baseTrailX + windPushX;
+    const flutterFreq = 7.5 + windSpeedNorm * 11.0 + (isMoving ? 2.5 : 0);
+    const flutterAmp = (isMoving ? 3.2 : 1.8) + windSpeedNorm * 3.4;
+
     const pts = [];
     for (let i = 0; i <= scarfSegs; i++) {
         const f = i / scarfSegs;
-        const waveY = Math.sin(timeSec * 8.5 - f * 3.8 + (isMoving ? legPhase * 1.1 : 0)) * (f * 3.2);
-        const waveX = Math.cos(timeSec * 6.0 - f * 2.5) * (f * 1.4);
-        const px = -f * scarfLen + waveX;
-        const py = -11.4 + bodyBob - f * (isMoving ? 2.2 : 0.4) + waveY;
+        const waveY = Math.sin(timeSec * flutterFreq - f * 3.8 + (isMoving ? legPhase * 1.1 : 0)) * (f * flutterAmp);
+        const waveX = Math.cos(timeSec * (flutterFreq * 0.72) - f * 2.5) * (f * (1.2 + windSpeedNorm * 1.4));
+        const gravityDroop = (1 - clamp(windSpeedNorm * 0.7, 0, 0.9)) * (f * f * 2.4);
+        const px = f * tailEndX + waveX;
+        const py = -11.4 + bodyBob - f * (isMoving ? 2.0 : 0.2) + f * windLiftY + gravityDroop + waveY;
         pts.push({ x: px, y: py });
     }
 
@@ -2067,26 +2138,32 @@ function drawAstronaut(timeSec) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Resplandor cálido exterior
-    ctx.strokeStyle = 'rgba(231, 111, 81, 0.32)';
-    ctx.lineWidth = 4.2;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.stroke();
+    // Resplandor sutil solo en iluminación diurna/artificial (se apaga por completo de noche)
+    const scarfGlowAlpha = lerp(0.28, 0.0, clamp(localNight * 1.15, 0, 1));
+    if (scarfGlowAlpha > 0.01) {
+        ctx.strokeStyle = `rgba(231, 111, 81, ${scarfGlowAlpha.toFixed(3)})`;
+        ctx.lineWidth = 4.0;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+    }
+
+    const scarfBodyCol = rgbStr(lerpRGB([231, 111, 81], [24, 18, 26], localNight * 0.93), 1);
+    const scarfGoldCol = rgbStr(lerpRGB([254, 240, 138], [38, 32, 24], localNight * 0.92), lerp(0.85, 0.45, localNight));
 
     // Manto principal ahusado (de ancho 2.8 a 1.0)
     for (let i = 0; i < pts.length - 1; i++) {
         const f = i / (pts.length - 1);
-        ctx.strokeStyle = '#e76f51';
+        ctx.strokeStyle = scarfBodyCol;
         ctx.lineWidth = lerp(2.8, 1.0, f);
         ctx.beginPath();
         ctx.moveTo(pts[i].x, pts[i].y);
         ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
         ctx.stroke();
 
-        // Hilo de oro celestial
-        ctx.strokeStyle = 'rgba(254, 240, 138, 0.85)';
+        // Hilo de oro celestial adaptado a la luz local
+        ctx.strokeStyle = scarfGoldCol;
         ctx.lineWidth = lerp(0.9, 0.35, f);
         ctx.beginPath();
         ctx.moveTo(pts[i].x, pts[i].y + 0.5);
@@ -2131,7 +2208,7 @@ function drawAstronaut(timeSec) {
     ctx.fillRect(-2.6, -14.2 + bodyBob, 1.3, 1.3);
 
     // 6. Brazo trasero en silueta
-    const armBackCol = lerpRGB([148, 163, 184], [30, 40, 56], localNight * 0.72);
+    const armBackCol = lerpRGB([148, 163, 184], [8, 12, 22], localNight * 0.92);
     ctx.strokeStyle = rgbStr(armBackCol, 1);
     ctx.lineWidth = 1.6;
     ctx.lineCap = 'round';
@@ -2144,16 +2221,16 @@ function drawAstronaut(timeSec) {
     // 7. Torso: Silueta esculpida de explorador celestial con traje adaptativo a luz diurna y nocturna
     const suitGrad = ctx.createLinearGradient(-3, -12, 3, -4);
     const sDay0 = [248, 250, 252];
-    const sNight0 = [45, 55, 72];
+    const sNight0 = [14, 20, 34];
     const sDay1 = [203, 213, 225];
-    const sNight1 = [22, 28, 40];
-    const c0 = lerpRGB(sDay0, sNight0, localNight * 0.72);
-    const c1 = lerpRGB(sDay1, sNight1, localNight * 0.72);
+    const sNight1 = [5, 8, 16];
+    const c0 = lerpRGB(sDay0, sNight0, localNight * 0.94);
+    const c1 = lerpRGB(sDay1, sNight1, localNight * 0.94);
     suitGrad.addColorStop(0, rgbStr(c0, 1));
     suitGrad.addColorStop(1, rgbStr(c1, 1));
 
     ctx.fillStyle = suitGrad;
-    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.4, 0.12, localNight)})`;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.4, 0.07, localNight)})`;
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     safeRoundRect(ctx, -2.6, -12 + bodyBob, 5.2, 7.4, 1.8);
@@ -2161,11 +2238,11 @@ function drawAstronaut(timeSec) {
     ctx.stroke();
 
     // Banda de oro sutil en el pecho
-    ctx.fillStyle = '#f4a261';
+    ctx.fillStyle = rgbStr(lerpRGB([244, 162, 97], [38, 26, 20], localNight * 0.85), 1);
     ctx.fillRect(-1.4, -10.5 + bodyBob, 2.8, 0.8);
 
     // 8. Pierna delantera
-    const legCol = lerpRGB([241, 245, 249], [40, 50, 68], localNight * 0.72);
+    const legCol = lerpRGB([241, 245, 249], [10, 14, 24], localNight * 0.94);
     ctx.strokeStyle = rgbStr(legCol, 1);
     ctx.lineWidth = 2.0;
     ctx.lineCap = 'round';
@@ -2180,7 +2257,7 @@ function drawAstronaut(timeSec) {
     ctx.fillRect(legR, -1.4, 3.4, 1.5);
 
     // 9. Casco esférico con reflejo celestial
-    const helmCol = lerpRGB([255, 255, 255], [45, 55, 72], localNight * 0.72);
+    const helmCol = lerpRGB([255, 255, 255], [14, 20, 34], localNight * 0.94);
     ctx.fillStyle = rgbStr(helmCol, 1);
     ctx.strokeStyle = rgbStr(armBackCol, 1);
     ctx.lineWidth = 0.8;
@@ -2195,13 +2272,13 @@ function drawAstronaut(timeSec) {
 
     // 10. Visor de Oro Estelar Especular (Lente Solar estilo Alto)
     const visorGrad = ctx.createRadialGradient(2.4, -15.2 + bodyBob, 0.4, 1.8, -14.5 + bodyBob, 3.2);
-    visorGrad.addColorStop(0.00, '#fffbeb');
-    visorGrad.addColorStop(0.35, '#fde68a');
-    visorGrad.addColorStop(0.75, '#f59e0b');
-    visorGrad.addColorStop(1.00, '#b45309');
+    visorGrad.addColorStop(0.00, rgbStr(lerpRGB([255, 251, 235], [110, 88, 54], localNight * 0.80), 1));
+    visorGrad.addColorStop(0.35, rgbStr(lerpRGB([253, 230, 138], [86, 62, 32], localNight * 0.82), 1));
+    visorGrad.addColorStop(0.75, rgbStr(lerpRGB([245, 158, 11], [62, 40, 14], localNight * 0.85), 1));
+    visorGrad.addColorStop(1.00, rgbStr(lerpRGB([180, 83, 9], [36, 20, 8], localNight * 0.88), 1));
 
     ctx.fillStyle = visorGrad;
-    ctx.strokeStyle = '#fef3c7';
+    ctx.strokeStyle = `rgba(254, 243, 199, ${lerp(0.95, 0.25, localNight)})`;
     ctx.lineWidth = 0.6;
     ctx.beginPath();
     ctx.ellipse(1.8, -14.5 + bodyBob, 2.3, 2.1, 0.12, -Math.PI * 0.48, Math.PI * 0.48);
@@ -2212,19 +2289,19 @@ function drawAstronaut(timeSec) {
     ctx.stroke();
 
     // Destello de estrella y arco especular en el visor
-    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.85, 0.40, localNight)})`;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${lerp(0.85, 0.22, localNight)})`;
     ctx.lineWidth = 0.65;
     ctx.beginPath();
     ctx.arc(1.9, -14.7 + bodyBob, 1.55, -Math.PI * 0.72, -Math.PI * 0.12);
     ctx.stroke();
 
-    ctx.fillStyle = `rgba(255, 255, 255, ${lerp(0.95, 0.45, localNight)})`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${lerp(0.95, 0.28, localNight)})`;
     ctx.beginPath();
     ctx.arc(2.4, -15.4 + bodyBob, 0.55, 0, Math.PI * 2);
     ctx.fill();
 
     // 11. Brazo delantero sosteniendo el escáner astral
-    const armForeCol = lerpRGB([248, 250, 252], [42, 52, 70], localNight * 0.72);
+    const armForeCol = lerpRGB([248, 250, 252], [12, 18, 30], localNight * 0.94);
     ctx.strokeStyle = rgbStr(armForeCol, 1);
     ctx.lineWidth = 1.8;
     ctx.beginPath();

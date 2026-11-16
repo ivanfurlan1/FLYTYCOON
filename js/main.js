@@ -82,6 +82,51 @@ window.addEventListener('wheel', (e) => {
     camera.userZoomMult = clamp(camera.userZoomMult * factor, 0.0025, 2.8);
 }, { passive: true });
 
+// Zoom táctil pellizcando con dos dedos (Pinch-to-Zoom) para móvil y tablet
+let _pinchLastDist = null;
+let _isPinchingCanvas = false;
+const _canvasForPinch = document.getElementById('flightCanvas');
+if (_canvasForPinch) {
+    _canvasForPinch.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 2) {
+            e.preventDefault();
+            _isPinchingCanvas = true;
+            _pinchLastDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    }, { passive: false });
+
+    _canvasForPinch.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length === 2) {
+            e.preventDefault();
+            const d = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            if (_pinchLastDist && _pinchLastDist > 6 && d > 6) {
+                if (!camera.userZoomMult) camera.userZoomMult = 1.0;
+                const ratio = clamp(d / _pinchLastDist, 0.82, 1.22);
+                camera.userZoomMult = clamp(camera.userZoomMult * ratio, 0.0025, 2.8);
+            }
+            _pinchLastDist = d;
+            _isPinchingCanvas = true;
+        }
+    }, { passive: false });
+
+    const endPinch = (e) => {
+        if (!e.touches || e.touches.length < 2) {
+            _pinchLastDist = null;
+            if (!e.touches || e.touches.length === 0) {
+                setTimeout(() => { _isPinchingCanvas = false; }, 80);
+            }
+        }
+    };
+    _canvasForPinch.addEventListener('touchend', endPinch, { passive: true });
+    _canvasForPinch.addEventListener('touchcancel', endPinch, { passive: true });
+}
+
 // --- CONVERSIÓN DE COORDENADAS PANTALLA A MUNDO & DISPARO DE COMBATE FOTÓNICO ---
 let lastMouseWorldPos = { x: 0, y: 0 };
 
@@ -101,10 +146,30 @@ function screenToWorld(sx, sy) {
     };
 }
 
-window.addEventListener('mousemove', (e) => {
+window.addEventListener('pointermove', (e) => {
     lastMouseWorldPos = screenToWorld(e.clientX, e.clientY);
     if (typeof handleExtractorHover === 'function' && e.target && e.target.id === 'flightCanvas') {
         handleExtractorHover(lastMouseWorldPos.x, lastMouseWorldPos.y);
+    }
+    if (typeof LightingEngine !== 'undefined') {
+        if (LightingEngine.isDraggingAim() || (e.target && e.target.id === 'flightCanvas')) {
+            const lightHover = LightingEngine.handlePointerMove(lastMouseWorldPos.x, lastMouseWorldPos.y);
+            if ((lightHover || LightingEngine.isPlacementMode()) && flightCanvasEl) {
+                flightCanvasEl.style.cursor = LightingEngine.isPlacementMode() ? 'crosshair' : 'pointer';
+            }
+        }
+    }
+    if (typeof ColonyBuildings !== 'undefined' && e.target && e.target.id === 'flightCanvas') {
+        const colHover = ColonyBuildings.handlePointerMove(lastMouseWorldPos.x, lastMouseWorldPos.y);
+        if ((colHover || ColonyBuildings.placementMode) && flightCanvasEl) {
+            flightCanvasEl.style.cursor = ColonyBuildings.placementMode ? 'crosshair' : 'pointer';
+        }
+    }
+});
+
+window.addEventListener('pointerup', () => {
+    if (typeof LightingEngine !== 'undefined') {
+        LightingEngine.handlePointerUp();
     }
 });
 
@@ -146,7 +211,7 @@ function handlePlayerFire(targetX, targetY) {
 const flightCanvasEl = document.getElementById('flightCanvas');
 if (flightCanvasEl) {
     flightCanvasEl.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0) return; // Solo clic izquierdo
+        if (e.button !== 0 || _isPinchingCanvas) return; // Solo clic izquierdo y sin pellizco táctil
         if (introOverlay && !introOverlay.classList.contains('hidden')) return;
 
         // Comprobar si hay modales visibles
@@ -157,22 +222,35 @@ if (flightCanvasEl) {
         const qsm = document.getElementById('quickSaveModal');
         const extm = document.getElementById('extractorModal');
         const invm = document.getElementById('resourceInventoryModal');
+        const colm = document.getElementById('colonyModal');
+        const wcm = document.getElementById('worldCategoriesModal');
         if ((hm && !hm.classList.contains('hidden')) || 
             (mm && !mm.classList.contains('hidden')) ||
             (wm && !wm.classList.contains('hidden')) ||
             (cwm && !cwm.classList.contains('hidden')) ||
             (qsm && !qsm.classList.contains('hidden')) ||
             (extm && !extm.classList.contains('hidden')) ||
-            (invm && !invm.classList.contains('hidden'))) {
+            (invm && !invm.classList.contains('hidden')) ||
+            (colm && !colm.classList.contains('hidden')) ||
+            (wcm && !wcm.classList.contains('hidden'))) {
             return;
         }
 
         const worldTarget = screenToWorld(e.clientX, e.clientY);
         if (typeof closeFairingActionMenu === 'function') closeFairingActionMenu();
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.isPlacementMode() && LightingEngine.handlePointerDown(worldTarget.x, worldTarget.y)) {
+            return;
+        }
+        if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.placementMode && ColonyBuildings.handlePointerDown(worldTarget.x, worldTarget.y)) {
+            return;
+        }
         if (typeof handleExtractorClick === 'function' && handleExtractorClick(worldTarget.x, worldTarget.y)) {
             return;
         }
         if (typeof handleCustomRocketPartClick === 'function' && handleCustomRocketPartClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
+            return;
+        }
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.handlePointerDown(worldTarget.x, worldTarget.y)) {
             return;
         }
         if (typeof handleFreeVesselClick === 'function' && handleFreeVesselClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
@@ -181,7 +259,23 @@ if (flightCanvasEl) {
         if (typeof handleWorldObjectClick === 'function' && handleWorldObjectClick(worldTarget.x, worldTarget.y, e.clientX, e.clientY)) {
             return;
         }
+        if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.handlePointerDown(worldTarget.x, worldTarget.y)) {
+            if (typeof closeWorldObjectMenu === 'function') closeWorldObjectMenu();
+            return;
+        }
+        if (typeof closeColonyInspector === 'function') closeColonyInspector();
         if (typeof closeWorldObjectMenu === 'function') closeWorldObjectMenu();
+    });
+
+    flightCanvasEl.addEventListener('contextmenu', (e) => {
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.isPlacementMode()) {
+            e.preventDefault();
+            LightingEngine.exitPlacementMode();
+        }
+        if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.placementMode) {
+            e.preventDefault();
+            ColonyBuildings.exitPlacementMode();
+        }
     });
 }
 
@@ -437,7 +531,48 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
+    // Encender / apagar todas las luces del cohete con tecla L
+    if (e.code === 'KeyL') {
+        const bldModal = document.getElementById('rocketBuilderModal');
+        if (!bldModal || bldModal.classList.contains('hidden')) {
+            if (typeof LightingEngine !== 'undefined' && LightingEngine.toggleAllRocketLights()) {
+                e.preventDefault();
+                return;
+            }
+        }
+    }
+
     if (e.code === 'Escape') {
+        if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.placementMode) {
+            ColonyBuildings.exitPlacementMode();
+            return;
+        }
+        const colInsp = document.getElementById('colonyInspectorPanel');
+        if (colInsp && !colInsp.classList.contains('hidden')) {
+            if (typeof closeColonyInspector === 'function') closeColonyInspector();
+            return;
+        }
+        const colm = document.getElementById('colonyModal');
+        if (colm && !colm.classList.contains('hidden')) {
+            if (typeof closeColonyModal === 'function') closeColonyModal();
+            return;
+        }
+        if (typeof LightingEngine !== 'undefined') {
+            if (LightingEngine.isPlacementMode()) {
+                LightingEngine.exitPlacementMode();
+                return;
+            }
+            const lightPanel = document.getElementById('lightInspectorPanel');
+            if (lightPanel && !lightPanel.classList.contains('hidden')) {
+                LightingEngine.closeLightInspector();
+                return;
+            }
+            const evaLightMod = document.getElementById('evaLightingModal');
+            if (evaLightMod && !evaLightMod.classList.contains('hidden')) {
+                evaLightMod.classList.add('hidden');
+                return;
+            }
+        }
         if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
         const extm = document.getElementById('extractorModal');
         if (extm && !extm.classList.contains('hidden')) {
@@ -456,6 +591,12 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyI') {
         e.preventDefault();
         if (typeof toggleResourceInventoryModal === 'function') toggleResourceInventoryModal();
+        return;
+    }
+
+    if (e.code === 'KeyB') {
+        e.preventDefault();
+        if (typeof toggleColonyModal === 'function') toggleColonyModal();
         return;
     }
 
@@ -509,6 +650,12 @@ window.addEventListener('keydown', (e) => {
         const hm = document.getElementById('rocketHangarModal');
         if (hm && !hm.classList.contains('hidden')) {
             closeRocketHangarModal();
+            return;
+        }
+        const wcm = document.getElementById('worldCategoriesModal');
+        if (wcm && !wcm.classList.contains('hidden')) {
+            if (typeof closeWorldCategoriesModal === 'function') closeWorldCategoriesModal();
+            else wcm.classList.add('hidden');
             return;
         }
         const mm = document.getElementById('mapModal');
@@ -854,6 +1001,73 @@ if (btnInvRepairHull) {
     });
 }
 
+// Bodega del Cohete: transferencia masiva Traje <-> Cohete
+const btnInvAllToRocket = document.getElementById('btnInvAllToRocket');
+if (btnInvAllToRocket) {
+    btnInvAllToRocket.addEventListener('click', () => {
+        if (typeof transferAllSuitToRocket === 'function') {
+            transferAllSuitToRocket();
+            if (typeof renderResourceInventoryModal === 'function') renderResourceInventoryModal();
+        }
+    });
+}
+const btnInvAllToSuit = document.getElementById('btnInvAllToSuit');
+if (btnInvAllToSuit) {
+    btnInvAllToSuit.addEventListener('click', () => {
+        if (typeof transferAllRocketToSuit === 'function') {
+            transferAllRocketToSuit();
+            if (typeof renderResourceInventoryModal === 'function') renderResourceInventoryModal();
+        }
+    });
+}
+
+// Sistema de Colonia: Viviendas, Depósitos y Astronautas
+['btnHudColony', 'btnEvaOpenColony'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('click', () => {
+            if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
+            if (typeof toggleColonyModal === 'function') toggleColonyModal();
+        });
+    }
+});
+const btnCloseColonyModal = document.getElementById('btnCloseColonyModal');
+if (btnCloseColonyModal) {
+    btnCloseColonyModal.addEventListener('click', () => {
+        if (typeof closeColonyModal === 'function') closeColonyModal();
+    });
+}
+const btnCancelColonyPlacement = document.getElementById('btnCancelColonyPlacement');
+if (btnCancelColonyPlacement) {
+    btnCancelColonyPlacement.addEventListener('click', () => {
+        if (typeof ColonyBuildings !== 'undefined') ColonyBuildings.exitPlacementMode();
+    });
+}
+const btnCloseColonyInspector = document.getElementById('btnCloseColonyInspector');
+if (btnCloseColonyInspector) {
+    btnCloseColonyInspector.addEventListener('click', () => {
+        if (typeof closeColonyInspector === 'function') closeColonyInspector();
+    });
+}
+['houses', 'depots', 'colonists'].forEach(t => {
+    const tabBtn = document.getElementById(`tabColony_${t}`);
+    if (tabBtn) {
+        tabBtn.addEventListener('click', () => {
+            if (typeof openColonyModal === 'function') openColonyModal(t);
+        });
+    }
+});
+const bindBulk = (id, mode) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => {
+        if (typeof assignBulkColonyJob === 'function') assignBulkColonyJob(mode);
+    });
+};
+bindBulk('btnColonyBulkBalanced', 'balanced');
+bindBulk('btnColonyBulkLogistics', 'logistics_all');
+bindBulk('btnColonyBulkRocket', 'refuel_rockets');
+bindBulk('btnColonyBulkIdle', 'idle');
+
 // Astillero Planetario & Hangar de Cohetes
 const rocketHangarModal = document.getElementById('rocketHangarModal');
 const btnCloseRocketHangar = document.getElementById('btnCloseRocketHangar');
@@ -1145,15 +1359,22 @@ function openWorldObjectMenu(kind, clientX, clientY) {
     closeAllHudDropdowns();
 
     const titleEl = document.getElementById('worldMenuTitle');
+    const hullBox = document.getElementById('worldMenuRocketHullBox');
     const gFlight = document.getElementById('worldMenuFlightGroup');
     const gEvaRocket = document.getElementById('worldMenuEvaRocketGroup');
     const gEvaAstro = document.getElementById('worldMenuEvaAstroGroup');
     const gBase = document.getElementById('worldMenuBaseGroup');
 
+    const isRocketMenu = (kind === 'flight_rocket' || kind === 'eva_rocket');
+    if (hullBox) hullBox.classList.toggle('hidden', !isRocketMenu);
     if (gFlight) gFlight.classList.toggle('hidden', kind !== 'flight_rocket');
     if (gEvaRocket) gEvaRocket.classList.toggle('hidden', kind !== 'eva_rocket');
     if (gEvaAstro) gEvaAstro.classList.toggle('hidden', kind !== 'astro');
     if (gBase) gBase.classList.toggle('hidden', kind !== 'base');
+
+    if (isRocketMenu && typeof updateWorldMenuHullInfo === 'function') {
+        updateWorldMenuHullInfo();
+    }
 
     if (titleEl) {
         if (kind === 'flight_rocket' || kind === 'eva_rocket') {
@@ -1227,6 +1448,66 @@ if (btnSystemsMenu && systemsDropdown) {
         if (willOpen) systemsDropdown.classList.remove('hidden');
     });
     systemsDropdown.addEventListener('click', (e) => e.stopPropagation());
+}
+
+const btnToggleInfiniteFuel = document.getElementById('btnToggleInfiniteFuel');
+function syncInfiniteFuelUI() {
+    const active = !!ship.infiniteFuel;
+    if (!btnToggleInfiniteFuel) return;
+    btnToggleInfiniteFuel.setAttribute('aria-checked', active ? 'true' : 'false');
+    const track = document.getElementById('infiniteFuelTrack');
+    const thumb = document.getElementById('infiniteFuelThumb');
+    if (track) {
+        track.className = active
+            ? 'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-emerald-500/80 border border-emerald-300/60 shadow-[0_0_10px_rgba(16,185,129,0.45)] transition-all duration-200'
+            : 'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-white/15 border border-white/15 transition-all duration-200';
+    }
+    if (thumb) {
+        thumb.className = active
+            ? 'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 translate-x-4'
+            : 'inline-block h-3.5 w-3.5 rounded-full bg-stone-300 shadow transition-transform duration-200 translate-x-0.5';
+    }
+}
+try {
+    ship.infiniteFuel = localStorage.getItem('eter_infinite_fuel_v1') === '1';
+} catch (e) {
+    ship.infiniteFuel = false;
+}
+syncInfiniteFuelUI();
+if (btnToggleInfiniteFuel) {
+    btnToggleInfiniteFuel.addEventListener('click', () => {
+        ship.infiniteFuel = !ship.infiniteFuel;
+        try {
+            localStorage.setItem('eter_infinite_fuel_v1', ship.infiniteFuel ? '1' : '0');
+        } catch (e) {}
+        syncInfiniteFuelUI();
+        if (typeof audio !== 'undefined' && audio && typeof audio.playChime === 'function') {
+            audio.init();
+            audio.playChime();
+        }
+    });
+}
+
+const btnWorldCategories = document.getElementById('btnWorldCategories');
+if (btnWorldCategories) {
+    btnWorldCategories.addEventListener('click', () => {
+        closeAllHudDropdowns();
+        if (typeof openWorldCategoriesModal === 'function') openWorldCategoriesModal();
+    });
+}
+const btnCloseWorldCategoriesModal = document.getElementById('btnCloseWorldCategoriesModal');
+if (btnCloseWorldCategoriesModal) {
+    btnCloseWorldCategoriesModal.addEventListener('click', () => {
+        if (typeof closeWorldCategoriesModal === 'function') closeWorldCategoriesModal();
+    });
+}
+const worldCategoriesModalEl = document.getElementById('worldCategoriesModal');
+if (worldCategoriesModalEl) {
+    worldCategoriesModalEl.addEventListener('click', (e) => {
+        if (e.target === worldCategoriesModalEl && typeof closeWorldCategoriesModal === 'function') {
+            closeWorldCategoriesModal();
+        }
+    });
 }
 
 if (worldObjectMenu) {

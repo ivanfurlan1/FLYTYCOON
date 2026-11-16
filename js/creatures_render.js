@@ -305,6 +305,10 @@ function drawCreatureByType(c, cr, timeSec) {
         case 'art_repair_bot': drawArtRepairBot(c, cr, timeSec); break;
         case 'art_hunter_drone': drawArtHunterDrone(c, cr, timeSec); break;
         case 'art_siege_mech': drawArtSiegeMech(c, cr, timeSec); break;
+        // 13. MISTY
+        case 'mist_lantern_moth': drawHollowLanternMoth(c, cr, timeSec); break;
+        case 'mist_veil_manta': drawOceanManta(c, cr, timeSec); break;
+        case 'mist_stag_sentinel': drawTerraStag(c, cr, timeSec); break;
         default: drawTerraStag(c, cr, timeSec); break;
     }
 

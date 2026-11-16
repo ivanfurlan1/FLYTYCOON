@@ -443,6 +443,16 @@ const PLANET_CATEGORY_RESOURCES = {
             { id: 'bismuth_g',    avg: 0.48, variance: 0.52, min: 0.10, max: 0.90 },
             { id: 'basalt_stone', avg: 0.50, variance: 0.34, min: 0.20, max: 0.84 }
         ]
+    },
+    misty: {
+        fuelProfile: { baseAvg: 0.62, variance: 0.36, minRichness: 0.26, maxRichness: 0.92, tierLabel: 'Rico (Condensado)', summary: 'Atmósfera saturada de vapor y condensado etéreo que recarga fácilmente los depósitos.' },
+        resources: [
+            { id: 'ether_fuel',   avg: 0.62, variance: 0.36, min: 0.26, max: 0.92 },
+            { id: 'silica',       avg: 0.60, variance: 0.32, min: 0.24, max: 0.88 },
+            { id: 'calcite',      avg: 0.58, variance: 0.34, min: 0.22, max: 0.88 },
+            { id: 'quartz_res',   avg: 0.52, variance: 0.44, min: 0.16, max: 0.90 },
+            { id: 'amber_resin',  avg: 0.44, variance: 0.48, min: 0.12, max: 0.86 }
+        ]
     }
 };
 
@@ -1361,7 +1371,10 @@ function drawExtractors(timeSec) {
 
         const tier = EXTRACTOR_TIERS[m.level] || EXTRACTOR_TIERS[1];
         const sunDot = Math.cos(m.angle - (p.lightAngle || 0));
-        const localNight = clamp(1 - (sunDot + 0.15) / 0.85, 0, 1);
+        const rawNight = clamp(1 - (sunDot + 0.15) / 0.85, 0, 1);
+        const extLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(mx, my, tier.height * 0.9) : null;
+        const extIllum = extLight ? clamp(extLight.illum * 1.15, 0, 1) : 0;
+        const localNight = clamp(rawNight * (1 - extIllum * 0.92), 0, 1);
         const isSelected = (selectedExtractorId === m.id);
         const isHovered = (hoveredExtractorId === m.id);
         const fuelFill = clamp((m.storedFuel || 0) / Math.max(1, tier.maxFuelBuffer), 0, 1);
@@ -2084,6 +2097,9 @@ function renderResourceInventoryModal() {
                 const refineBtn = def.fuelYield
                     ? `<button data-refine-id="${def.id}" class="mt-1.5 w-full py-1 rounded-lg text-[9.5px] font-mono-num font-semibold bg-amber-500/20 text-amber-200 border border-amber-400/40 hover:bg-amber-500/30 cursor-pointer">⚡ Refinar (+${def.fuelYield} L Éter)</button>`
                     : '';
+                const toRocketBtn = (typeof transferMaterialSuitToRocket === 'function')
+                    ? `<button data-suit-to-rocket="${def.id}" class="mt-1 w-full py-1 rounded-lg text-[9px] font-mono-num font-semibold bg-cyan-500/15 text-cyan-200 border border-cyan-400/35 hover:bg-cyan-500/25 cursor-pointer">🚀 Guardar en Cohete</button>`
+                    : '';
                 return `
                     <div class="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col justify-between gap-1">
                         <div class="flex items-start justify-between gap-2">
@@ -2098,12 +2114,58 @@ function renderResourceInventoryModal() {
                         </div>
                         <p class="text-[9.5px] text-stone-400 leading-tight">${def.desc}</p>
                         ${refineBtn}
+                        ${toRocketBtn}
                     </div>
                 `;
             }).join('');
             grid.querySelectorAll('button[data-refine-id]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     refineMineralToFuel(btn.dataset.refineId, 1);
+                    renderResourceInventoryModal();
+                });
+            });
+            grid.querySelectorAll('button[data-suit-to-rocket]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (typeof transferMaterialSuitToRocket === 'function') {
+                        transferMaterialSuitToRocket(btn.dataset.suitToRocket, 10);
+                        renderResourceInventoryModal();
+                    }
+                });
+            });
+        }
+    }
+
+    // Bodega del Cohete Activo
+    const rocketCargoGrid = document.getElementById('invRocketCargoGrid');
+    const rocketCargoLabel = document.getElementById('invRocketCargoLabel');
+    if (rocketCargoGrid && typeof ship !== 'undefined' && typeof ensureShipCargo === 'function') {
+        const cargo = ensureShipCargo(ship);
+        const cap = getShipCargoCapacity(ship);
+        const total = getShipCargoTotal(ship);
+        if (rocketCargoLabel) rocketCargoLabel.textContent = `${total} / ${cap} u en bodega del cohete`;
+
+        const cItems = Object.entries(cargo).filter(([, v]) => Math.floor(v) > 0);
+        if (cItems.length === 0) {
+            rocketCargoGrid.innerHTML = `<div class="col-span-full text-[11px] text-stone-400 italic py-2">La bodega del cohete está vacía. Puedes guardar materiales aquí para transportarlos entre planetas y construir viviendas.</div>`;
+        } else {
+            rocketCargoGrid.innerHTML = cItems.map(([id, qty]) => {
+                const def = getResourceDef(id);
+                return `
+                    <div class="p-2 rounded-xl bg-black/35 border border-cyan-400/20 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-sm">${def.icon}</span>
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-display font-semibold text-white truncate">${def.shortName}</div>
+                                <div class="text-[9.5px] font-mono-num" style="color:${def.color}">${Math.floor(qty)} u</div>
+                            </div>
+                        </div>
+                        <button data-rocket-to-suit="${def.id}" class="px-2 py-1 rounded-lg text-[9px] font-mono-num bg-white/10 hover:bg-white/20 text-stone-200 cursor-pointer shrink-0">⬇ Traje</button>
+                    </div>
+                `;
+            }).join('');
+            rocketCargoGrid.querySelectorAll('button[data-rocket-to-suit]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    transferMaterialRocketToSuit(btn.dataset.rocketToSuit, 10);
                     renderResourceInventoryModal();
                 });
             });

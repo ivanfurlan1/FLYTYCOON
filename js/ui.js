@@ -3,11 +3,52 @@
  */
 let holoCardTimer = null;
 
+function updateWorldMenuHullInfo() {
+    const hullBox = document.getElementById('worldMenuRocketHullBox');
+    if (!hullBox || hullBox.classList.contains('hidden') || typeof ship === 'undefined') return;
+
+    const maxH = Math.max(1, ship.maxHull || 100);
+    const curH = clamp(Math.round(ship.hull || 0), 0, maxH);
+    const hullPct = clamp(Math.round(((ship.hull || 0) / maxH) * 100), 0, 100);
+
+    let statusLabel = 'Óptimo';
+    let textColor = 'text-emerald-300';
+    let barColor = 'bg-emerald-400';
+    if (hullPct < 30) {
+        statusLabel = 'Crítico';
+        textColor = 'text-rose-300';
+        barColor = 'bg-rose-400';
+    } else if (hullPct < 60) {
+        statusLabel = 'Dañado';
+        textColor = 'text-amber-300';
+        barColor = 'bg-amber-400';
+    } else if (hullPct < 85) {
+        statusLabel = 'Desgaste leve';
+        textColor = 'text-sky-200';
+        barColor = 'bg-sky-400';
+    }
+
+    const stateEl = document.getElementById('worldMenuHullState');
+    if (stateEl) {
+        stateEl.textContent = `${statusLabel} · ${hullPct}%`;
+        stateEl.className = `font-mono-num text-[9.5px] font-semibold ${textColor}`;
+    }
+
+    const barEl = document.getElementById('worldMenuHullBar');
+    if (barEl) {
+        barEl.style.width = `${hullPct}%`;
+        barEl.className = `h-full rounded-full transition-all duration-150 ${barColor}`;
+    }
+
+    const hpEl = document.getElementById('worldMenuHullHp');
+    if (hpEl) {
+        hpEl.textContent = `${curH} / ${Math.round(maxH)} HP`;
+    }
+}
+
 function updateHUD(nearestPlanet, altFromSurface, speed) {
     const isEva = (typeof astronaut !== 'undefined' && !!astronaut.active);
-    const maxH = ship.maxHull || 100;
     const maxF = ship.maxFuel || 100;
-    const hullPct = clamp(Math.round((ship.hull / maxH) * 100), 0, 100);
     const fuelPct = clamp(Math.round((ship.fuel / maxF) * 100), 0, 100);
 
     // Alternar vitales entre Cohete y Astronauta en cabecera superior
@@ -16,20 +57,21 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     if (hudShipVitals) hudShipVitals.classList.toggle('hidden', isEva);
     if (hudEvaVitals) hudEvaVitals.classList.toggle('hidden', !isEva);
 
-    const uiHullVal = document.getElementById('uiHullVal');
-    if (uiHullVal) uiHullVal.textContent = `${hullPct}%`;
-    const hullBar = document.getElementById('uiHullBar');
-    if (hullBar) {
-        hullBar.style.height = `${hullPct}%`;
-        hullBar.className = `w-full transition-all duration-100 ${
-            hullPct < 30 ? 'bg-rose-400' : (hullPct < 60 ? 'bg-amber-300' : 'bg-stone-200')
-        }`;
-    }
+    updateWorldMenuHullInfo();
 
     const uiFuelVal = document.getElementById('uiFuelVal');
-    if (uiFuelVal) uiFuelVal.textContent = `${fuelPct}%`;
+    if (uiFuelVal) {
+        uiFuelVal.textContent = ship.infiniteFuel ? '∞' : `${fuelPct}%`;
+        uiFuelVal.classList.toggle('text-emerald-300', !!ship.infiniteFuel);
+        uiFuelVal.classList.toggle('text-amber-200', !ship.infiniteFuel);
+    }
     const fuelBar = document.getElementById('uiFuelBar');
-    if (fuelBar) fuelBar.style.height = `${fuelPct}%`;
+    if (fuelBar) {
+        fuelBar.style.height = ship.infiniteFuel ? '100%' : `${fuelPct}%`;
+        fuelBar.className = ship.infiniteFuel
+            ? 'w-full bg-gradient-to-t from-emerald-500 to-cyan-300 transition-all duration-100'
+            : 'w-full bg-gradient-to-t from-amber-500 to-amber-200 transition-all duration-100';
+    }
 
     const uiCoresVal = document.getElementById('uiCoresVal');
     if (uiCoresVal) uiCoresVal.textContent = ship.artifacts;
@@ -41,8 +83,8 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     const uiEvaJetpackBar = document.getElementById('uiEvaJetpackBar');
     if (typeof astronaut !== 'undefined') {
         const jPct = clamp(Math.round(astronaut.jetpackFuel), 0, 100);
-        if (uiEvaFuelText) uiEvaFuelText.textContent = `${jPct}%`;
-        if (uiEvaJetpackBar) uiEvaJetpackBar.style.width = `${jPct}%`;
+        if (uiEvaFuelText) uiEvaFuelText.textContent = ship.infiniteFuel ? '∞' : `${jPct}%`;
+        if (uiEvaJetpackBar) uiEvaJetpackBar.style.height = ship.infiniteFuel ? '100%' : `${jPct}%`;
     }
 
     const uiHudReserveVal = document.getElementById('uiHudReserveVal');
@@ -51,6 +93,14 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     }
     if (typeof refreshOpenResourceModals === 'function') {
         refreshOpenResourceModals(performance.now());
+    }
+    if (typeof refreshColonyUI === 'function') {
+        refreshColonyUI(performance.now());
+    }
+    const uiEvaColonyBadge = document.getElementById('uiEvaColonyBadge');
+    if (uiEvaColonyBadge && typeof planetaryColonists !== 'undefined' && typeof astronaut !== 'undefined' && astronaut.planet) {
+        const cnt = planetaryColonists.filter(c => c && c.planetKey === astronaut.planet.key).length;
+        uiEvaColonyBadge.textContent = cnt > 0 ? `${cnt} 👨‍🚀 (B)` : 'Abrir (B)';
     }
 
     const uiVelVal = document.getElementById('uiVelVal');
@@ -75,6 +125,38 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     if (isEva) {
         const evaSpeed = Math.round(Math.abs(astronaut.vTangential) + Math.abs(astronaut.vRadial));
         if (uiVelVal) uiVelVal.textContent = evaSpeed;
+    }
+
+    const uiWindLine = document.getElementById('uiWindLine');
+    const uiWindVal = document.getElementById('uiWindVal');
+    if (uiWindLine && uiWindVal) {
+        const activeWind = isEva ? astronaut.localWind : ship.localWind;
+        const inAtmoForWind = isEva
+            ? !!(astronaut.planet && !astronaut.inCavern)
+            : !!(nearestPlanet && (ship.currentAtmoWeight || 0) > 0.04);
+        const showWind = inAtmoForWind && activeWind && activeWind.hasWind;
+        uiWindLine.classList.toggle('hidden', !showWind);
+        if (showWind) {
+            const kmh = Math.round(activeWind.speed * 0.36);
+            const arrow = Math.abs(activeWind.radSpeed) > Math.abs(activeWind.tangSpeed) * 1.15
+                ? (activeWind.radSpeed >= 0 ? '↑' : '↓')
+                : (activeWind.tangSpeed >= 0 ? '→' : '←');
+            if (activeWind.inHurricaneEye) {
+                uiWindVal.textContent = `Ojo Calmo · ${kmh} km/h`;
+                uiWindVal.className = 'text-cyan-300 font-semibold';
+            } else if (activeWind.inVortex && activeWind.vortexIntensity > 0.28) {
+                uiWindVal.textContent = `${activeWind.vortexName || 'Vórtice'} · ${kmh} km/h`;
+                uiWindVal.className = 'text-amber-300 font-semibold';
+            } else if (kmh < 5) {
+                uiWindVal.textContent = 'Calma';
+                uiWindVal.className = 'text-stone-300 font-semibold';
+            } else {
+                uiWindVal.textContent = `${kmh} km/h ${arrow}`;
+                uiWindVal.className = kmh > 65
+                    ? 'text-amber-200 font-semibold'
+                    : (kmh > 35 ? 'text-sky-200 font-semibold' : 'text-stone-200 font-semibold');
+            }
+        }
     }
 
     const uiHeadingLine = document.getElementById('uiHeadingLine');
@@ -351,8 +433,9 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     const liveFill = document.getElementById('throttleLiveFill');
     const thumb = document.getElementById('throttleThumb');
     const throttlePct = document.getElementById('uiThrottlePct');
-    const isWarping = Boolean(ship.warping && ship.fuel > 0);
-    const isFiring = Boolean((ship.thrusting || setThrottle > 0.005) && ship.fuel > 0 && !isWarping);
+    const hasFuel = ship.fuel > 0 || !!ship.infiniteFuel;
+    const isWarping = Boolean(ship.warping && hasFuel);
+    const isFiring = Boolean((ship.thrusting || setThrottle > 0.005) && hasFuel && !isWarping);
 
     if (setFill) setFill.style.height = `${(effectiveThrottle * 100).toFixed(1)}%`;
     if (liveFill) liveFill.style.height = `${(liveThr * 100).toFixed(1)}%`;
@@ -360,7 +443,7 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
     if (throttlePct) {
         if (isWarping) {
             throttlePct.textContent = 'WARP';
-        } else if (ship.fuel <= 0 && (ship.thrusting || setThrottle > 0.005 || ship.warping)) {
+        } else if (!hasFuel && (ship.thrusting || setThrottle > 0.005 || ship.warping)) {
             throttlePct.textContent = '0%';
         } else {
             throttlePct.textContent = `${Math.round(effectiveThrottle * 100)}%`;
@@ -392,7 +475,8 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
 
 function showHoloCard(p, customTitle = null, customDesc = null) {
     const card = document.getElementById('planetHoloCard');
-    if (!card) return;
+    if (card) card.classList.add('hidden');
+    return;
     const dot = document.getElementById('holoDot');
     const title = document.getElementById('holoPlanetName');
     const badge = document.getElementById('holoBiomeBadge');
@@ -431,7 +515,13 @@ function showHoloCard(p, customTitle = null, customDesc = null) {
         const faunaInfo = (p.creatures && p.creatures.length > 0)
             ? ` · Fauna: ${p.creaturesSummary || `${p.creatures.length} seres detectados`}`
             : ' · Mundo Inerte (Sin seres vivos)';
-        status.textContent = `Gravedad: ${gravVal}G · Peligro: ${p.hazardLevel}${regInfo}${faunaInfo}. ${p.archetype.desc}`;
+        const windInfo = p.wind
+            ? ` · Viento: ${p.wind.regimeName}${p.wind.personalityLabel && p.wind.hasWind ? ` (${p.wind.personalityLabel})` : ''}`
+            : '';
+        const fogInfo = (p.fog && p.fog.hasFog)
+            ? ` · Neblina: ${p.fog.personalityLabel}`
+            : '';
+        status.textContent = `Gravedad: ${gravVal}G · Peligro: ${p.hazardLevel}${regInfo}${windInfo}${fogInfo}${faunaInfo}. ${p.archetype.desc}`;
     }
 
     card.classList.remove('opacity-0', '-translate-y-3');
@@ -468,6 +558,7 @@ function registerCodex(p) {
             color: rgbStr(rimCol, 1),
             gravity: `${(p.gravityForce / 285).toFixed(1)}G`,
             atmo: `${(p.atmoDensity || 1).toFixed(2)} atm`,
+            wind: p.wind ? `${p.wind.regimeName}${p.wind.hasWind && p.wind.personalityLabel ? ` (${p.wind.personalityLabel})` : ''}` : 'Variable',
             rotation: `${p.rotationPeriod || 260}s (${(p.rotationSpeed > 0 ? 'Directa' : 'Retrógrada')})`,
             hazard: p.hazardLevel,
             minerals: mineralsStr,
@@ -1034,6 +1125,89 @@ function teleportShipToPlanet(p) {
 }
 
 /**
+ * Busca el planeta no visitado más cercano a la nave perteneciente a la categoría indicada (classId)
+ */
+function findNearestUnvisitedPlanetByCategory(classId) {
+    if (typeof ship === 'undefined' || typeof getSectorPlanets !== 'function' || typeof SECTOR_SIZE === 'undefined') return null;
+    const cx = Math.round(ship.x / SECTOR_SIZE);
+    const cy = Math.round(ship.y / SECTOR_SIZE);
+    const maxRing = 20;
+    let best = null;
+    let bestDist = Infinity;
+
+    for (let r = 0; r <= maxRing; r++) {
+        if (best && (r - 1) * SECTOR_SIZE > bestDist) break;
+        for (let dx = -r; dx <= r; dx++) {
+            for (let dy = -r; dy <= r; dy++) {
+                if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                const list = getSectorPlanets(cx + dx, cy + dy);
+                if (!list) continue;
+                for (const p of list) {
+                    if (!p || p.visited) continue;
+                    if (!p.archetype || p.archetype.classId !== classId) continue;
+                    const d = Math.hypot(p.x - ship.x, p.y - ship.y);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        best = p;
+                    }
+                }
+            }
+        }
+    }
+    return best;
+}
+
+function closeWorldCategoriesModal() {
+    const modal = document.getElementById('worldCategoriesModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function openWorldCategoriesModal() {
+    const modal = document.getElementById('worldCategoriesModal');
+    const grid = document.getElementById('worldCategoriesGrid');
+    if (!modal || !grid) return;
+
+    const classes = (typeof PLANET_CLASSES !== 'undefined') ? Object.values(PLANET_CLASSES) : [];
+    grid.innerHTML = '';
+
+    for (const cat of classes) {
+        const archCount = (typeof ARCHETYPES !== 'undefined')
+            ? ARCHETYPES.filter(a => a.classId === cat.id).length
+            : 0;
+        const fuelLabel = (typeof PLANET_CATEGORY_RESOURCES !== 'undefined' && PLANET_CATEGORY_RESOURCES[cat.id]?.fuelProfile?.tierLabel)
+            ? PLANET_CATEGORY_RESOURCES[cat.id].fuelProfile.tierLabel
+            : 'Variable';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full p-3 rounded-2xl bg-white/[0.04] hover:bg-sky-500/15 border border-white/10 hover:border-sky-400/40 transition-all text-left flex items-center justify-between gap-3 cursor-pointer group';
+        btn.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="w-9 h-9 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-lg shrink-0">${cat.icon || '🪐'}</span>
+                <div class="min-w-0">
+                    <div class="font-display text-xs sm:text-[13px] font-semibold text-white group-hover:text-sky-200 truncate">${cat.name}</div>
+                    <div class="font-mono-num text-[9.5px] text-stone-400 mt-0.5 truncate">${archCount} arquetipos · Éter: ${fuelLabel}</div>
+                </div>
+            </div>
+            <span class="font-mono-num text-[10px] text-sky-300/80 group-hover:text-sky-200 shrink-0">Ir →</span>
+        `;
+        btn.addEventListener('click', () => {
+            const target = findNearestUnvisitedPlanetByCategory(cat.id);
+            closeWorldCategoriesModal();
+            if (target) {
+                teleportShipToPlanet(target);
+            } else if (typeof showHoloCard === 'function') {
+                const refPlanet = (typeof ship !== 'undefined' && ship.nearestPlanet) ? ship.nearestPlanet : { name: 'Escáner Estelar', archetype: {} };
+                showHoloCard(refPlanet, 'SIN MUNDOS DISPONIBLES', `No se encontró ningún mundo sin visitar de "${cat.name}" en el radio de búsqueda.`);
+            }
+        });
+        grid.appendChild(btn);
+    }
+
+    modal.classList.remove('hidden');
+}
+
+/**
  * Selecciona un planeta para mostrar en el Dossier táctico
  */
 function selectStarMapPlanet(p) {
@@ -1102,6 +1276,16 @@ function updateStarMapDossier(p) {
 
     if (gravEl) gravEl.textContent = `${(p.gravityForce / 285).toFixed(1)} G`;
     if (atmoEl) atmoEl.textContent = `${(p.atmoDensity || 1.0).toFixed(2)} atm`;
+    const windEl = document.getElementById('dossierWind');
+    if (windEl) {
+        if (!p.wind && typeof initPlanetWind === 'function') initPlanetWind(p);
+        if (!p.fog && typeof initPlanetFog === 'function') initPlanetFog(p);
+        const wTxt = p.wind
+            ? (p.wind.hasWind ? `${p.wind.regimeName} (${p.wind.personalityLabel})` : p.wind.regimeName)
+            : 'Variable';
+        const fTxt = (p.fog && p.fog.hasFog) ? ` · ${p.fog.personalityLabel}` : '';
+        windEl.textContent = `${wTxt}${fTxt}`;
+    }
 
     if (hazardBadge) {
         hazardBadge.textContent = p.hazardLevel || 'Seguro';
@@ -1173,7 +1357,7 @@ function updateStarMapDirectory() {
     } else if (starMapState.filter === 'rings') {
         planets = planets.filter(p => p.hasRings);
     } else if (starMapState.filter === 'rare') {
-        planets = planets.filter(p => p.isHollow || p.isComet || p.isSingularity || p.isMagnetar || p.isEyeballWorld || ['hollow', 'shattered', 'living', 'megalithic', 'cometary', 'anomaly', 'gravitic', 'artificial', 'temporal'].includes(p.archetype?.classId));
+        planets = planets.filter(p => p.isHollow || p.isComet || p.isSingularity || p.isMagnetar || p.isEyeballWorld || ['hollow', 'shattered', 'living', 'megalithic', 'cometary', 'anomaly', 'gravitic', 'artificial', 'temporal', 'misty'].includes(p.archetype?.classId));
     }
 
     // Filtrado por buscador de texto
@@ -1261,6 +1445,7 @@ function updateStarMapDirectory() {
                         ${p.archetype?.classId === 'gravitic' ? '<span title="Pozo Gravitatorio / Púlsar" class="text-[9px]">🌀</span>' : ''}
                         ${p.archetype?.classId === 'artificial' ? '<span title="Megaestructura Sintética" class="text-[9px]">🛸</span>' : ''}
                         ${p.archetype?.classId === 'temporal' ? '<span title="Mundo Efímero / Tormenta Cósmica" class="text-[9px]">⚡</span>' : ''}
+                        ${p.archetype?.classId === 'misty' ? '<span title="Planeta de Niebla Perpetua" class="text-[9px]">🌫️</span>' : ''}
                         ${p.creatures && p.creatures.length > 0 ? '<span title="Fauna viva detectada" class="text-[9px]">🐾</span>' : ''}
                         ${p.hasRings ? '<span title="Anillos 3D" class="text-[9px]">🪐</span>' : ''}
                     </div>

@@ -161,6 +161,7 @@ function captureCurrentGameState() {
         passengers: ship.passengers || 1,
         smokeScale: ship.smokeScale || 1.0,
         artifacts: ship.artifacts || 0,
+        cargo: safeDeepClone(ship.cargo || {}),
         throttle: ship.throttle || 0,
         isGrounded: !!ship.isGrounded,
         sasEnabled: ship.sasEnabled !== false,
@@ -223,6 +224,10 @@ function captureCurrentGameState() {
         waypointsList,
         planetaryBases: typeof planetaryBases !== 'undefined' ? safeDeepClone(planetaryBases) : [],
         planetaryExtractors: typeof planetaryExtractors !== 'undefined' ? safeDeepClone(planetaryExtractors) : [],
+        planetaryLights: typeof planetaryLights !== 'undefined' ? safeDeepClone(planetaryLights) : [],
+        planetaryHouses: typeof planetaryHouses !== 'undefined' ? safeDeepClone(planetaryHouses) : [],
+        planetaryDepots: typeof planetaryDepots !== 'undefined' ? safeDeepClone(planetaryDepots) : [],
+        planetaryColonists: typeof planetaryColonists !== 'undefined' ? safeDeepClone(planetaryColonists) : [],
         parkedShips: typeof parkedShips !== 'undefined' ? safeDeepClone(parkedShips) : [],
         freeVessels: typeof freeVessels !== 'undefined' ? safeDeepClone(freeVessels) : [],
         harvestedNodes
@@ -291,6 +296,40 @@ function restoreGameState(state) {
             planetaryExtractors.push(...safeDeepClone(validExts));
         }
     }
+    if (typeof planetaryLights !== 'undefined') {
+        planetaryLights.length = 0;
+        if (Array.isArray(state.planetaryLights)) {
+            const validLights = state.planetaryLights.filter(l => l && typeof l === 'object' && l.planetKey);
+            planetaryLights.push(...safeDeepClone(validLights));
+        }
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.closeLightInspector) {
+            LightingEngine.closeLightInspector();
+            LightingEngine.exitPlacementMode();
+        }
+    }
+    if (typeof planetaryHouses !== 'undefined') {
+        planetaryHouses.length = 0;
+        if (Array.isArray(state.planetaryHouses)) {
+            planetaryHouses.push(...safeDeepClone(state.planetaryHouses.filter(h => h && typeof h === 'object' && h.planetKey)));
+        }
+    }
+    if (typeof planetaryDepots !== 'undefined') {
+        planetaryDepots.length = 0;
+        if (Array.isArray(state.planetaryDepots)) {
+            planetaryDepots.push(...safeDeepClone(state.planetaryDepots.filter(d => d && typeof d === 'object' && d.planetKey)));
+        }
+    }
+    if (typeof planetaryColonists !== 'undefined') {
+        planetaryColonists.length = 0;
+        if (Array.isArray(state.planetaryColonists)) {
+            planetaryColonists.push(...safeDeepClone(state.planetaryColonists.filter(c => c && typeof c === 'object' && c.planetKey)));
+        }
+    }
+    if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.exitPlacementMode) {
+        ColonyBuildings.exitPlacementMode();
+    }
+    if (typeof closeColonyInspector === 'function') closeColonyInspector();
+    if (typeof closeColonyModal === 'function') closeColonyModal();
     if (typeof parkedShips !== 'undefined') {
         parkedShips.length = 0;
         if (Array.isArray(state.parkedShips)) {
@@ -349,6 +388,9 @@ function restoreGameState(state) {
             ship.modelKey = 'vesper';
             if (typeof applyRocketModel === 'function') applyRocketModel(ship, 'vesper');
         }
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.syncRocketLightsHudBtn) {
+            LightingEngine.syncRocketLightsHudBtn();
+        }
         const fin = (v, fb) => (typeof v === 'number' && Number.isFinite(v)) ? v : fb;
         const posFin = (v, fb) => (typeof v === 'number' && Number.isFinite(v) && v > 0) ? v : fb;
 
@@ -368,6 +410,7 @@ function restoreGameState(state) {
         ship.passengers = posFin(ss.passengers, ship.passengers || 1);
         ship.smokeScale = posFin(ss.smokeScale, ship.smokeScale || 1.0);
         ship.artifacts = Math.max(0, fin(ss.artifacts, 0));
+        ship.cargo = (ss.cargo && typeof ss.cargo === 'object') ? safeDeepClone(ss.cargo) : {};
         ship.throttle = Math.max(0, Math.min(1, fin(ss.throttle, 0)));
         ship.isGrounded = !!ss.isGrounded;
         ship.sasEnabled = ss.sasEnabled !== false;
@@ -608,6 +651,19 @@ function createNewWorldAndEnter(nameInput, seedInput) {
     if (typeof clearAllWaypoints === 'function') clearAllWaypoints();
     if (typeof planetaryBases !== 'undefined') planetaryBases.length = 0;
     if (typeof planetaryExtractors !== 'undefined') planetaryExtractors.length = 0;
+    if (typeof planetaryLights !== 'undefined') planetaryLights.length = 0;
+    if (typeof planetaryHouses !== 'undefined') planetaryHouses.length = 0;
+    if (typeof planetaryDepots !== 'undefined') planetaryDepots.length = 0;
+    if (typeof planetaryColonists !== 'undefined') planetaryColonists.length = 0;
+    if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.exitPlacementMode) {
+        ColonyBuildings.exitPlacementMode();
+    }
+    if (typeof closeColonyInspector === 'function') closeColonyInspector();
+    if (typeof closeColonyModal === 'function') closeColonyModal();
+    if (typeof LightingEngine !== 'undefined' && LightingEngine.closeLightInspector) {
+        LightingEngine.closeLightInspector();
+        LightingEngine.exitPlacementMode();
+    }
     if (typeof closeExtractorModal === 'function') closeExtractorModal();
     if (typeof closeResourceInventoryModal === 'function') closeResourceInventoryModal();
     if (typeof parkedShips !== 'undefined') parkedShips.length = 0;
@@ -616,6 +672,7 @@ function createNewWorldAndEnter(nameInput, seedInput) {
         ship.customRocket = null;
         ship.modelKey = 'vesper';
         ship.artifacts = 0;
+        ship.cargo = {};
         if (typeof applyRocketModel === 'function') applyRocketModel(ship, 'vesper');
     }
     if (typeof astronaut !== 'undefined') {

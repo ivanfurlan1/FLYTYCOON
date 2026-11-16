@@ -2689,8 +2689,170 @@ const ROCKET_PARTS_CATALOG = {
                 ctx.closePath();
             });
         }
+    },
+
+    // ========================================================================
+    // ILUMINACIÓN AEROESPACIAL (FOCOS, PROYECTORES Y FAROS DE ATERRIZAJE)
+    // ========================================================================
+    light_compact: {
+        id: 'light_compact',
+        category: 'lights',
+        name: 'Foco Compacto LED',
+        tagline: 'Luz ligera de casco para alumbrar cercanías, patas de aterrizaje o el fuselaje',
+        width: 10,
+        height: 12,
+        dryMass: 0.04,
+        hull: 65,
+        isLight: true,
+        radialAttachable: true,
+        dragCoeff: 0.04,
+        defaultColor: '#e2e8f0',
+        defaultTexture: 'smooth',
+        defaultLightColor: '#eef6ff',
+        defaultLightIntensity: 0.9,
+        defaultLightSpread: 48,
+        defaultLightAimDeg: -120,
+        baseLightRange: 270,
+        emitOffsetX: -3,
+        emitOffsetY: 0,
+        snapNodes: [
+            { id: 'mount', type: 'radial', dir: 'right', x: 5, y: 0 }
+        ],
+        draw: (ctx, w, h, s) => drawRocketLightPart(ctx, w, h, s, ROCKET_PARTS_CATALOG.light_compact, 1)
+    },
+
+    light_spotlight: {
+        id: 'light_spotlight',
+        category: 'lights',
+        name: 'Proyector Direccional',
+        tagline: 'Foco articulado de potencia media para exploración nocturna y aproximación',
+        width: 14,
+        height: 16,
+        dryMass: 0.08,
+        hull: 80,
+        isLight: true,
+        radialAttachable: true,
+        dragCoeff: 0.06,
+        defaultColor: '#cbd5e1',
+        defaultTexture: 'steel',
+        defaultLightColor: '#ffe6b8',
+        defaultLightIntensity: 1.25,
+        defaultLightSpread: 32,
+        defaultLightAimDeg: -135,
+        baseLightRange: 600,
+        emitOffsetX: -4,
+        emitOffsetY: 0,
+        snapNodes: [
+            { id: 'mount', type: 'radial', dir: 'right', x: 7, y: 0 }
+        ],
+        draw: (ctx, w, h, s) => drawRocketLightPart(ctx, w, h, s, ROCKET_PARTS_CATALOG.light_spotlight, 2)
+    },
+
+    light_searchlight: {
+        id: 'light_searchlight',
+        category: 'lights',
+        name: 'Faro Largo Alcance',
+        tagline: 'Reflector Xenón de alta penetración para iluminar nubes, neblina y el terreno desde órbita baja',
+        width: 16,
+        height: 20,
+        dryMass: 0.14,
+        hull: 95,
+        isLight: true,
+        radialAttachable: true,
+        dragCoeff: 0.08,
+        defaultColor: '#94a3b8',
+        defaultTexture: 'steel',
+        defaultLightColor: '#eef6ff',
+        defaultLightIntensity: 1.55,
+        defaultLightSpread: 20,
+        defaultLightAimDeg: -155,
+        baseLightRange: 1280,
+        emitOffsetX: -4,
+        emitOffsetY: 0,
+        snapNodes: [
+            { id: 'mount', type: 'radial', dir: 'right', x: 8, y: 0 }
+        ],
+        draw: (ctx, w, h, s) => drawRocketLightPart(ctx, w, h, s, ROCKET_PARTS_CATALOG.light_searchlight, 3)
+    },
+
+    light_landing_bar: {
+        id: 'light_landing_bar',
+        category: 'lights',
+        name: 'Barra de Aterrizaje',
+        tagline: 'Matriz LED de haz abierto diseñada para iluminar ampliamente la zona de descenso',
+        width: 24,
+        height: 10,
+        dryMass: 0.10,
+        hull: 90,
+        isLight: true,
+        radialAttachable: true,
+        dragCoeff: 0.07,
+        defaultColor: '#475569',
+        defaultTexture: 'carbon',
+        defaultLightColor: '#eef6ff',
+        defaultLightIntensity: 1.25,
+        defaultLightSpread: 84,
+        defaultLightAimDeg: 180,
+        baseLightRange: 490,
+        emitOffsetX: 0,
+        emitOffsetY: 3,
+        snapNodes: [
+            { id: 'top', type: 'stack', dir: 'top', x: 0, y: -5 },
+            { id: 'mount', type: 'radial', dir: 'right', x: 12, y: 0 }
+        ],
+        draw: (ctx, w, h, s) => drawRocketLightPart(ctx, w, h, s, ROCKET_PARTS_CATALOG.light_landing_bar, 4)
     }
 };
+
+function drawRocketLightPart(ctx, w, h, s, def, variant) {
+    applyPartBodyFinish(ctx, w, h, s, def, () => {
+        ctx.beginPath();
+        if (variant === 4) {
+            ctx.roundRect(-w / 2, -h / 2, w, h, 2.5);
+        } else {
+            ctx.roundRect(-w / 2 + 1.5, -h / 2 + 1.5, w - 2, h - 3, 2.5);
+        }
+    });
+
+    const isEnabled = !s || s.lightEnabled !== false;
+    const lightCol = (s && s.lightColor) || def.defaultLightColor || '#eef6ff';
+    const aimDeg = (s && typeof s.lightAimDeg === 'number') ? s.lightAimDeg : (def.defaultLightAimDeg ?? -90);
+    const aimRad = (aimDeg * Math.PI) / 180;
+    const ex = def.emitOffsetX || 0;
+    const ey = def.emitOffsetY || 0;
+
+    if (variant === 4) {
+        // Barra LED múltiple
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-w * 0.42, h * 0.12, w * 0.84, h * 0.32);
+        ctx.fillStyle = isEnabled ? lightCol : '#475569';
+        const leds = 4;
+        for (let i = 0; i < leds; i++) {
+            const lx = -w * 0.34 + (i / (leds - 1)) * (w * 0.68);
+            ctx.beginPath();
+            ctx.arc(lx, h * 0.28, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        // Soporte radial + cabezal orientable
+        ctx.save();
+        ctx.translate(ex, ey);
+        ctx.rotate(aimRad);
+        const headW = variant === 3 ? 8 : (variant === 2 ? 6.5 : 5);
+        const headH = variant === 3 ? 8.5 : (variant === 2 ? 6.5 : 5);
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.roundRect(-headW * 0.5, -headH * 0.55, headW, headH, 1.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isEnabled ? lightCol : '#475569';
+        ctx.fillRect(-headW * 0.4, -headH * 0.68, headW * 0.8, 2.2);
+        ctx.restore();
+    }
+}
 
 // --- FUNCIONES DE DIBUJO LIMPIO ESTILO SFS ---
 function drawSimpleTank(ctx, w, h, s, def) {
@@ -3509,6 +3671,11 @@ class RocketBuilderEngine {
                 mirrorPart.deployAnim = part.deployAnim;
                 mirrorPart.customWidth = part.customWidth;
                 mirrorPart.customHeight = part.customHeight;
+                mirrorPart.lightEnabled = part.lightEnabled;
+                mirrorPart.lightIntensity = part.lightIntensity;
+                mirrorPart.lightSpread = part.lightSpread;
+                mirrorPart.lightAimDeg = part.lightAimDeg;
+                mirrorPart.lightColor = part.lightColor;
             } else {
                 const mirrorId = 'part_' + (this.instanceCounter++);
                 part.mirrorId = mirrorId;
@@ -3905,6 +4072,60 @@ class RocketBuilderEngine {
                 this.playClickSound();
             });
         }
+
+        // Controles de Luces en el Inspector VAB
+        const lightEnabledChk = document.getElementById('bldInspLightEnabled');
+        if (lightEnabledChk) {
+            lightEnabledChk.addEventListener('change', (e) => {
+                this.updateSelectedPartProps({ lightEnabled: !!e.target.checked });
+            });
+        }
+        const lightIntSlider = document.getElementById('bldInspLightIntensitySlider');
+        if (lightIntSlider) {
+            lightIntSlider.addEventListener('input', (e) => {
+                this.updateSelectedPartProps({ lightIntensity: parseInt(e.target.value, 10) / 100 }, false);
+            });
+            lightIntSlider.addEventListener('change', () => this.saveHistory());
+        }
+        const lightSpreadSlider = document.getElementById('bldInspLightSpreadSlider');
+        if (lightSpreadSlider) {
+            lightSpreadSlider.addEventListener('input', (e) => {
+                this.updateSelectedPartProps({ lightSpread: parseInt(e.target.value, 10) }, false);
+            });
+            lightSpreadSlider.addEventListener('change', () => this.saveHistory());
+        }
+        const lightAimSlider = document.getElementById('bldInspLightAimSlider');
+        if (lightAimSlider) {
+            lightAimSlider.addEventListener('input', (e) => {
+                this.updateSelectedPartProps({ lightAimDeg: parseInt(e.target.value, 10) }, false);
+            });
+            lightAimSlider.addEventListener('change', () => this.saveHistory());
+        }
+        document.querySelectorAll('.bld-light-aim-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const deg = parseInt(btn.getAttribute('data-aim'), 10);
+                if (!isNaN(deg)) {
+                    this.updateSelectedPartProps({ lightAimDeg: deg });
+                    this.playClickSound();
+                }
+            });
+        });
+        document.querySelectorAll('.bld-light-color-swatch').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const col = btn.getAttribute('data-color');
+                if (col) {
+                    this.updateSelectedPartProps({ lightColor: col });
+                    this.playClickSound();
+                }
+            });
+        });
+        const lightColIn = document.getElementById('bldInspLightColorInput');
+        if (lightColIn) {
+            lightColIn.addEventListener('input', (e) => {
+                this.updateSelectedPartProps({ lightColor: e.target.value }, false);
+            });
+            lightColIn.addEventListener('change', () => this.saveHistory());
+        }
     }
 
     updateSelectedPartProps(props, pushHistory = true) {
@@ -4031,6 +4252,45 @@ class RocketBuilderEngine {
                 });
             } else {
                 transRow.classList.add('hidden');
+            }
+        }
+
+        // Configuración de Luz (Focos / Proyectores / Faros)
+        const lightRow = document.getElementById('bldInspLightRow');
+        if (lightRow) {
+            if (def.isLight) {
+                lightRow.classList.remove('hidden');
+                const lEnabled = part.lightEnabled !== false;
+                const lInt = Math.round((typeof part.lightIntensity === 'number' ? part.lightIntensity : (def.defaultLightIntensity || 1.0)) * 100);
+                const lSpr = Math.round(typeof part.lightSpread === 'number' ? part.lightSpread : (def.defaultLightSpread || 45));
+                const lAim = Math.round(typeof part.lightAimDeg === 'number' ? part.lightAimDeg : (def.defaultLightAimDeg ?? -90));
+                const lCol = part.lightColor || def.defaultLightColor || '#eef6ff';
+
+                const chk = document.getElementById('bldInspLightEnabled');
+                const intS = document.getElementById('bldInspLightIntensitySlider');
+                const intV = document.getElementById('bldInspLightIntensityVal');
+                const sprS = document.getElementById('bldInspLightSpreadSlider');
+                const sprV = document.getElementById('bldInspLightSpreadVal');
+                const aimS = document.getElementById('bldInspLightAimSlider');
+                const aimV = document.getElementById('bldInspLightAimVal');
+                const colIn = document.getElementById('bldInspLightColorInput');
+
+                if (chk) chk.checked = lEnabled;
+                if (intS) intS.value = lInt;
+                if (intV) intV.textContent = `${lInt}%`;
+                if (sprS) sprS.value = lSpr;
+                if (sprV) sprV.textContent = `${lSpr}°`;
+                if (aimS) aimS.value = lAim;
+                if (aimV) aimV.textContent = `${lAim}°`;
+                if (colIn) colIn.value = lCol;
+
+                document.querySelectorAll('.bld-light-color-swatch').forEach(btn => {
+                    const c = (btn.getAttribute('data-color') || '').toLowerCase();
+                    btn.style.outline = (c === lCol.toLowerCase()) ? '2px solid #fbbf24' : 'none';
+                    btn.style.outlineOffset = '1px';
+                });
+            } else {
+                lightRow.classList.add('hidden');
             }
         }
     }
@@ -5369,6 +5629,45 @@ class RocketBuilderEngine {
             const drawState = def.isFairing ? { ...p, inBuilder: true } : p;
             def.draw(ctx, sz.width, sz.height, drawState);
 
+            // Previsualización en vivo del haz de luz en el plano CAD del Taller VAB
+            if (def.isLight && p.lightEnabled !== false) {
+                const aimDeg = (typeof p.lightAimDeg === 'number') ? p.lightAimDeg : (def.defaultLightAimDeg ?? -90);
+                const spreadDeg = (typeof p.lightSpread === 'number') ? p.lightSpread : (def.defaultLightSpread || 45);
+                const intensity = (typeof p.lightIntensity === 'number') ? p.lightIntensity : (def.defaultLightIntensity || 1.0);
+                const lightHex = p.lightColor || def.defaultLightColor || '#eef6ff';
+                const ex = def.emitOffsetX || 0;
+                const ey = def.emitOffsetY || 0;
+                const coneRad = ((spreadDeg * 0.5) * Math.PI) / 180;
+                const baseAngle = ((aimDeg - 90) * Math.PI) / 180;
+                const prevLen = Math.min(180, (def.baseLightRange || 400) * 0.22) * (0.65 + 0.35 * intensity);
+                const rgb = (typeof hexToRgbTuple === 'function') ? hexToRgbTuple(lightHex) : [238, 246, 255];
+
+                ctx.save();
+                ctx.translate(ex, ey);
+                ctx.globalCompositeOperation = 'lighter';
+                if (typeof getBeamTextureSprite === 'function') {
+                    const bTex = getBeamTextureSprite(spreadDeg, rgb);
+                    const sx = prevLen / bTex.texLen;
+                    const sy = (prevLen * bTex.sinOuter) / bTex.maxY;
+                    ctx.rotate(baseAngle);
+                    ctx.globalAlpha = Math.min(0.95, (isSelected ? 0.68 : 0.36) * Math.min(1.4, intensity));
+                    ctx.drawImage(bTex.canvas, -bTex.originX * sx, -(bTex.size * 0.5) * sy, bTex.size * sx, bTex.size * sy);
+                } else {
+                    const gCone = ctx.createRadialGradient(0, 0, 1, 0, 0, prevLen);
+                    const baseA = (isSelected ? 0.44 : 0.22) * Math.min(1.4, intensity);
+                    gCone.addColorStop(0.0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${baseA.toFixed(3)})`);
+                    gCone.addColorStop(0.55, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${(baseA * 0.32).toFixed(3)})`);
+                    gCone.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+                    ctx.fillStyle = gCone;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, prevLen, baseAngle - coneRad, baseAngle + coneRad);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
             if (isFloating) {
                 ctx.save();
                 ctx.setLineDash([4, 3]);
@@ -5759,6 +6058,9 @@ class RocketBuilderEngine {
         }
 
         updateStageHudButton();
+        if (typeof LightingEngine !== 'undefined' && LightingEngine.syncRocketLightsHudBtn) {
+            LightingEngine.syncRocketLightsHudBtn();
+        }
         closeRocketBuilder();
 
         const intro = document.getElementById('introOverlay');
@@ -6484,6 +6786,7 @@ function compileCustomRocketModel(parts, name = 'Cohete Modular') {
     const engines = [];
     const rcsList = [];
     const padsList = [];
+    const lights = [];
 
     for (const p of parts) {
         const def = ROCKET_PARTS_CATALOG[p.partDefId];
@@ -6539,6 +6842,46 @@ function compileCustomRocketModel(parts, name = 'Cohete Modular') {
                 isPad: true
             });
         }
+
+        if (def.isLight) {
+            const rotRad = ((p.rotation || 0) * Math.PI) / 180;
+            const cosR = Math.cos(rotRad);
+            const sinR = Math.sin(rotRad);
+            const ex = p.flipped ? -(def.emitOffsetX || 0) : (def.emitOffsetX || 0);
+            const ey = def.emitOffsetY || 0;
+            const worldEmitX = p.x + ex * cosR - ey * sinR;
+            const worldEmitY = p.y + ex * sinR + ey * cosR;
+
+            const aimDeg = (typeof p.lightAimDeg === 'number') ? p.lightAimDeg : (def.defaultLightAimDeg ?? -90);
+            const aimRad = (aimDeg * Math.PI) / 180;
+            const ax0 = Math.sin(aimRad);
+            const ay0 = -Math.cos(aimRad);
+            const ax1 = p.flipped ? -ax0 : ax0;
+            const ay1 = ay0;
+            const axB = ax1 * cosR - ay1 * sinR;
+            const ayB = ax1 * sinR + ay1 * cosR;
+            const localAngle = Math.atan2(axB, -ayB);
+
+            const colorHex = p.lightColor || def.defaultLightColor || '#eef6ff';
+            const rgb = (typeof hexToRgbTuple === 'function') ? hexToRgbTuple(colorHex) : [238, 246, 255];
+
+            lights.push({
+                instanceId: p.instanceId,
+                partDefId: p.partDefId,
+                name: def.name,
+                enabled: p.lightEnabled !== false,
+                flightX: -(worldEmitY - comY) * FLIGHT_SCALE,
+                flightY: (worldEmitX - comX) * FLIGHT_SCALE,
+                localAngle,
+                aimDeg,
+                intensity: (typeof p.lightIntensity === 'number') ? p.lightIntensity : (def.defaultLightIntensity || 1.0),
+                spreadDeg: (typeof p.lightSpread === 'number') ? p.lightSpread : (def.defaultLightSpread || 45),
+                baseRange: def.baseLightRange || 450,
+                colorHex,
+                rgb,
+                headSize: Math.max(6, (def.width || 12) * 0.55)
+            });
+        }
     }
 
     const twr = totalMass > 0 ? Math.max(0, netThrustUp) / (totalMass * 9.81) : 0;
@@ -6592,6 +6935,7 @@ function compileCustomRocketModel(parts, name = 'Cohete Modular') {
         cot: { x: cotX, y: cotY },
         engines,
         rcsList,
+        lights,
         rcsAuthority: rcsList.reduce((acc, r) => acc + (r.power || 1.0) * Math.max(0.5, Math.hypot(r.flightX, r.flightY) / 18), 0),
         electricalGen,
         bounds,
@@ -7208,7 +7552,7 @@ function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
     const com = s.customRocket.com || { x: 0, y: 0 };
     const scale = (sScale || 1.0) * FLIGHT_SCALE;
 
-    const Z_MAP = { structures: 1, tanks: 2, engines: 3, capsules: 4, aero: 5, solar: 6, rcs: 7, fairings: 9 };
+    const Z_MAP = { structures: 1, tanks: 2, engines: 3, capsules: 4, aero: 5, solar: 6, rcs: 7, lights: 8, fairings: 9 };
     const sortedParts = [...parts].sort((a, b) => {
         const defA = ROCKET_PARTS_CATALOG[a.partDefId];
         const defB = ROCKET_PARTS_CATALOG[b.partDefId];
@@ -7218,9 +7562,10 @@ function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
     });
 
     const night = Math.max(0, Math.min(1, localNight || 0));
+    const rl = (typeof LightingEngine !== 'undefined') ? LightingEngine.sampleRocketLighting(s) : null;
 
-    // De día (o espacio iluminado), render directo sin capa intermedia
-    if (night <= 0.005 || typeof document === 'undefined') {
+    // De día sin luz intensa cercana, render directo sin capa intermedia
+    if ((night <= 0.005 && (!rl || rl.strength <= 0.06)) || typeof document === 'undefined') {
         ctx.save();
         _renderCustomRocketParts(ctx, sortedParts, com, scale);
         ctx.restore();
@@ -7282,16 +7627,20 @@ function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
 
     _renderCustomRocketParts(_customRocketNightCtx, sortedParts, com, scale);
 
-    // Sombreado nocturno orgánico (luz lunar azulada en cara superior -> sombra profunda en cara inferior)
-    _customRocketNightCtx.save();
-    _customRocketNightCtx.globalCompositeOperation = 'source-atop';
-    const nightGrad = _customRocketNightCtx.createLinearGradient(0, fMinY, 0, fMaxY);
-    nightGrad.addColorStop(0.0, `rgba(22, 32, 52, ${(0.64 * night).toFixed(3)})`);
-    nightGrad.addColorStop(0.45, `rgba(14, 21, 37, ${(0.72 * night).toFixed(3)})`);
-    nightGrad.addColorStop(1.0, `rgba(7, 11, 22, ${(0.80 * night).toFixed(3)})`);
-    _customRocketNightCtx.fillStyle = nightGrad;
-    _customRocketNightCtx.fillRect(fMinX, fMinY, boxW, boxH);
-    _customRocketNightCtx.restore();
+    // Sombreado nocturno e iluminación direccional dinámica
+    if (typeof applyRocketNightAndLightShading === 'function') {
+        applyRocketNightAndLightShading(_customRocketNightCtx, s, night, fMinX, fMinY, boxW, boxH);
+    } else {
+        _customRocketNightCtx.save();
+        _customRocketNightCtx.globalCompositeOperation = 'source-atop';
+        const nightGrad = _customRocketNightCtx.createLinearGradient(0, fMinY, 0, fMaxY);
+        nightGrad.addColorStop(0.0, `rgba(10, 16, 30, ${(0.85 * night).toFixed(3)})`);
+        nightGrad.addColorStop(0.45, `rgba(5, 8, 17, ${(0.90 * night).toFixed(3)})`);
+        nightGrad.addColorStop(1.0, `rgba(2, 4, 9, ${(0.94 * night).toFixed(3)})`);
+        _customRocketNightCtx.fillStyle = nightGrad;
+        _customRocketNightCtx.fillRect(fMinX, fMinY, boxW, boxH);
+        _customRocketNightCtx.restore();
+    }
 
     _customRocketNightCtx.restore();
 
@@ -7424,12 +7773,20 @@ function handleCustomRocketPartClick(worldX, worldY, screenX, screenY) {
         const isClosedFairing = !!(def.isFairing && !p.fairingOpened);
         const isDecoupler = (p.partDefId === 'decoupler_vertical' || p.partDefId === 'decoupler_radial' || p.partDefId === 'decoupler_mini' || p.partDefId === 'decoupler_heavy' || p.partDefId === 'decoupler_colossus');
         const isEngine = (def.thrust && def.thrust > 0);
-        if (!isClosedFairing && !def.deployable && !isDecoupler && !isEngine) continue;
+        const isLight = !!def.isLight;
+        if (!isClosedFairing && !def.deployable && !isDecoupler && !isEngine && !isLight) continue;
 
         const sz = getPartSize(p, def);
         const hitW = sz.width * 0.5 + 10;
         const hitH = sz.height * 0.5 + 10;
         if (Math.abs(builderX - p.x) <= hitW && Math.abs(builderY - p.y) <= hitH) {
+            if (isLight) {
+                if (typeof LightingEngine !== 'undefined' && LightingEngine.selectLight) {
+                    LightingEngine.selectLight({ kind: 'rocket', shipRef: ship, partId: p.instanceId }, true);
+                }
+                if (typeof rocketBuilder !== 'undefined') rocketBuilder.playClickSound();
+                return true;
+            }
             if (isClosedFairing) {
                 return showFairingActionMenu(p, def, screenX, screenY);
             }

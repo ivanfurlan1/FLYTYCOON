@@ -1130,6 +1130,24 @@ function drawPlanetCreatures(nearbyPlanets, timeSec) {
                 drawCreatureByType(ctx, c, timeSec);
             }
 
+            // Iluminación dinámica sobre criaturas alcanzadas por focos o torres de luz
+            const cLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(c.x, c.y, 14 * c.scale) : null;
+            if (cLight && cLight.illum > 0.03) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const crR = Math.max(12, 18 * c.scale);
+                const cGlow = ctx.createRadialGradient(0, -6 * c.scale, 1, 0, -6 * c.scale, crR);
+                const ca = clamp(cLight.illum * 0.42, 0, 0.50);
+                cGlow.addColorStop(0.0, `rgba(${cLight.r}, ${cLight.g}, ${cLight.b}, ${ca.toFixed(3)})`);
+                cGlow.addColorStop(0.6, `rgba(${cLight.r}, ${cLight.g}, ${cLight.b}, ${(ca * 0.30).toFixed(3)})`);
+                cGlow.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = cGlow;
+                ctx.beginPath();
+                ctx.arc(0, -6 * c.scale, crR, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
             // Indicador de estado (huida / alerta / telegráfo / jefe)
             if (c.alertTimer > 0 || c.aiState === 'ALERT' || c.aiState === 'FLEE' || c.aiState === 'TELEGRAPH') {
                 ctx.save();

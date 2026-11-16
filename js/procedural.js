@@ -275,7 +275,7 @@ function generateCelestialBody({ sx, sy, subIndex, isOrigin, isMoonlet, rng, see
         // Ponderación equilibrada para que los mundos huecos y raros sean descubribles sin monopolizar
         const classWeights = {
             hollow: 1.5, shattered: 1.4, living: 1.4, megalithic: 1.35, cometary: 1.3,
-            gravitic: 1.3, artificial: 1.3, temporal: 1.3,
+            gravitic: 1.3, artificial: 1.3, temporal: 1.3, misty: 1.25,
             anomaly: 1.2, volcanic: 1.1, oceanic: 1.0, crystalline: 1.05,
             terrestrial: 0.9, desert: 0.9, cryogenic: 0.95, toxic: 0.9
         };
@@ -941,6 +941,16 @@ function generateCelestialBody({ sx, sy, subIndex, isOrigin, isMoonlet, rng, see
         if (planet.weather && planet.weather.clouds) {
             planet.cloudBands = planet.weather.clouds;
         }
+    }
+
+    // --- SISTEMA EÓLICO PLANETARIO, RÁFAGAS Y VÓRTICES ---
+    if (typeof initPlanetWind === 'function') {
+        initPlanetWind(planet, bodyRNG);
+    }
+
+    // --- SISTEMA DE NIEBLAS Y NEBLINAS PLANETARIAS ---
+    if (typeof initPlanetFog === 'function') {
+        initPlanetFog(planet, bodyRNG);
     }
 
     // Restaurar nodos de Éter recolectados desde caché local / snapshot
@@ -2908,6 +2918,12 @@ function generateSurfaceProps(params) {
         planetNaturalPalette = ['monolith_pylon', 'stargate_arch', 'bismuth_terrace'];
     } else if (archetype.classId === 'temporal') {
         planetNaturalPalette = ['crystal_outcrop', 'glacial_ridge', 'desert_arch'];
+    } else if (archetype.classId === 'misty') {
+        planetNaturalPalette = archetype.id === 'amber_haze'
+            ? ['monolith_pylon', 'mesa_butte', 'layered_boulder']
+            : (archetype.id === 'abyssal_shroud'
+                ? ['biolume_canopy', 'crystal_outcrop', 'layered_boulder']
+                : ['organic_grove', 'coastal_arch', 'layered_boulder']);
     }
 
     const featureCount = archetype.isLiquid

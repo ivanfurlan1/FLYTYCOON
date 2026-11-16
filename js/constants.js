@@ -35,7 +35,8 @@ const PLANET_CLASSES = {
     COMETARY:    { id: 'cometary',    name: 'Cometas & Cuerpos Irregulares', icon: '☄️' },
     GRAVITIC:    { id: 'gravitic',    name: 'Pozos Gravitatorios & Singulares', icon: '🌀' },
     ARTIFICIAL:  { id: 'artificial',  name: 'Megaestructuras & Mundos Sintéticos', icon: '🛸' },
-    TEMPORAL:    { id: 'temporal',    name: 'Mundos Efímeros & Tormentas Cósmicas', icon: '⚡' }
+    TEMPORAL:    { id: 'temporal',    name: 'Mundos Efímeros & Tormentas Cósmicas', icon: '⚡' },
+    MISTY:       { id: 'misty',       name: 'Brumosos & Nieblas Eternas', icon: '🌫️' }
 };
 
 // --- DISTRIBUCIÓN ESTADÍSTICA DE TAMAÑO (MUNDOS COLOSALES EN GENERAL, CON ASTEROIDES Y LUNAS DIMINUTAS) ---
@@ -3449,6 +3450,145 @@ const ARCHETYPES = [
         possibleMinerals: ['cryo_ice', 'methane_h', 'aether_cryst'],
         possibleRegions: ['comet_vent', 'glacial_valleys'],
         desc: 'Fragmento cometario afilado y asimétrico con intensa sublimación, cola doble luminosa y géiseres criogénicos.'
+    },
+
+    // === CLASE XVII: BRUMOSOS Y NIEBLAS ETERNAS (SIEMPRE ENVUELTOS EN NEBLINA) ===
+    {
+        id: 'velvet_mist',
+        classId: 'misty',
+        typeLabel: 'Velo de Bruma Perpetua',
+        surfaceTag: 'NIEBLA ETERNA',
+        isLiquid: false,
+        hasLakes: true,
+        hasRings: false,
+        hasClouds: true,
+        cloudDensity: 1.05,
+        baseRadius: 2650,
+        radiusJitter: 520,
+        atmoScale: 2.85,
+        gravityScale: 3.65,
+        gravityForce: 265,
+        atmoDensity: 1.32,
+        atmoPressure: 1.24,
+        speedOfSound: 330,
+        smokePersistence: 1.65,
+        flameReaction: 'misty',
+        skyRGB: [38, 62, 78],
+        upperSkyRGB: [18, 32, 46],
+        atmoGlow: [186, 224, 240],
+        litColor: [64, 98, 108],
+        coreColor: [18, 28, 36],
+        crustColor: [40, 66, 74],
+        rimColor: [224, 242, 250],
+        accentColor: [125, 211, 228],
+        cloudColor: [232, 244, 248],
+        launchSmokeColor: [234, 242, 248],
+        condensationColor: [224, 242, 250],
+        biomeParticleType: 'mist_mote',
+        particleColors: ['rgba(226, 242, 248, 0.42)', 'rgba(186, 230, 244, 0.34)', 'rgba(241, 245, 249, 0.36)'],
+        particleCount: 18,
+        surfaceDustColor: [204, 224, 232],
+        impactSparksColor: [224, 242, 254],
+        propType: 'organic_grove',
+        propDensity: 34,
+        hazardLevel: 'Bajo',
+        hazards: ['Niebla Perpetua Densa', 'Visibilidad Reducida'],
+        biosphereRating: 'Humedales Brumosos de Éter',
+        possibleMinerals: ['ether_fuel', 'silica', 'calcite', 'quartz_res'],
+        possibleRegions: ['landing_plains', 'colossal_peaks', 'ether_anomaly'],
+        desc: 'Mundo sereno sumergido perpetuamente en bancos de niebla nacarada que abrazan lagos espejo y valles húmedos.'
+    },
+    {
+        id: 'amber_haze',
+        classId: 'misty',
+        typeLabel: 'Santuario de Niebla Áurea',
+        surfaceTag: 'BRUMA CREPUSCULAR',
+        isLiquid: false,
+        hasLakes: true,
+        hasRings: false,
+        hasClouds: true,
+        cloudDensity: 1.0,
+        baseRadius: 2550,
+        radiusJitter: 480,
+        atmoScale: 2.8,
+        gravityScale: 3.6,
+        gravityForce: 258,
+        atmoDensity: 1.28,
+        atmoPressure: 1.18,
+        speedOfSound: 325,
+        smokePersistence: 1.55,
+        flameReaction: 'misty',
+        skyRGB: [68, 48, 38],
+        upperSkyRGB: [32, 20, 22],
+        atmoGlow: [251, 204, 148],
+        litColor: [112, 82, 58],
+        coreColor: [28, 20, 18],
+        crustColor: [74, 52, 38],
+        rimColor: [254, 232, 198],
+        accentColor: [245, 178, 102],
+        cloudColor: [252, 232, 206],
+        launchSmokeColor: [244, 224, 200],
+        condensationColor: [252, 225, 190],
+        biomeParticleType: 'amber_drift',
+        particleColors: ['rgba(254, 226, 178, 0.42)', 'rgba(251, 191, 128, 0.36)', 'rgba(253, 212, 186, 0.38)'],
+        particleCount: 16,
+        surfaceDustColor: [238, 204, 168],
+        impactSparksColor: [254, 240, 192],
+        propType: 'monolith_pylon',
+        propDensity: 32,
+        hazardLevel: 'Bajo',
+        hazards: ['Bruma Áurea Continua', 'Refracción Crepuscular'],
+        biosphereRating: 'Mesetas Veladas Antiguas',
+        possibleMinerals: ['ether_fuel', 'amber_resin', 'silica', 'titanite'],
+        possibleRegions: ['landing_plains', 'spire_forest', 'colossal_peaks'],
+        desc: 'Altiplanos dorados bañados eternamente en neblina miel y rosada, donde la luz solar se disuelve en velos cálidos.'
+    },
+    {
+        id: 'abyssal_shroud',
+        classId: 'misty',
+        typeLabel: 'Páramo de Niebla Sombría',
+        surfaceTag: 'SUDARIO BIOLUMÍNICO',
+        isLiquid: false,
+        hasLakes: true,
+        hasRings: true,
+        ringStyle: 'dust_halo',
+        ringAlpha: 0.34,
+        hasClouds: true,
+        cloudDensity: 1.12,
+        baseRadius: 2700,
+        radiusJitter: 550,
+        atmoScale: 2.9,
+        gravityScale: 3.7,
+        gravityForce: 272,
+        atmoDensity: 1.38,
+        atmoPressure: 1.28,
+        speedOfSound: 320,
+        smokePersistence: 1.75,
+        flameReaction: 'misty',
+        skyRGB: [22, 28, 56],
+        upperSkyRGB: [10, 12, 28],
+        atmoGlow: [129, 172, 248],
+        litColor: [44, 52, 86],
+        coreColor: [12, 14, 28],
+        crustColor: [28, 34, 62],
+        rimColor: [199, 218, 254],
+        accentColor: [103, 232, 249],
+        cloudColor: [196, 214, 248],
+        launchSmokeColor: [196, 212, 240],
+        condensationColor: [186, 212, 252],
+        biomeParticleType: 'biolume_amber_spore',
+        particleColors: ['rgba(125, 211, 252, 0.44)', 'rgba(196, 181, 253, 0.38)', 'rgba(153, 246, 228, 0.40)'],
+        particleCount: 18,
+        surfaceDustColor: [174, 194, 236],
+        impactSparksColor: [186, 230, 253],
+        propType: 'biolume_canopy',
+        propDensity: 36,
+        hazardLevel: 'Moderado',
+        hazards: ['Niebla Espesa Perpetua', 'Corrientes Húmedas'],
+        biosphereRating: 'Flora Lumínica de Bruma',
+        possibleMinerals: ['ether_fuel', 'quartz_res', 'bismuth_g', 'tachyon_sil'],
+        possibleRegions: ['landing_plains', 'spire_forest', 'ether_anomaly', 'rift_chasm'],
+        desc: 'Mundo envuelto en un sudario eterno de niebla índigo y turquesa, salpicado de brotes luminiscentes visibles entre la bruma.'
     }
 ];
 
@@ -5037,6 +5177,78 @@ const ARCHETYPE_VISUAL_PROFILES = {
         atmoVisuals: { hasSunsetScatter: false },
         naturalFormations: ['ice_arch', 'glacial_ridge'],
         compatibleStructures: ['cryo_harvester']
+    },
+    velvet_mist: {
+        terrainProfile: 'continental',
+        reliefAmplitude: 1.15,
+        interiorStyle: 'silicate_iron',
+        mantleColor: [42, 86, 98],
+        outerCoreColor: [94, 188, 212],
+        innerCoreColor: [224, 248, 255],
+        subcrustColor: [42, 74, 84],
+        topsoilColor: [84, 134, 138],
+        highPeakCapColor: [232, 246, 252],
+        daySkyRGB: [72, 114, 134],
+        upperSkyRGB: [36, 64, 86],
+        sunsetRGB: [224, 178, 162],
+        nightSkyRGB: [10, 18, 28],
+        nightUpperSkyRGB: [4, 8, 16],
+        nightAirglow: [125, 211, 228],
+        nightAirglowAlpha: 0.42,
+        baseRotationPeriod: 310,
+        auroraColors: [[125, 211, 228], [186, 230, 253]],
+        nightEmissiveGlow: [125, 211, 228],
+        atmoVisuals: { hasAurora: true, auroraColor: [125, 211, 228], hasSunsetScatter: true, sunsetColor: [224, 178, 162] },
+        naturalFormations: ['ancient_tree_canopy', 'layered_boulder', 'coastal_arch'],
+        compatibleStructures: ['geodesic_biodome', 'astral_sanctuary', 'radio_observatory']
+    },
+    amber_haze: {
+        terrainProfile: 'terraced_mesa',
+        reliefAmplitude: 1.25,
+        interiorStyle: 'amber_geode',
+        mantleColor: [112, 64, 38],
+        outerCoreColor: [234, 148, 72],
+        innerCoreColor: [254, 240, 198],
+        subcrustColor: [84, 56, 42],
+        topsoilColor: [158, 112, 78],
+        highPeakCapColor: [252, 232, 206],
+        daySkyRGB: [112, 84, 68],
+        upperSkyRGB: [56, 38, 42],
+        sunsetRGB: [251, 174, 112],
+        nightSkyRGB: [16, 12, 18],
+        nightUpperSkyRGB: [7, 5, 10],
+        nightAirglow: [245, 178, 102],
+        nightAirglowAlpha: 0.40,
+        baseRotationPeriod: 330,
+        auroraColors: [[251, 191, 128], [244, 148, 138]],
+        nightEmissiveGlow: [245, 178, 102],
+        atmoVisuals: { hasSunsetScatter: true, sunsetColor: [251, 174, 112] },
+        naturalFormations: ['monolith_pylon', 'mesa_butte', 'layered_boulder'],
+        compatibleStructures: ['ziggurat_temple', 'astral_sanctuary', 'radio_observatory']
+    },
+    abyssal_shroud: {
+        terrainProfile: 'organic_canopy',
+        reliefAmplitude: 1.4,
+        interiorStyle: 'biolume_mycelium',
+        mantleColor: [44, 38, 96],
+        outerCoreColor: [103, 212, 245],
+        innerCoreColor: [224, 242, 254],
+        subcrustColor: [36, 42, 78],
+        topsoilColor: [68, 86, 134],
+        highPeakCapColor: [212, 228, 254],
+        daySkyRGB: [46, 58, 98],
+        upperSkyRGB: [20, 26, 56],
+        sunsetRGB: [168, 142, 235],
+        nightSkyRGB: [8, 11, 26],
+        nightUpperSkyRGB: [3, 5, 14],
+        nightAirglow: [103, 232, 249],
+        nightAirglowAlpha: 0.62,
+        baseRotationPeriod: 280,
+        auroraColors: [[103, 232, 249], [167, 139, 250]],
+        nightEmissiveGlow: [103, 232, 249],
+        atmoVisuals: { hasAurora: true, auroraColor: [103, 232, 249], hasSunsetScatter: true, sunsetColor: [168, 142, 235], hasSporeMist: true },
+        naturalFormations: ['biolume_megatree', 'crystal_cluster', 'layered_boulder'],
+        compatibleStructures: ['astral_sanctuary', 'crystal_resonator', 'geodesic_biodome']
     }
 };
 
@@ -5085,6 +5297,7 @@ for (const arch of ARCHETYPES) {
         else if (arch.classId === 'anomaly' || arch.classId === 'crystalline' || arch.classId === 'megalithic' || arch.classId === 'gravitic' || arch.classId === 'artificial') arch.sunVisuals = { type: 'arcane', tint: [216, 180, 254], haloMult: 1.45, pulseSpeed: 1.8 };
         else if (arch.classId === 'desert' || arch.classId === 'temporal') arch.sunVisuals = { type: 'alto_sunset', tint: [251, 146, 60], haloMult: 1.55, rayMult: 1.3 };
         else if (arch.classId === 'living') arch.sunVisuals = { type: 'arcane', tint: [153, 246, 228], haloMult: 1.35, pulseSpeed: 1.2 };
+        else if (arch.classId === 'misty') arch.sunVisuals = { type: 'mist_diffused', tint: arch.atmoGlow || [224, 242, 254], haloMult: 1.72, rayMult: 1.25 };
         else arch.sunVisuals = { type: 'sol', tint: [254, 240, 138], haloMult: 1.05, rayMult: 1.0 };
     }
 }
@@ -5407,6 +5620,9 @@ function applyRocketModel(s, modelId) {
     // Normalizar o cargar reservas iniciales
     if (s.hull === undefined || s.hull > s.maxHull) s.hull = s.maxHull;
     if (s.fuel === undefined || s.fuel > s.maxFuel) s.fuel = s.maxFuel;
+    if (typeof ship !== 'undefined' && s === ship && typeof LightingEngine !== 'undefined' && LightingEngine.syncRocketLightsHudBtn) {
+        LightingEngine.syncRocketLightsHudBtn();
+    }
     return s;
 }
 
@@ -5429,7 +5645,7 @@ function getRocketFlameInfo(s) {
         };
     }
 
-    const isWarp = !!(s.warping && s.fuel > 0);
+    const isWarp = !!(s.warping && (s.fuel > 0 || s.infiniteFuel));
     const mKey = s.modelKey || 'vesper';
     const sScale = s.scale || 1.0;
 
