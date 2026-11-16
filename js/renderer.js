@@ -4,16 +4,27 @@
 
 const canvas = document.getElementById('flightCanvas');
 let ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+const _isMobileDevice = (typeof window !== 'undefined') && (
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+    /Mobi|Android|iPhone|iPad|iPod/i.test((typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '')
+);
+let _adaptiveDprScale = 1.0;
 let dpr = 1;
 let screenW = window.innerWidth;
 let screenH = window.innerHeight;
 
+function getEffectiveDpr() {
+    const nativeDpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    const baseCap = _isMobileDevice ? 1.35 : 2.0;
+    return Math.max(0.85, Math.min(nativeDpr, baseCap) * _adaptiveDprScale);
+}
+
 function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getEffectiveDpr();
     screenW = window.innerWidth;
     screenH = window.innerHeight;
-    canvas.width = Math.floor(screenW * dpr);
-    canvas.height = Math.floor(screenH * dpr);
+    canvas.width = Math.max(1, Math.floor(screenW * dpr));
+    canvas.height = Math.max(1, Math.floor(screenH * dpr));
     canvas.style.width = screenW + 'px';
     canvas.style.height = screenH + 'px';
 }
@@ -229,84 +240,116 @@ function render(timeSec) {
 
     const nebSpan = 7200;
     const nebMargin = 1800;
+    if (!render._nebulaCache) render._nebulaCache = new WeakMap();
     for (const neb of nebulaClouds) {
         const nx = ((neb.x - camera.x * neb.parallax) % nebSpan + nebSpan) % nebSpan - nebMargin;
         const ny = ((neb.y - camera.y * neb.parallax) % nebSpan + nebSpan) % nebSpan - nebMargin;
         if (nx < -neb.r * 1.6 || nx > screenW + neb.r * 1.6 || ny < -neb.r * 1.6 || ny > screenH + neb.r * 1.6) continue;
 
         const nebAlphaMult = lerp(1.0, 0.18, dayScatter) * cloudStarVeil;
+        if (nebAlphaMult <= 0.01) continue;
         const tilt = (neb.x * 0.013 + neb.y * 0.007) % Math.PI;
 
-        // Lóbulo principal elíptico inclinado (aspecto gaseoso orgánico, nunca un círculo plano)
+        let nebSprite = render._nebulaCache.get(neb);
+        if (!nebSprite && typeof document !== 'undefined') {
+            const dim = 384;
+            const half = dim * 0.5;
+            const unitR = 180;
+            const c = document.createElement('canvas');
+            c.width = dim;
+            c.height = dim;
+            const g = c.getContext('2d');
+            if (g) {
+                g.translate(half, half);
+                const nGrad = g.createRadialGradient(0, 0, unitR * 0.04, 0, 0, unitR);
+                nGrad.addColorStop(0.00, rgbStr(neb.color, neb.alpha * 1.25));
+                nGrad.addColorStop(0.35, rgbStr(neb.color, neb.alpha * 0.68));
+                nGrad.addColorStop(0.70, rgbStr(neb.color, neb.alpha * 0.20));
+                nGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
+                g.fillStyle = nGrad;
+                g.beginPath();
+                g.arc(0, 0, unitR, 0, Math.PI * 2);
+                g.fill();
+
+                const subR = unitR * 0.62;
+                const offX = Math.sin(neb.x * 0.017) * (unitR * 0.28);
+                const offY = Math.cos(neb.y * 0.019) * (unitR * 0.22);
+                const filGrad = g.createRadialGradient(offX, offY, subR * 0.08, offX, offY, subR);
+                filGrad.addColorStop(0.0, rgbStr(lerpRGB(neb.color, [255, 240, 220], 0.25), neb.alpha * 0.75));
+                filGrad.addColorStop(0.55, rgbStr(neb.color, neb.alpha * 0.24));
+                filGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                g.fillStyle = filGrad;
+                g.beginPath();
+                g.arc(offX, offY, subR, 0, Math.PI * 2);
+                g.fill();
+
+                const dustR = unitR * 0.42;
+                const dOffX = -offX * 0.6;
+                const dOffY = offY * 0.5 + unitR * 0.08;
+                const dustGrad = g.createRadialGradient(dOffX, dOffY, dustR * 0.05, dOffX, dOffY, dustR);
+                dustGrad.addColorStop(0.0, 'rgba(2, 4, 10, 0.32)');
+                dustGrad.addColorStop(0.6, 'rgba(2, 4, 10, 0.12)');
+                dustGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                g.fillStyle = dustGrad;
+                g.beginPath();
+                g.arc(dOffX, dOffY, dustR, 0, Math.PI * 2);
+                g.fill();
+                nebSprite = c;
+                render._nebulaCache.set(neb, nebSprite);
+            }
+        }
+
         ctx.save();
         ctx.translate(nx, ny);
         ctx.rotate(tilt);
         ctx.scale(1.45, 0.72);
-        const nGrad = ctx.createRadialGradient(0, 0, neb.r * 0.04, 0, 0, neb.r);
-        nGrad.addColorStop(0.00, rgbStr(neb.color, neb.alpha * 1.25 * nebAlphaMult));
-        nGrad.addColorStop(0.35, rgbStr(neb.color, neb.alpha * 0.68 * nebAlphaMult));
-        nGrad.addColorStop(0.70, rgbStr(neb.color, neb.alpha * 0.20 * nebAlphaMult));
-        nGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
-        ctx.fillStyle = nGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, neb.r, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Filamento secundario cálido/luminoso desplazado
-        const subR = neb.r * 0.62;
-        const offX = Math.sin(neb.x * 0.017) * (neb.r * 0.28);
-        const offY = Math.cos(neb.y * 0.019) * (neb.r * 0.22);
-        const filGrad = ctx.createRadialGradient(offX, offY, subR * 0.08, offX, offY, subR);
-        filGrad.addColorStop(0.0, rgbStr(lerpRGB(neb.color, [255, 240, 220], 0.25), neb.alpha * 0.75 * nebAlphaMult));
-        filGrad.addColorStop(0.55, rgbStr(neb.color, neb.alpha * 0.24 * nebAlphaMult));
-        filGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
-        ctx.fillStyle = filGrad;
-        ctx.beginPath();
-        ctx.arc(offX, offY, subR, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Vena oscura de polvo cósmico que da profundidad tridimensional a la nebulosa
-        const dustR = neb.r * 0.42;
-        const dOffX = -offX * 0.6;
-        const dOffY = offY * 0.5 + neb.r * 0.08;
-        const dustGrad = ctx.createRadialGradient(dOffX, dOffY, dustR * 0.05, dOffX, dOffY, dustR);
-        dustGrad.addColorStop(0.0, `rgba(2, 4, 10, ${0.32 * nebAlphaMult})`);
-        dustGrad.addColorStop(0.6, `rgba(2, 4, 10, ${0.12 * nebAlphaMult})`);
-        dustGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
-        ctx.fillStyle = dustGrad;
-        ctx.beginPath();
-        ctx.arc(dOffX, dOffY, dustR, 0, Math.PI * 2);
-        ctx.fill();
+        if (nebSprite) {
+            const drawSpan = neb.r * (192 / 180);
+            ctx.globalAlpha = nebAlphaMult;
+            ctx.drawImage(nebSprite, -drawSpan, -drawSpan, drawSpan * 2, drawSpan * 2);
+        }
         ctx.restore();
     }
 
     const shipSpeed = Math.hypot(ship.vx, ship.vy);
     const warpStretch = ship.warping ? clamp((shipSpeed - 300) / 750, 0, 1) : clamp((shipSpeed - 460) / 400, 0, 0.35);
     const stretchAngle = shipSpeed > 15 ? ship.velAngle : ship.angle;
+    const stretchCos = Math.cos(stretchAngle);
+    const stretchSin = Math.sin(stretchAngle);
+    const camStarX = camera.x;
+    const camStarY = camera.y;
+    const maxStarX = screenW + 100;
+    const maxStarY = screenH + 100;
 
-    for (const s of starfield) {
-        const sx = ((s.x - camera.x * s.parallax) % 5600 + 5600) % 5600 - 200;
-        const sy = ((s.y - camera.y * s.parallax) % 5600 + 5600) % 5600 - 200;
-        if (sx >= -100 && sx <= screenW + 100 && sy >= -100 && sy <= screenH + 100) {
+    for (let i = 0; i < starfield.length; i++) {
+        const s = starfield[i];
+        const sx = ((s.x - camStarX * s.parallax) % 5600 + 5600) % 5600 - 200;
+        const sy = ((s.y - camStarY * s.parallax) % 5600 + 5600) % 5600 - 200;
+        if (sx >= -100 && sx <= maxStarX && sy >= -100 && sy <= maxStarY) {
             const tw = 0.78 + 0.22 * Math.sin(timeSec * s.twinkleSpeed + s.twinklePhase);
-            const a = s.alpha * tw * (s.isBright ? Math.max(0.40, starDimming) : starDimming);
+            const a = ((s.alpha * tw * (s.isBright ? Math.max(0.40, starDimming) : starDimming)) * 100 | 0) * 0.01;
+            if (a <= 0.01) continue;
 
             if (warpStretch > 0.04 && s.parallax > 0.08) {
                 const len = warpStretch * s.parallax * 135;
-                ctx.strokeStyle = `${s.color}${a})`;
+                ctx.strokeStyle = s.color + a + ')';
                 ctx.lineWidth = s.size * (1 + warpStretch * 0.45);
                 ctx.beginPath();
                 ctx.moveTo(sx, sy);
-                ctx.lineTo(sx - Math.cos(stretchAngle) * len, sy - Math.sin(stretchAngle) * len);
+                ctx.lineTo(sx - stretchCos * len, sy - stretchSin * len);
                 ctx.stroke();
+            } else if (!s.isBright && s.size < 1.3) {
+                ctx.fillStyle = s.color + a + ')';
+                const sz = s.size * 1.75;
+                ctx.fillRect(sx - sz * 0.5, sy - sz * 0.5, sz, sz);
             } else {
-                ctx.fillStyle = `${s.color}${a})`;
+                ctx.fillStyle = s.color + a + ')';
                 ctx.beginPath();
                 ctx.arc(sx, sy, s.size, 0, Math.PI * 2);
                 ctx.fill();
 
                 if (s.isBright) {
-                    ctx.strokeStyle = `${s.color}${a * 0.35})`;
+                    ctx.strokeStyle = s.color + (a * 0.35) + ')';
                     ctx.lineWidth = 0.75;
                     const fl = s.size * 4.2;
                     ctx.beginPath();
@@ -321,23 +364,24 @@ function render(timeSec) {
     // Polvo espacial con estela de velocidad real (solo cuando el cohete está acelerando)
     const isAccelerating = (ship.thrustIntensity > 0.05) || (ship.warping && (ship.fuel > 0 || ship.infiniteFuel));
     const dustSpan = Math.max(3400, screenW + 500);
-    for (const d of spaceDust) {
-        const dx = ((d.x - camera.x * 0.55) % dustSpan + dustSpan) % dustSpan - 250;
-        const dy = ((d.y - camera.y * 0.55) % dustSpan + dustSpan) % dustSpan - 250;
+    const dustStretch = isAccelerating && shipSpeed > 180;
+    const dustLen = dustStretch ? Math.min(42, (shipSpeed - 180) * 0.065) : 0;
+    for (let i = 0; i < spaceDust.length; i++) {
+        const d = spaceDust[i];
+        const dx = ((d.x - camStarX * 0.55) % dustSpan + dustSpan) % dustSpan - 250;
+        const dy = ((d.y - camStarY * 0.55) % dustSpan + dustSpan) % dustSpan - 250;
         if (dx >= -50 && dx <= screenW + 50 && dy >= -50 && dy <= screenH + 50) {
-            if (isAccelerating && shipSpeed > 180) {
-                const dustLen = Math.min(42, (shipSpeed - 180) * 0.065);
+            if (dustStretch) {
                 ctx.strokeStyle = `rgba(226, 232, 240, ${d.alpha * 0.85})`;
                 ctx.lineWidth = d.size;
                 ctx.beginPath();
                 ctx.moveTo(dx, dy);
-                ctx.lineTo(dx - Math.cos(stretchAngle) * dustLen, dy - Math.sin(stretchAngle) * dustLen);
+                ctx.lineTo(dx - stretchCos * dustLen, dy - stretchSin * dustLen);
                 ctx.stroke();
             } else {
                 ctx.fillStyle = `rgba(226, 232, 240, ${d.alpha})`;
-                ctx.beginPath();
-                ctx.arc(dx, dy, d.size, 0, Math.PI * 2);
-                ctx.fill();
+                const sz = d.size * 1.75;
+                ctx.fillRect(dx - sz * 0.5, dy - sz * 0.5, sz, sz);
             }
         }
     }
@@ -872,7 +916,7 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         ctx.restore();
     }
 
-    // 4. Rayos Crepusculares Volumétricos Suaves (God Rays sin bordes duros)
+    // 4. Rayos Crepusculares Volumétricos Suaves (God Rays sin bordes duros, cacheados)
     const rayCloudMult = smoothstep(0.92, 0.28, sunVeil);
     if (atmoBlend > 0.12 && (day > 0.05 || twilight > 0.02) && rayCloudMult > 0.01) {
         ctx.save();
@@ -880,34 +924,66 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         const numRays = 7;
         const rayBlendFactor = clamp((atmoBlend - 0.12) / 0.38, 0, 1) * rayCloudMult;
         const rayColor = lerpRGB([255, 250, 235], sunsetCol, Math.pow(twilight, 0.72));
+        const maxScreen = Math.max(screenW, screenH);
 
+        if (!drawCelestialSunAndGodRays._rayCache) drawCelestialSunAndGodRays._rayCache = new Map();
+        const qr = (rayColor[0] + 4) >> 3 << 3;
+        const qg = (rayColor[1] + 4) >> 3 << 3;
+        const qb = (rayColor[2] + 4) >> 3 << 3;
+        const rayKey = (qr << 16) | (qg << 8) | qb;
+        let raySprite = drawCelestialSunAndGodRays._rayCache.get(rayKey);
+        if (!raySprite && typeof document !== 'undefined') {
+            if (drawCelestialSunAndGodRays._rayCache.size > 24) drawCelestialSunAndGodRays._rayCache.clear();
+            const rw = 256, rh = 96, rHalfH = 48;
+            const rc = document.createElement('canvas');
+            rc.width = rw;
+            rc.height = rh;
+            const rg = rc.getContext('2d');
+            if (rg) {
+                const colStr = `${qr}, ${qg}, ${qb}`;
+                const rGrad = rg.createRadialGradient(0, rHalfH, 6, 0, rHalfH, rw);
+                rGrad.addColorStop(0.00, `rgba(${colStr}, 1.0)`);
+                rGrad.addColorStop(0.28, `rgba(${colStr}, 0.53)`);
+                rGrad.addColorStop(0.65, `rgba(${colStr}, 0.16)`);
+                rGrad.addColorStop(1.00, `rgba(${colStr}, 0.0)`);
+                rg.fillStyle = rGrad;
+                rg.beginPath();
+                rg.moveTo(0, rHalfH);
+                rg.lineTo(rw, 4);
+                rg.lineTo(rw, rh - 4);
+                rg.closePath();
+                rg.fill();
+
+                // Suavizado vertical para evitar bordes duros laterales
+                rg.globalCompositeOperation = 'destination-in';
+                const vGrad = rg.createLinearGradient(0, 0, 0, rh);
+                vGrad.addColorStop(0.0, 'rgba(0,0,0,0)');
+                vGrad.addColorStop(0.35, 'rgba(0,0,0,1)');
+                vGrad.addColorStop(0.65, 'rgba(0,0,0,1)');
+                vGrad.addColorStop(1.0, 'rgba(0,0,0,0)');
+                rg.fillStyle = vGrad;
+                rg.fillRect(0, 0, rw, rh);
+                raySprite = rc;
+                drawCelestialSunAndGodRays._rayCache.set(rayKey, raySprite);
+            }
+        }
+
+        const prevAlpha = ctx.globalAlpha;
         for (let r = 0; r < numRays; r++) {
             const rayAngle = (r / numRays) * Math.PI * 0.9 + 0.12 + Math.sin(timeSec * 0.07 + r * 1.7) * 0.06;
-            const rayLen = Math.max(screenW, screenH) * (0.72 + (r % 3) * 0.14);
+            const rayLen = maxScreen * (0.72 + (r % 3) * 0.14);
             const spread = 0.095 + (r % 2) * 0.04;
-            const midX = sunX + Math.cos(rayAngle) * rayLen;
-            const midY = sunY + Math.sin(rayAngle) * rayLen;
-            const rx1 = sunX + Math.cos(rayAngle - spread) * rayLen;
-            const ry1 = sunY + Math.sin(rayAngle - spread) * rayLen;
-            const rx2 = sunX + Math.cos(rayAngle + spread) * rayLen;
-            const ry2 = sunY + Math.sin(rayAngle + spread) * rayLen;
-
-            // Gradiente radial desde el sol para que los bordes laterales se desvanezcan suavemente
-            const rayGrad = ctx.createRadialGradient(sunX, sunY, 18, sunX, sunY, rayLen);
             const baseAlpha = (0.042 + 0.032 * twilight) * rayBlendFactor * (0.75 + 0.25 * Math.sin(timeSec * 0.45 + r * 1.3));
-            rayGrad.addColorStop(0.00, rgbStr(rayColor, baseAlpha * 1.6));
-            rayGrad.addColorStop(0.28, rgbStr(rayColor, baseAlpha * 0.85));
-            rayGrad.addColorStop(0.65, rgbStr(rayColor, baseAlpha * 0.25));
-            rayGrad.addColorStop(1.00, 'rgba(0,0,0,0)');
 
-            ctx.fillStyle = rayGrad;
-            ctx.beginPath();
-            ctx.moveTo(sunX, sunY);
-            ctx.quadraticCurveTo((sunX + rx1) * 0.5, (sunY + ry1) * 0.5, rx1, ry1);
-            ctx.lineTo(midX, midY);
-            ctx.lineTo(rx2, ry2);
-            ctx.closePath();
-            ctx.fill();
+            if (raySprite) {
+                const halfSpanW = rayLen * Math.tan(spread) * 1.15;
+                ctx.save();
+                ctx.translate(sunX, sunY);
+                ctx.rotate(rayAngle);
+                ctx.globalAlpha = prevAlpha * Math.min(1, baseAlpha * 1.6);
+                ctx.drawImage(raySprite, 0, -halfSpanW, rayLen, halfSpanW * 2);
+                ctx.restore();
+            }
         }
         ctx.restore();
     }
@@ -921,24 +997,47 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const ghostAlpha = (0.055 + 0.04 * twilight) * (1 - sunScreenDist / (Math.max(screenW, screenH) * 0.9)) * ghostVeil;
-        const ghosts = [
-            { t: 0.45, r: 16, col: [254, 240, 138] },
-            { t: 0.82, r: 28, col: sunsetCol },
-            { t: 1.28, r: 11, col: [125, 211, 252] },
-            { t: 1.55, r: 36, col: sunsetCol }
-        ];
-        for (const gh of ghosts) {
-            const gx = sunX + dxCenter * gh.t;
-            const gy = sunY + dyCenter * gh.t;
-            const gGrad = ctx.createRadialGradient(gx, gy, gh.r * 0.2, gx, gy, gh.r);
-            gGrad.addColorStop(0, rgbStr(gh.col, ghostAlpha * 0.35));
-            gGrad.addColorStop(0.75, rgbStr(gh.col, ghostAlpha * 0.85));
-            gGrad.addColorStop(0.95, rgbStr(gh.col, ghostAlpha * 0.2));
-            gGrad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = gGrad;
-            ctx.beginPath();
-            ctx.arc(gx, gy, gh.r, 0, Math.PI * 2);
-            ctx.fill();
+        if (ghostAlpha > 0.004) {
+            if (!drawCelestialSunAndGodRays._ghostCache) drawCelestialSunAndGodRays._ghostCache = new Map();
+            const ghosts = [
+                { t: 0.45, r: 16, col: [254, 240, 138] },
+                { t: 0.82, r: 28, col: sunsetCol },
+                { t: 1.28, r: 11, col: [125, 211, 252] },
+                { t: 1.55, r: 36, col: sunsetCol }
+            ];
+            const prevAlpha = ctx.globalAlpha;
+            for (const gh of ghosts) {
+                const gx = sunX + dxCenter * gh.t;
+                const gy = sunY + dyCenter * gh.t;
+                const qr = (gh.col[0] + 4) >> 3 << 3;
+                const qg = (gh.col[1] + 4) >> 3 << 3;
+                const qb = (gh.col[2] + 4) >> 3 << 3;
+                const gKey = (qr << 16) | (qg << 8) | qb;
+                let gSprite = drawCelestialSunAndGodRays._ghostCache.get(gKey);
+                if (!gSprite && typeof document !== 'undefined') {
+                    if (drawCelestialSunAndGodRays._ghostCache.size > 24) drawCelestialSunAndGodRays._ghostCache.clear();
+                    const gc = document.createElement('canvas');
+                    gc.width = 64;
+                    gc.height = 64;
+                    const gg = gc.getContext('2d');
+                    if (gg) {
+                        const cs = `${qr}, ${qg}, ${qb}`;
+                        const gGrad = gg.createRadialGradient(32, 32, 6, 32, 32, 32);
+                        gGrad.addColorStop(0, `rgba(${cs}, 0.35)`);
+                        gGrad.addColorStop(0.75, `rgba(${cs}, 0.85)`);
+                        gGrad.addColorStop(0.95, `rgba(${cs}, 0.2)`);
+                        gGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                        gg.fillStyle = gGrad;
+                        gg.fillRect(0, 0, 64, 64);
+                        gSprite = gc;
+                        drawCelestialSunAndGodRays._ghostCache.set(gKey, gSprite);
+                    }
+                }
+                if (gSprite) {
+                    ctx.globalAlpha = prevAlpha * ghostAlpha;
+                    ctx.drawImage(gSprite, gx - gh.r, gy - gh.r, gh.r * 2, gh.r * 2);
+                }
+            }
         }
         ctx.restore();
     }
@@ -3612,6 +3711,35 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
  * Dibuja el Sistema Meteorológico Planetario Cinemático: Nubes Volumétricas Orgánicas 3D,
  * Sombreado Solar Direccional, Deformación de Estela por Cohete, Rayos Ocasionales y Lluvia Delicada.
  */
+function getCloudBandPuffSprite(r, g, b) {
+    if (!getCloudBandPuffSprite._cache) getCloudBandPuffSprite._cache = new Map();
+    const qr = (r + 4) >> 3 << 3;
+    const qg = (g + 4) >> 3 << 3;
+    const qb = (b + 4) >> 3 << 3;
+    const key = (qr << 16) | (qg << 8) | qb;
+    let sp = getCloudBandPuffSprite._cache.get(key);
+    if (sp) return sp;
+    if (getCloudBandPuffSprite._cache.size > 64) getCloudBandPuffSprite._cache.clear();
+    const dim = 96;
+    const half = 48;
+    const c = document.createElement('canvas');
+    c.width = dim;
+    c.height = dim;
+    const gctx = c.getContext('2d');
+    if (gctx) {
+        const cs = `${qr}, ${qg}, ${qb}`;
+        const grad = gctx.createRadialGradient(half, half, half * 0.05, half, half, half);
+        grad.addColorStop(0.00, `rgba(${cs}, 1.0)`);
+        grad.addColorStop(0.35, `rgba(${cs}, 0.65)`);
+        grad.addColorStop(0.70, `rgba(${cs}, 0.22)`);
+        grad.addColorStop(1.00, 'rgba(0,0,0,0)');
+        gctx.fillStyle = grad;
+        gctx.fillRect(0, 0, dim, dim);
+    }
+    getCloudBandPuffSprite._cache.set(key, c);
+    return c;
+}
+
 function drawPlanetCloudBands(p, timeSec) {
     if (p.weather && p.weather.hasClouds && typeof drawPlanetWeather === 'function') {
         drawPlanetWeather(p, timeSec);
@@ -3623,14 +3751,48 @@ function drawPlanetCloudBands(p, timeSec) {
 
     const cloudCol = (p.colors && p.colors.cloudColor) || p.archetype.cloudColor || [235, 245, 255];
     const lightAng = (p.lightAngle !== undefined) ? p.lightAngle : -Math.PI * 0.35;
+    const brightCloud = [
+        Math.min(255, Math.round(cloudCol[0] * 1.15 + 24)),
+        Math.min(255, Math.round(cloudCol[1] * 1.15 + 24)),
+        Math.min(255, Math.round(cloudCol[2] * 1.15 + 24))
+    ];
+    const sunsetCol = (p.colors && p.colors.sunsetRGB) || p.archetype.sunsetRGB || [251, 146, 60];
+    const baseNightRGB = (p.colors && p.colors.deepNightRGB)
+        || (p.colors && p.colors.nightSkyRGB)
+        || [4, 7, 14];
+    const nightCloud = lerpRGB([4, 6, 12], baseNightRGB, 0.65);
+
+    const curShip = (typeof ship !== 'undefined' && ship) ? ship : null;
+    const isEngineFiring = !!(curShip && (
+        (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel))) &&
+        (curShip.fuel > 0 || curShip.godMode || curShip.infiniteFuel)
+    ));
+    let flameInfo = null;
+    let flameX = 0, flameY = 0, flameRad = 0;
+    if (isEngineFiring) {
+        flameInfo = (typeof getRocketFlameInfo === 'function')
+            ? getRocketFlameInfo(curShip)
+            : { flameColor: 'standard', rgb: (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel)) ? [125, 211, 252] : [251, 175, 60] };
+        const sScale = curShip.scale || 1.0;
+        const nozDist = 16 * sScale;
+        const nozX = curShip.x - Math.cos(curShip.angle) * nozDist;
+        const nozY = curShip.y - Math.sin(curShip.angle) * nozDist;
+        const flameExtend = 26 * sScale * Math.min(1.4, Math.max(0.4, curShip.thrustIntensity));
+        flameX = nozX - Math.cos(curShip.angle) * flameExtend;
+        flameY = nozY - Math.sin(curShip.angle) * flameExtend;
+        flameRad = (360 + (curShip.smokeScale || 1.0) * 90) * Math.max(0.75, sScale * 0.9);
+    }
+    const hasLightingEngine = (typeof LightingEngine !== 'undefined');
+    const viewLim = (screenW / camera.zoom) + 600;
 
     ctx.save();
+    const baseAlpha = ctx.globalAlpha;
     for (const cb of p.cloudBands) {
         const baseR = p.radius + cb.alt;
         const cx = p.x + Math.cos(cb.angle) * baseR;
         const cy = p.y + Math.sin(cb.angle) * baseR;
 
-        if (Math.hypot(cx - camera.x, cy - camera.y) > (screenW / camera.zoom) + 600) continue;
+        if (Math.hypot(cx - camera.x, cy - camera.y) > viewLim) continue;
 
         for (const sp of cb.subPuffs) {
             const ang = cb.angle + sp.angOffset;
@@ -3644,53 +3806,18 @@ function drawPlanetCloudBands(p, timeSec) {
             const twiGate = smoothstep(-0.16, 0.08, sunDot);
             const twiWeight = Math.exp(-Math.pow(sunDot / 0.24, 2)) * twiGate;
 
-            // Luz diurna brillante
-            const brightCloud = [
-                Math.min(255, Math.round(cloudCol[0] * 1.15 + 24)),
-                Math.min(255, Math.round(cloudCol[1] * 1.15 + 24)),
-                Math.min(255, Math.round(cloudCol[2] * 1.15 + 24))
-            ];
             let cCol = lerpRGB(cloudCol, brightCloud, dayWeight * 0.85);
-
-            // Resplandor crepuscular continuo en el terminador
-            const sunsetCol = (p.colors && p.colors.sunsetRGB) || p.archetype.sunsetRGB || [251, 146, 60];
             if (twiWeight > 0.01) {
                 cCol = lerpRGB(cCol, sunsetCol, twiWeight * 0.65);
             }
-            // Noche profunda: siluetas oscuras flotantes que se mimetizan con el cielo nocturno
             if (nightWeight > 0.01) {
-                const baseNightRGB = (p.colors && p.colors.deepNightRGB)
-                    || (p.colors && p.colors.nightSkyRGB)
-                    || [4, 7, 14];
-                const nightCloud = lerpRGB([4, 6, 12], baseNightRGB, 0.65);
                 cCol = lerpRGB(cCol, nightCloud, nightWeight * 0.96);
             }
 
-            // Iluminación reactiva si el cohete vuela cerca con propulsión (idéntico al mecanismo del humo)
             let thrusterGlow = 0;
             let lightDx = 0.5;
             let lightDy = -0.866;
-            const curShip = (typeof ship !== 'undefined' && ship) ? ship : null;
-            const isEngineFiring = !!(curShip && (
-                (curShip.thrustIntensity > 0.03 || curShip.thrusting || (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel))) &&
-                (curShip.fuel > 0 || curShip.godMode || curShip.infiniteFuel)
-            ));
-
-            let flameInfo = null;
             if (isEngineFiring) {
-                flameInfo = (typeof getRocketFlameInfo === 'function')
-                    ? getRocketFlameInfo(curShip)
-                    : { flameColor: 'standard', rgb: (curShip.warping && (curShip.fuel > 0 || curShip.infiniteFuel)) ? [125, 211, 252] : [251, 175, 60] };
-
-                const sScale = curShip.scale || 1.0;
-                const nozDist = 16 * sScale;
-                const nozX = curShip.x - Math.cos(curShip.angle) * nozDist;
-                const nozY = curShip.y - Math.sin(curShip.angle) * nozDist;
-                const flameExtend = 26 * sScale * Math.min(1.4, Math.max(0.4, curShip.thrustIntensity));
-                const flameX = nozX - Math.cos(curShip.angle) * flameExtend;
-                const flameY = nozY - Math.sin(curShip.angle) * flameExtend;
-
-                const flameRad = (360 + (curShip.smokeScale || 1.0) * 90) * Math.max(0.75, sScale * 0.9);
                 const dFlame = Math.hypot(px - flameX, py - flameY);
                 if (dFlame < flameRad) {
                     thrusterGlow = Math.pow(1 - dFlame / flameRad, 1.22) * clamp(curShip.thrustIntensity, 0.2, 1.35);
@@ -3700,23 +3827,20 @@ function drawPlanetCloudBands(p, timeSec) {
             }
 
             if (thrusterGlow > 0.01 && flameInfo) {
-                // Disipar velo nocturno sobre las nubes con el fuego
                 if (nightWeight > 0.01) {
                     const effNight = nightWeight * (1.0 - clamp(thrusterGlow * 1.35, 0, 1.0));
-                    cCol = lerpRGB(cCol, (p.colors && p.colors.cloudColor) || [235, 245, 255], 1.0 - (effNight / nightWeight));
+                    cCol = lerpRGB(cCol, cloudCol, 1.0 - (effNight / nightWeight));
                 }
                 cCol = lerpRGB(cCol, flameInfo.rgb, clamp(thrusterGlow * (0.90 + 0.35 * nightWeight), 0, 0.95));
             }
 
-            // Iluminación dinámica por reflectores de superficie, torres o faros del cohete
-            const dynLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(px, py, sp.rad) : null;
+            const dynLight = hasLightingEngine ? LightingEngine.samplePoint(px, py, sp.rad) : null;
             let dynIllum = 0;
             if (dynLight && dynLight.illum > 0.01) {
                 dynIllum = dynLight.illum;
                 const dynRGB = [dynLight.r, dynLight.g, dynLight.b];
                 if (nightWeight > 0.01) {
-                    const baseCloud = (p.colors && p.colors.cloudColor) || [235, 245, 255];
-                    cCol = lerpRGB(cCol, baseCloud, clamp(dynIllum * 0.85 * nightWeight, 0, 0.88));
+                    cCol = lerpRGB(cCol, cloudCol, clamp(dynIllum * 0.85 * nightWeight, 0, 0.88));
                 }
                 cCol = lerpRGB(cCol, dynRGB, clamp(dynIllum * (0.68 + 0.32 * nightWeight), 0, 0.90));
                 if (thrusterGlow <= 0.02) {
@@ -3725,51 +3849,51 @@ function drawPlanetCloudBands(p, timeSec) {
                 }
             }
 
-            const cR = cCol[0];
-            const cG = cCol[1];
-            const cB = cCol[2];
-            // De noche las nubes son velos sutiles oscuros, salvo que la llama o los reflectores las iluminen
             const aPeak = sp.alpha * (0.09 + 0.91 * dayWeight + 0.35 * twiWeight + thrusterGlow * 0.55 + dynIllum * 0.48);
+            if (aPeak <= 0.005) continue;
 
             ctx.save();
             ctx.translate(px, py);
             ctx.rotate(ang + Math.PI * 0.5);
             ctx.scale(2.1, 0.52);
 
-            let hlX = 0, hlY = 0;
-            if (thrusterGlow > 0.02 || dynIllum > 0.02) {
+            if (thrusterGlow <= 0.02 && dynIllum <= 0.02) {
+                const puffSprite = getCloudBandPuffSprite(cCol[0], cCol[1], cCol[2]);
+                ctx.globalAlpha = baseAlpha * clamp(aPeak, 0, 1);
+                ctx.drawImage(puffSprite, -sp.rad, -sp.rad, sp.rad * 2, sp.rad * 2);
+            } else {
                 const rot = ang + Math.PI * 0.5;
                 const cosR = Math.cos(rot);
                 const sinR = Math.sin(rot);
-                hlX = (-lightDx * cosR - lightDy * sinR) * (sp.rad * 0.25);
-                hlY = (-lightDx * (-sinR) - lightDy * cosR) * (sp.rad * 0.25);
-            }
+                const hlX = (-lightDx * cosR - lightDy * sinR) * (sp.rad * 0.25);
+                const hlY = (-lightDx * (-sinR) - lightDy * cosR) * (sp.rad * 0.25);
+                const cR = cCol[0], cG = cCol[1], cB = cCol[2];
+                const grad = ctx.createRadialGradient(hlX, hlY, sp.rad * 0.05, 0, 0, sp.rad);
+                grad.addColorStop(0.00, `rgba(${cR}, ${cG}, ${cB}, ${aPeak})`);
+                grad.addColorStop(0.35, `rgba(${cR}, ${cG}, ${cB}, ${aPeak * 0.65})`);
+                grad.addColorStop(0.70, `rgba(${cR}, ${cG}, ${cB}, ${aPeak * 0.22})`);
+                grad.addColorStop(1.00, 'rgba(0,0,0,0)');
 
-            const grad = ctx.createRadialGradient(hlX, hlY, sp.rad * 0.05, 0, 0, sp.rad);
-            grad.addColorStop(0.00, `rgba(${cR}, ${cG}, ${cB}, ${aPeak})`);
-            grad.addColorStop(0.35, `rgba(${cR}, ${cG}, ${cB}, ${aPeak * 0.65})`);
-            grad.addColorStop(0.70, `rgba(${cR}, ${cG}, ${cB}, ${aPeak * 0.22})`);
-            grad.addColorStop(1.00, 'rgba(0,0,0,0)');
-
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, sp.rad, 0, Math.PI * 2);
-            ctx.fill();
-
-            if ((thrusterGlow > 0.16 && flameInfo) || dynIllum > 0.14) {
-                ctx.globalCompositeOperation = 'lighter';
-                const fRGB = (thrusterGlow > dynIllum && flameInfo) ? flameInfo.rgb : [dynLight ? dynLight.r : 238, dynLight ? dynLight.g : 246, dynLight ? dynLight.b : 255];
-                const peakGlow = Math.max(thrusterGlow - 0.16, dynIllum - 0.14);
-                const glowR = sp.rad * 0.65;
-                const glowGrad = ctx.createRadialGradient(hlX, hlY, 1, 0, 0, glowR);
-                const gStr = peakGlow * (0.75 + 0.45 * nightWeight) * aPeak;
-                glowGrad.addColorStop(0, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr})`);
-                glowGrad.addColorStop(0.45, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr * 0.35})`);
-                glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.fillStyle = glowGrad;
+                ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.arc(0, 0, glowR, 0, Math.PI * 2);
+                ctx.arc(0, 0, sp.rad, 0, Math.PI * 2);
                 ctx.fill();
+
+                if ((thrusterGlow > 0.16 && flameInfo) || dynIllum > 0.14) {
+                    ctx.globalCompositeOperation = 'lighter';
+                    const fRGB = (thrusterGlow > dynIllum && flameInfo) ? flameInfo.rgb : [dynLight ? dynLight.r : 238, dynLight ? dynLight.g : 246, dynLight ? dynLight.b : 255];
+                    const peakGlow = Math.max(thrusterGlow - 0.16, dynIllum - 0.14);
+                    const glowR = sp.rad * 0.65;
+                    const glowGrad = ctx.createRadialGradient(hlX, hlY, 1, 0, 0, glowR);
+                    const gStr = peakGlow * (0.75 + 0.45 * nightWeight) * aPeak;
+                    glowGrad.addColorStop(0, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr})`);
+                    glowGrad.addColorStop(0.45, `rgba(${fRGB[0]}, ${fRGB[1]}, ${fRGB[2]}, ${gStr * 0.35})`);
+                    glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = glowGrad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, glowR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
 
             ctx.restore();
@@ -4245,16 +4369,41 @@ function drawSurfaceProps(p, timeSec) {
     const coreCol = colors.coreColor || arch.coreColor;
 
     const viewRange = (Math.max(screenW, screenH) / Math.max(0.22, camera.zoom)) * 0.85 + 320;
+    const camDistFromPlanet = Math.hypot(camera.x - p.x, camera.y - p.y);
+    const camAngle = Math.atan2(camera.y - p.y, camera.x - p.x);
+    const maxSurfR = p.maxSurfaceRadius || (p.radius + 300);
+    // Si la cámara está lejos del planeta y fuera de viewRange respecto a la superficie máxima, salir temprano
+    if (camDistFromPlanet - maxSurfR > viewRange) return;
+    const minSurfR = Math.max(200, p.radius - 200);
+    const useAngCull = camDistFromPlanet > viewRange * 0.45;
+    const maxHalfArc = useAngCull ? Math.min(Math.PI, (viewRange / minSurfR) + 0.25) : Math.PI;
+    const twoPi = Math.PI * 2;
+
     const stormInfo = (typeof getLocalStormDarkness === 'function' && p === ship.nearestPlanet)
         ? getLocalStormDarkness(p)
         : { worldDark: 0, tint: [36, 46, 66] };
     const stormDark = stormInfo.worldDark || 0;
+    const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
+    const nightPropCol = lerpRGB(crustCol, [2, 3, 7], 0.93);
+    const brightTopsoil = [
+        Math.min(255, Math.round(topsoilCol[0] * 1.25 + 24)),
+        Math.min(255, Math.round(topsoilCol[1] * 1.25 + 24)),
+        Math.min(255, Math.round(topsoilCol[2] * 1.25 + 24))
+    ];
+    const baseColStatic = lerpRGB(crustCol, subcrustCol, 0.5);
+    const planetLightAngle = p.lightAngle || -Math.PI * 0.35;
 
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
     for (const prop of p.props) {
+        if (useAngCull) {
+            let dAng = (prop.angle - camAngle) % twoPi;
+            if (dAng > Math.PI) dAng -= twoPi;
+            else if (dAng < -Math.PI) dAng += twoPi;
+            if (dAng > maxHalfArc || dAng < -maxHalfArc) continue;
+        }
         const centerR = getSurfaceRadius(p, prop.angle);
         const cx = p.x + Math.cos(prop.angle) * centerR;
         const cy = p.y + Math.sin(prop.angle) * centerR;
@@ -4267,22 +4416,13 @@ function drawSurfaceProps(p, timeSec) {
         const type = prop.propType || 'layered_boulder';
 
         // Iluminación solar local para el relieve natural y adaptación diurna/crepuscular/nocturna
-        const sunDot = Math.cos(prop.angle - (p.lightAngle || -Math.PI * 0.35));
+        const sunDot = Math.cos(prop.angle - planetLightAngle);
         const dayWeight = smoothstep(-0.25, 0.35, sunDot);
         const nightWeight = smoothstep(0.25, -0.35, sunDot);
         const twiWeight = Math.exp(-Math.pow(sunDot / 0.24, 2));
 
-        const sunsetCol = colors.sunsetRGB || arch.sunsetRGB || [251, 146, 60];
-        const nightPropCol = lerpRGB(crustCol, [2, 3, 7], 0.93);
-
-        // Día brillante: iluminamos la cresta con luz solar directa viva
-        const brightTopsoil = [
-            Math.min(255, Math.round(topsoilCol[0] * 1.25 + 24)),
-            Math.min(255, Math.round(topsoilCol[1] * 1.25 + 24)),
-            Math.min(255, Math.round(topsoilCol[2] * 1.25 + 24))
-        ];
         let crestCol = lerpRGB(topsoilCol, brightTopsoil, dayWeight * 0.75 * (1 - stormDark * 0.85));
-        let baseCol = lerpRGB(crustCol, subcrustCol, 0.5);
+        let baseCol = baseColStatic;
 
         // Transición crepuscular continua y cálida en el terminador
         if (twiWeight > 0.01) {
@@ -6047,9 +6187,10 @@ function drawPresetRocketWithNightShade(drawFn, s, timeSec, localNight, sScale, 
     const halfBox = 110 * Math.max(1, sScale || 1);
     const boxSize = halfBox * 2;
     const camZoom = (typeof camera !== 'undefined' && camera.zoom) ? camera.zoom : 1.0;
-    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1.0;
-    const offScale = Math.max(1.5, Math.min(4.0, camZoom * dpr * 1.25));
-    const dim = Math.min(1024, Math.max(1, Math.ceil(boxSize * offScale)));
+    const effDpr = (typeof dpr === 'number' && dpr > 0) ? dpr : 1.0;
+    const offScale = Math.max(1.25, Math.min(_isMobileDevice ? 2.25 : 4.0, camZoom * effDpr * 1.25));
+    const maxDim = _isMobileDevice ? 512 : 1024;
+    const dim = Math.min(maxDim, Math.max(1, Math.ceil(boxSize * offScale)));
     const actualScale = dim / boxSize;
 
     if (!_presetRocketNightCanvas) {

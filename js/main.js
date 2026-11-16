@@ -82,28 +82,30 @@ window.addEventListener('wheel', (e) => {
     camera.userZoomMult = clamp(camera.userZoomMult * factor, 0.0025, 2.8);
 }, { passive: true });
 
-// Zoom táctil pellizcando con dos dedos (Pinch-to-Zoom) para móvil y tablet
+// Zoom táctil pellizcando con dos dedos sobre el lienzo (independiente de los dedos en botones/potencia)
 let _pinchLastDist = null;
 let _isPinchingCanvas = false;
 const _canvasForPinch = document.getElementById('flightCanvas');
 if (_canvasForPinch) {
     _canvasForPinch.addEventListener('touchstart', (e) => {
-        if (e.touches && e.touches.length === 2) {
+        const ct = e.targetTouches;
+        if (ct && ct.length >= 2) {
             e.preventDefault();
             _isPinchingCanvas = true;
             _pinchLastDist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
+                ct[0].clientX - ct[1].clientX,
+                ct[0].clientY - ct[1].clientY
             );
         }
     }, { passive: false });
 
     _canvasForPinch.addEventListener('touchmove', (e) => {
-        if (e.touches && e.touches.length === 2) {
+        const ct = e.targetTouches;
+        if (ct && ct.length >= 2) {
             e.preventDefault();
             const d = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
+                ct[0].clientX - ct[1].clientX,
+                ct[0].clientY - ct[1].clientY
             );
             if (_pinchLastDist && _pinchLastDist > 6 && d > 6) {
                 if (!camera.userZoomMult) camera.userZoomMult = 1.0;
@@ -117,9 +119,10 @@ if (_canvasForPinch) {
     }, { passive: false });
 
     const endPinch = (e) => {
-        if (!e.touches || e.touches.length < 2) {
+        const ct = e.targetTouches;
+        if (!ct || ct.length < 2) {
             _pinchLastDist = null;
-            if (!e.touches || e.touches.length === 0) {
+            if (!ct || ct.length === 0) {
                 setTimeout(() => { _isPinchingCanvas = false; }, 80);
             }
         }
@@ -213,6 +216,7 @@ const flightCanvasEl = document.getElementById('flightCanvas');
 if (flightCanvasEl) {
     flightCanvasEl.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 || _isPinchingCanvas) return; // Solo clic izquierdo y sin pellizco táctil
+        if (e.pointerType === 'touch' && !e.isPrimary) return;
         if (introOverlay && !introOverlay.classList.contains('hidden')) return;
 
         // Comprobar si hay modales visibles
@@ -239,6 +243,9 @@ if (flightCanvasEl) {
 
         const worldTarget = screenToWorld(e.clientX, e.clientY);
         if (typeof closeFairingActionMenu === 'function') closeFairingActionMenu();
+        if (typeof handleBaseMoveClick === 'function' && handleBaseMoveClick(worldTarget.x, worldTarget.y)) {
+            return;
+        }
         if (typeof LightingEngine !== 'undefined' && LightingEngine.isPlacementMode() && LightingEngine.handlePointerDown(worldTarget.x, worldTarget.y)) {
             return;
         }
@@ -270,6 +277,7 @@ if (flightCanvasEl) {
 
     flightCanvasEl.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        if (typeof cancelBaseMoveMode === 'function') cancelBaseMoveMode();
         if (typeof LightingEngine !== 'undefined' && LightingEngine.isPlacementMode()) {
             LightingEngine.exitPlacementMode();
         }
@@ -299,145 +307,81 @@ document.addEventListener('dragstart', (e) => {
     e.preventDefault();
 });
 
-// Joystick Circular Translúcido (Vuelo y EVA, compatible multitáctil por pointerId)
-function createCircularJoystick(el, { deadzone = 0.15, onMove, onRelease } = {}) {
-    if (!el) return { reset: () => {} };
-    const knob = el.querySelector('.astral-joystick-knob');
-    const vector = el.querySelector('.astral-joystick-vector');
+// Cruz Direccional estilo Spaceflight Simulator (▲ / ◀ ▼ ▶)
+const btnSteerLeftTop = document.getElementById('btnSteerLeftTop');
+const btnSteerRightTop = document.getElementById('btnSteerRightTop');
+const btnSteerLeft = document.getElementById('btnSteerLeft');
+const btnSteerRight = document.getElementById('btnSteerRight');
+const btnThrustUp = document.getElementById('btnThrustUp');
+const btnBrakeDown = document.getElementById('btnBrakeDown');
+
+function bindFlightPadButton(btn, onPress, onRelease) {
+    if (!btn) return;
     let activePtrId = null;
-
-    const updateFromPointer = (clientX, clientY) => {
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width * 0.5;
-        const cy = rect.top + rect.height * 0.5;
-        const knobRadius = knob ? knob.offsetWidth * 0.5 : 22;
-        const maxR = Math.max(12, rect.width * 0.5 - knobRadius * 0.72);
-        let dx = clientX - cx;
-        let dy = clientY - cy;
-        const dist = Math.hypot(dx, dy);
-        if (dist > maxR && dist > 0) {
-            const scale = maxR / dist;
-            dx *= scale;
-            dy *= scale;
-        }
-        const clampedDist = Math.min(dist, maxR);
-        const mag = clamp(clampedDist / maxR, 0, 1);
-        const nx = dx / maxR;
-        const ny = dy / maxR;
-        const angle = Math.atan2(dy, dx);
-
-        if (knob) {
-            knob.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
-        }
-        if (vector) {
-            vector.style.width = `${clampedDist.toFixed(1)}px`;
-            vector.style.transform = `translateY(-50%) rotate(${angle}rad)`;
-            vector.style.opacity = mag >= deadzone ? '1' : '0.25';
-        }
-        if (onMove) {
-            onMove({ dx, dy, nx, ny, mag, angle, inDeadzone: mag < deadzone });
-        }
-    };
-
-    const reset = () => {
-        activePtrId = null;
-        el.classList.remove('is-active');
-        if (knob) knob.style.transform = 'translate3d(0px, 0px, 0)';
-        if (vector) {
-            vector.style.width = '0px';
-            vector.style.opacity = '0';
-        }
-        if (onRelease) onRelease();
-    };
-
-    el.addEventListener('pointerdown', (e) => {
+    btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dismissIntro();
         audio.init();
         activePtrId = e.pointerId;
-        el.classList.add('is-active');
-        try { el.setPointerCapture(e.pointerId); } catch (_) {}
-        updateFromPointer(e.clientX, e.clientY);
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        onPress();
+        btn.classList.add('is-active');
     });
-    el.addEventListener('pointermove', (e) => {
-        if (e.pointerId === activePtrId) {
-            e.preventDefault();
-            updateFromPointer(e.clientX, e.clientY);
-        }
-    });
-    const handleUp = (e) => {
+    const release = (e) => {
         if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
-            reset();
+            activePtrId = null;
+            onRelease();
+            btn.classList.remove('is-active');
         }
     };
-    el.addEventListener('pointerup', handleUp);
-    el.addEventListener('pointercancel', handleUp);
-    el.addEventListener('lostpointercapture', handleUp);
-    el.addEventListener('contextmenu', (e) => e.preventDefault());
-    el.addEventListener('touchstart', (e) => {
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    btn.addEventListener('touchstart', (e) => {
         if (e.cancelable) e.preventDefault();
     }, { passive: false });
-
-    return { reset };
 }
 
-const flightJoystickState = {
-    active: false
-};
-
-const flightJoystickCtrl = createCircularJoystick(document.getElementById('flightJoystick'), {
-    deadzone: 0.14,
-    onMove: ({ nx, ny }) => {
-        flightJoystickState.active = true;
-        if (typeof ship === 'undefined') return;
-        ship.targetAngle = null;
-
-        // Eje horizontal: rotación continua (izquierda/derecha) proporcional al deslizamiento
-        const dzX = 0.14;
-        const absX = Math.abs(nx);
-        if (absX > dzX) {
-            const rawX = clamp((absX - dzX) / (1 - dzX), 0, 1);
-            ship.turnVal = Math.sign(nx) * Math.pow(rawX, 1.25);
-        } else {
-            if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
-            else if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
-            else ship.turnVal = 0;
-        }
-
-        // Eje vertical: potencia RCS hacia adelante (arriba) o retro-frenado RCS (abajo)
-        const dzY = 0.16;
-        const absY = Math.abs(ny);
-        if (absY > dzY) {
-            const rawY = clamp((absY - dzY) / (1 - dzY), 0, 1);
-            const powerY = Math.pow(rawY, 1.2);
-            if (ny < 0) {
-                ship.rcsForward = powerY;
-                ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
-                ship.brakeStrength = 1.0;
-            } else {
-                ship.rcsForward = 0;
-                ship.braking = true;
-                ship.brakeStrength = powerY;
-            }
-        } else {
-            ship.rcsForward = 0;
-            ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
-            ship.brakeStrength = 1.0;
-        }
-    },
-    onRelease: () => {
-        flightJoystickState.active = false;
-        if (typeof ship === 'undefined') return;
-        ship.targetAngle = null;
-        ship.rcsForward = 0;
-        ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
-        ship.brakeStrength = 1.0;
-        if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
-        else if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
-        else ship.turnVal = 0;
+bindFlightPadButton(
+    btnSteerLeftTop,
+    () => { keys['ArrowLeft'] = true; ship.turnVal = -1; },
+    () => {
+        keys['ArrowLeft'] = false;
+        if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
+        else if (!keys['KeyA']) ship.turnVal = 0;
     }
-});
+);
+bindFlightPadButton(
+    btnSteerRightTop,
+    () => { keys['ArrowRight'] = true; ship.turnVal = 1; },
+    () => {
+        keys['ArrowRight'] = false;
+        if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
+        else if (!keys['KeyD']) ship.turnVal = 0;
+    }
+);
+bindFlightPadButton(
+    btnSteerLeft,
+    () => { ship.rcsStrafe = -1; },
+    () => { if (ship.rcsStrafe === -1) ship.rcsStrafe = 0; }
+);
+bindFlightPadButton(
+    btnSteerRight,
+    () => { ship.rcsStrafe = 1; },
+    () => { if (ship.rcsStrafe === 1) ship.rcsStrafe = 0; }
+);
+bindFlightPadButton(
+    btnThrustUp,
+    () => { keys['ArrowUp'] = true; ship.thrusting = true; },
+    () => { keys['ArrowUp'] = false; if (!keys['KeyW'] && !keys['Space']) ship.thrusting = false; }
+);
+bindFlightPadButton(
+    btnBrakeDown,
+    () => { keys['ArrowDown'] = true; ship.braking = true; },
+    () => { keys['ArrowDown'] = false; if (!keys['KeyS']) ship.braking = false; }
+);
 
 // Barra Graduable de Potencia de Motores (0% - 100%, deslizamiento relativo estilo SFS, compatible multitáctil)
 const throttleTrack = document.getElementById('throttleTrack');
@@ -733,6 +677,13 @@ window.addEventListener('keydown', (e) => {
             showHoloCard(astronaut.planet, 'OBJETIVO: SUPERPLATAFORMA CON TORRE (NV. 3)', (bInfo ? bInfo.desc : 'Superpista masiva de hierro con torre de control 360°') + ' · Mantén pulsado [C] para construir.');
             return;
         }
+        if (e.code === 'Digit4' || e.code === 'Numpad4') {
+            e.preventDefault();
+            astronaut.selectedBaseLevel = 4;
+            const bInfo = (typeof BASE_LEVELS !== 'undefined' && BASE_LEVELS[4]) ? BASE_LEVELS[4] : null;
+            showHoloCard(astronaut.planet, 'OBJETIVO: MEGAPLATAFORMA GIGANTE (NV. 4)', (bInfo ? bInfo.desc : 'Megaplataforma gigante con gran espacio liso y torre mayor') + ' · Mantén pulsado [C] para construir.');
+            return;
+        }
         if (e.code === 'KeyV') {
             e.preventDefault();
             toggleRocketHangarModal();
@@ -742,6 +693,7 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (e.code === 'Escape') {
+        if (typeof cancelBaseMoveMode === 'function') cancelBaseMoveMode();
         if (typeof closeAllHudDropdowns === 'function') closeAllHudDropdowns();
         const hm = document.getElementById('rocketHangarModal');
         if (hm && !hm.classList.contains('hidden')) {
@@ -783,14 +735,8 @@ window.addEventListener('keydown', (e) => {
             disengageOrbitMode(false, 'Hiperimpulso activado. Órbita liberada.');
         }
     }
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
-        ship.turnVal = -1;
-        if (!flightJoystickState.active) ship.targetAngle = null;
-    }
-    if (e.code === 'KeyD' || e.code === 'ArrowRight') {
-        ship.turnVal = 1;
-        if (!flightJoystickState.active) ship.targetAngle = null;
-    }
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') ship.turnVal = -1;
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') ship.turnVal = 1;
     if (e.code === 'KeyO') {
         e.preventDefault();
         if (typeof toggleOrbitMode === 'function') toggleOrbitMode();
@@ -856,29 +802,66 @@ if (btnEvaInspectExtractor) {
     });
 }
 
-// Joystick circular de movimiento en superficie EVA (caminar derecha/izquierda y salto/jetpack hacia arriba)
-window.evaJoystickInput = { active: false, x: 0, y: 0 };
-const evaJoystickCtrl = createCircularJoystick(document.getElementById('evaJoystick'), {
-    deadzone: 0.14,
-    onMove: ({ nx, ny }) => {
-        const dzX = 0.16;
-        const absX = Math.abs(nx);
-        const mappedX = absX < dzX ? 0 : Math.sign(nx) * clamp((absX - dzX) / (1 - dzX), 0, 1);
-        window.evaJoystickInput.active = true;
-        window.evaJoystickInput.x = mappedX;
-        window.evaJoystickInput.y = ny;
-    },
-    onRelease: () => {
-        window.evaJoystickInput.active = false;
-        window.evaJoystickInput.x = 0;
-        window.evaJoystickInput.y = 0;
+// Controles táctiles de movimiento en superficie EVA (Móvil / Tablet, multitáctil por pointerId)
+const evaTouchSprintKeys = {};
+function syncEvaTouchSprint() {
+    if (typeof astronaut !== 'undefined') {
+        astronaut.touchSprinting = Boolean(evaTouchSprintKeys['KeyA'] || evaTouchSprintKeys['KeyD']);
     }
-});
+}
 
-window.addEventListener('blur', () => {
-    flightJoystickCtrl.reset();
-    evaJoystickCtrl.reset();
-});
+function bindEvaTouchHold(btnId, keyCode, allowDoubleTapSprint = false) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    let activePtrId = null;
+    let downAt = 0;
+    let lastQuickTapAt = 0;
+    btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        activePtrId = e.pointerId;
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        const now = performance.now();
+        downAt = now;
+        if (allowDoubleTapSprint && lastQuickTapAt > 0 && (now - lastQuickTapAt) <= 350) {
+            evaTouchSprintKeys[keyCode] = true;
+            lastQuickTapAt = 0;
+            btn.classList.add('is-sprinting');
+        } else {
+            evaTouchSprintKeys[keyCode] = false;
+            btn.classList.remove('is-sprinting');
+        }
+        syncEvaTouchSprint();
+        keys[keyCode] = true;
+        btn.classList.add('is-active');
+        audio.init();
+    });
+    const release = (e) => {
+        if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
+            activePtrId = null;
+            const now = performance.now();
+            if (allowDoubleTapSprint && !evaTouchSprintKeys[keyCode] && (now - downAt) <= 300) {
+                lastQuickTapAt = now;
+            } else {
+                lastQuickTapAt = 0;
+            }
+            evaTouchSprintKeys[keyCode] = false;
+            syncEvaTouchSprint();
+            keys[keyCode] = false;
+            btn.classList.remove('is-active', 'is-sprinting');
+        }
+    };
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    btn.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+}
+bindEvaTouchHold('btnEvaTouchLeft', 'KeyA', true);
+bindEvaTouchHold('btnEvaTouchRight', 'KeyD', true);
+bindEvaTouchHold('btnEvaTouchJump', 'Space', false);
 
 // Botón táctil / ratón sostenido para "Enderezar Nave"
 const btnEvaRightShip = document.getElementById('btnEvaRightShip');
@@ -1349,8 +1332,8 @@ if (btnCloseRocketHangar) {
     btnCloseRocketHangar.addEventListener('click', closeRocketHangarModal);
 }
 
-// Botones de selección de nivel de base (1, 2, 3) en la barra EVA
-for (let lvl = 1; lvl <= 3; lvl++) {
+// Botones de selección de nivel de base (1, 2, 3, 4) en la barra EVA
+for (let lvl = 1; lvl <= 4; lvl++) {
     const btnLvl = document.getElementById(`btnBaseLvl${lvl}`);
     if (btnLvl) {
         btnLvl.addEventListener('click', () => {
@@ -1445,6 +1428,79 @@ const btnSystemsMenu = document.getElementById('btnSystemsMenu');
 const systemsDropdown = document.getElementById('systemsDropdown');
 const worldObjectMenu = document.getElementById('worldObjectMenu');
 let worldMenuOpenedAt = 0;
+let selectedWorldBase = null;
+let selectedWorldBasePlanet = null;
+let movingBaseState = null;
+
+function cancelBaseMoveMode() {
+    movingBaseState = null;
+    const banner = document.getElementById('baseMoveBanner');
+    if (banner) banner.classList.add('hidden');
+}
+
+function startBaseMoveMode() {
+    if (!selectedWorldBase || !selectedWorldBasePlanet) return;
+    movingBaseState = { base: selectedWorldBase, planet: selectedWorldBasePlanet };
+    closeWorldObjectMenu();
+    const banner = document.getElementById('baseMoveBanner');
+    if (banner) banner.classList.remove('hidden');
+}
+
+function handleBaseMoveClick(worldX, worldY) {
+    if (!movingBaseState) return false;
+    const { base, planet } = movingBaseState;
+    if (!base || !planet || typeof calculateBaseGeometry !== 'function') {
+        cancelBaseMoveMode();
+        return false;
+    }
+
+    const newAngle = Math.atan2(worldY - planet.y, worldX - planet.x);
+    const geo = calculateBaseGeometry(planet, newAngle, base.level || 1);
+    base.angle = newAngle;
+    base.width = geo.width;
+    base.halfWidth = geo.halfWidth;
+    base.angularHalfSpan = geo.angularHalfSpan;
+    base.deckR = geo.deckR;
+    base.legs = geo.legs;
+
+    const bX = planet.x + Math.cos(newAngle) * geo.deckR;
+    const bY = planet.y + Math.sin(newAngle) * geo.deckR;
+    sfx('playBaseComplete');
+    if (typeof createSparks === 'function') {
+        createSparks(bX, bY, 20, newAngle - Math.PI / 2, Math.PI, 40, 160, [254, 240, 138], 0.5);
+    }
+
+    cancelBaseMoveMode();
+    return true;
+}
+
+function removeSelectedBase() {
+    if (!selectedWorldBase || !selectedWorldBasePlanet) return;
+    const base = selectedWorldBase;
+    const planet = selectedWorldBasePlanet;
+
+    if (Array.isArray(planet.bases)) {
+        const idx = planet.bases.indexOf(base);
+        if (idx !== -1) planet.bases.splice(idx, 1);
+    }
+    if (typeof planetaryBases !== 'undefined' && Array.isArray(planetaryBases)) {
+        const gIdx = planetaryBases.findIndex(item => item === base || (item && base.id && item.id === base.id));
+        if (gIdx !== -1) planetaryBases.splice(gIdx, 1);
+    }
+    if (typeof astronaut !== 'undefined' && astronaut.buildTargetBase === base) {
+        astronaut.buildTargetBase = null;
+    }
+
+    const bX = planet.x + Math.cos(base.angle) * (base.deckR || planet.radius);
+    const bY = planet.y + Math.sin(base.angle) * (base.deckR || planet.radius);
+    if (typeof createSmoke === 'function') {
+        createSmoke(bX, bY, 8, 4.0, planet.archetype ? planet.archetype.surfaceDustColor : [148, 163, 184], 0, 0, 0.5, 30);
+    }
+
+    selectedWorldBase = null;
+    selectedWorldBasePlanet = null;
+    closeWorldObjectMenu();
+}
 
 function closeWorldObjectMenu() {
     if (worldObjectMenu) worldObjectMenu.classList.add('hidden');
@@ -1479,7 +1535,10 @@ function openWorldObjectMenu(kind, clientX, clientY) {
         } else if (kind === 'astro') {
             titleEl.textContent = 'ASTRONAUTA · CONSTRUCCIÓN';
         } else if (kind === 'base') {
-            titleEl.textContent = 'BASE PLANETARIA';
+            const lvlInfo = (selectedWorldBase && typeof BASE_LEVELS !== 'undefined' && BASE_LEVELS[selectedWorldBase.level])
+                ? BASE_LEVELS[selectedWorldBase.level]
+                : null;
+            titleEl.textContent = lvlInfo ? lvlInfo.shortName.toUpperCase() : 'PLATAFORMA';
         }
     }
 
@@ -1491,6 +1550,37 @@ function openWorldObjectMenu(kind, clientX, clientY) {
     worldObjectMenu.style.left = `${Math.round(px)}px`;
     worldObjectMenu.style.top = `${Math.round(py)}px`;
     worldMenuOpenedAt = performance.now();
+}
+
+function findClickedBase(worldX, worldY, zoom) {
+    const pad = 12 / zoom;
+    const planets = (typeof getNearbyPlanets === 'function')
+        ? getNearbyPlanets(worldX, worldY, 1)
+        : (typeof nearestPlanet !== 'undefined' && nearestPlanet ? [nearestPlanet] : []);
+
+    for (let pi = 0; pi < planets.length; pi++) {
+        const p = planets[pi];
+        if (!p || !Array.isArray(p.bases)) continue;
+        for (let bi = p.bases.length - 1; bi >= 0; bi--) {
+            const b = p.bases[bi];
+            const deckR = b.deckR || p.radius;
+            const bx = p.x + Math.cos(b.angle) * deckR;
+            const by = p.y + Math.sin(b.angle) * deckR;
+            const dx = worldX - bx;
+            const dy = worldY - by;
+            const rot = b.angle + Math.PI / 2;
+            const cosR = Math.cos(rot);
+            const sinR = Math.sin(rot);
+            const localX = dx * cosR + dy * sinR;
+            const localY = -dx * sinR + dy * cosR;
+            const halfW = (b.halfWidth || 48) + 8 + pad;
+            const towerH = (b.level >= 4 ? 78 : (b.level === 3 ? 52 : (b.level === 2 ? 24 : 10))) + pad;
+            if (localX >= -halfW && localX <= halfW && localY >= -towerH && localY <= 22 + pad) {
+                return { base: b, planet: p };
+            }
+        }
+    }
+    return null;
 }
 
 function handleWorldObjectClick(worldX, worldY, clientX, clientY) {
@@ -1506,23 +1596,21 @@ function handleWorldObjectClick(worldX, worldY, clientX, clientY) {
             openWorldObjectMenu('eva_rocket', clientX, clientY);
             return true;
         }
-        if (typeof nearestPlanet !== 'undefined' && nearestPlanet && Array.isArray(nearestPlanet.bases)) {
-            for (let i = 0; i < nearestPlanet.bases.length; i++) {
-                const b = nearestPlanet.bases[i];
-                const bx = nearestPlanet.x + Math.cos(b.angle) * (b.radius || nearestPlanet.radius);
-                const by = nearestPlanet.y + Math.sin(b.angle) * (b.radius || nearestPlanet.radius);
-                if (Math.hypot(worldX - bx, worldY - by) < 55 / z) {
-                    openWorldObjectMenu('base', clientX, clientY);
-                    return true;
-                }
-            }
-        }
     } else {
         if (Math.hypot(worldX - ship.x, worldY - ship.y) < 50 / z) {
             openWorldObjectMenu('flight_rocket', clientX, clientY);
             return true;
         }
     }
+
+    const hitBase = findClickedBase(worldX, worldY, z);
+    if (hitBase) {
+        selectedWorldBase = hitBase.base;
+        selectedWorldBasePlanet = hitBase.planet;
+        openWorldObjectMenu('base', clientX, clientY);
+        return true;
+    }
+
     return false;
 }
 
@@ -1616,6 +1704,21 @@ if (btnCloseWorldObjectMenu) {
     btnCloseWorldObjectMenu.addEventListener('click', () => closeWorldObjectMenu());
 }
 
+const btnBaseMove = document.getElementById('btnBaseMove');
+if (btnBaseMove) {
+    btnBaseMove.addEventListener('click', () => startBaseMoveMode());
+}
+
+const btnBaseRemove = document.getElementById('btnBaseRemove');
+if (btnBaseRemove) {
+    btnBaseRemove.addEventListener('click', () => removeSelectedBase());
+}
+
+const btnCancelBaseMove = document.getElementById('btnCancelBaseMove');
+if (btnCancelBaseMove) {
+    btnCancelBaseMove.addEventListener('click', () => cancelBaseMoveMode());
+}
+
 const btnEvaWorldMenuQuick = document.getElementById('btnEvaWorldMenuQuick');
 if (btnEvaWorldMenuQuick) {
     btnEvaWorldMenuQuick.addEventListener('click', (e) => {
@@ -1694,11 +1797,44 @@ function selfHealSimulationState(level) {
     } catch (_) {}
 }
 
+let _avgFrameMs = 16.6;
+let _slowFrameStreak = 0;
+let _fastFrameStreak = 0;
+let _lastDprAdjustTime = 0;
+
 function loop(now) {
     requestAnimationFrame(loop);
 
-    const rawDt = Math.min(0.04, Math.max(0.001, (now - lastTime) / 1000));
+    const frameDeltaMs = now - lastTime;
+    const rawDt = Math.min(0.04, Math.max(0.001, frameDeltaMs / 1000));
     lastTime = now;
+
+    if (frameDeltaMs > 0 && frameDeltaMs < 120) {
+        _avgFrameMs = _avgFrameMs * 0.92 + frameDeltaMs * 0.08;
+        if (typeof _adaptiveDprScale === 'number' && typeof resize === 'function') {
+            if (_avgFrameMs > 24.5) {
+                _slowFrameStreak++;
+                _fastFrameStreak = 0;
+                if (_slowFrameStreak > 45 && (now - _lastDprAdjustTime) > 1500 && _adaptiveDprScale > 0.72) {
+                    _adaptiveDprScale = Math.max(0.72, Math.round((_adaptiveDprScale - 0.1) * 100) / 100);
+                    _lastDprAdjustTime = now;
+                    _slowFrameStreak = 0;
+                    resize();
+                }
+            } else if (_avgFrameMs < 17.8 && _adaptiveDprScale < 1.0) {
+                _fastFrameStreak++;
+                _slowFrameStreak = 0;
+                if (_fastFrameStreak > 220 && (now - _lastDprAdjustTime) > 4000) {
+                    _adaptiveDprScale = Math.min(1.0, Math.round((_adaptiveDprScale + 0.08) * 100) / 100);
+                    _lastDprAdjustTime = now;
+                    _fastFrameStreak = 0;
+                    resize();
+                }
+            } else {
+                _slowFrameStreak = Math.max(0, _slowFrameStreak - 1);
+            }
+        }
+    }
 
     try {
         if (typeof canvas !== 'undefined' && (canvas.width <= 0 || canvas.height <= 0) && typeof resize === 'function') {
@@ -1718,12 +1854,6 @@ function loop(now) {
             camera.rotation = 0;
             camera.targetRotation = 0;
             camera.userZoomMult = 1.0;
-        }
-
-        if (typeof astronaut !== 'undefined' && astronaut.active) {
-            if (flightJoystickState.active) flightJoystickCtrl.reset();
-        } else {
-            if (window.evaJoystickInput && window.evaJoystickInput.active) evaJoystickCtrl.reset();
         }
 
         if (timeScale <= 1) {

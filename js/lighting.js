@@ -303,6 +303,7 @@ const LightingEngine = (() => {
     const _rayHits = new Float32Array(36);
     const _rayCos = new Float32Array(36);
     const _raySin = new Float32Array(36);
+    let _lastTimeSec = 0;
 
     const state = {
         selectedPresetId: 'simple_med',
@@ -429,7 +430,23 @@ const LightingEngine = (() => {
         }
     }
 
+    function isSurfaceLightActive(planet, lt, timeSec) {
+        if (!lt || lt.enabled === false) return false;
+        if (lt.autoNight === false) return true;
+        if (lt.onCeiling) return true;
+        if (!planet || typeof getPlanetSolarState !== 'function') return true;
+        const baseR = (typeof getSurfaceRadius === 'function')
+            ? getSurfaceRadius(planet, lt.angle)
+            : planet.radius;
+        const bx = planet.x + Math.cos(lt.angle) * baseR;
+        const by = planet.y + Math.sin(lt.angle) * baseR;
+        const sol = getPlanetSolarState(planet, bx, by, timeSec);
+        if (!sol) return true;
+        return sol.sunDot < 0.12 || sol.nightFactor >= 0.08 || sol.phase === 'sunset' || sol.phase === 'night';
+    }
+
     function beginFrame(timeSec, nearbyPlanets) {
+        _lastTimeSec = timeSec || 0;
         _frameLights.length = 0;
         if (typeof camera !== 'undefined' && camera && camera.zoom < 0.015) return;
 
@@ -440,7 +457,7 @@ const LightingEngine = (() => {
                 if (!p) continue;
                 for (let j = 0; j < planetaryLights.length; j++) {
                     const lt = planetaryLights[j];
-                    if (!lt || lt.planetKey !== p.key || lt.enabled === false) continue;
+                    if (!lt || lt.planetKey !== p.key || !isSurfaceLightActive(p, lt, timeSec)) continue;
                     const preset = LIGHT_PRESETS[lt.presetId] || LIGHT_PRESETS.simple_med;
                     const pos = getSurfaceLightHeadPosition(p, lt);
                     const intensity = lightClamp(lt.intensity ?? preset.defaultIntensity, 0.05, 2.5);
@@ -747,6 +764,32 @@ const LightingEngine = (() => {
             }
         }
 
+        // Plataformas cercanas en el planeta cuyo tablero sólido puede ocluir rayos descendentes
+        let deckSegs = null;
+        if (p && !L.onCeiling && Array.isArray(p.bases) && p.bases.length > 0) {
+            for (let bi = 0; bi < p.bases.length; bi++) {
+                const b = p.bases[bi];
+                if (!b) continue;
+                const zenX = Math.cos(b.angle);
+                const zenY = Math.sin(b.angle);
+                const bx = p.x + zenX * b.deckR;
+                const by = p.y + zenY * b.deckR;
+                if (Math.hypot(L.wx - bx, L.wy - by) > L.effRange + b.halfWidth + 24) continue;
+                // Solo ocluir si la fuente de luz está por encima de la cubierta
+                const altAbove = (L.wx - bx) * zenX + (L.wy - by) * zenY;
+                if (altAbove <= 2.0) continue;
+                const tx = -zenY;
+                const ty = zenX;
+                if (!deckSegs) deckSegs = [];
+                deckSegs.push({
+                    x1: bx - tx * b.halfWidth,
+                    y1: by - ty * b.halfWidth,
+                    sx: tx * b.halfWidth * 2,
+                    sy: ty * b.halfWidth * 2
+                });
+            }
+        }
+
         const marchSteps = 14;
         for (let i = 0; i < rayCount; i++) {
             const ang = startAng + i * stepAng;
@@ -755,37 +798,57 @@ const LightingEngine = (() => {
             _rayCos[i] = ca;
             _raySin[i] = sa;
 
-            if (!canHitTerrain) {
+            if (!canHitTerrain && !deckSegs) {
                 _rayHits[i] = L.effRange;
                 continue;
             }
 
             let hitD = L.effRange;
-            let prevD = 0;
-            for (let s = 1; s <= marchSteps; s++) {
-                const d = (s / marchSteps) * L.effRange;
-                const rx = L.wx + ca * d;
-                const ry = L.wy + sa * d;
-                const distP = Math.hypot(rx - p.x, ry - p.y);
-                const th = Math.atan2(ry - p.y, rx - p.x);
-                const gR = getSurfaceRadius(p, th);
-                if (distP < gR) {
-                    let lo = prevD, hi = d;
-                    for (let b = 0; b < 3; b++) {
-                        const mid = (lo + hi) * 0.5;
-                        const mx = L.wx + ca * mid;
-                        const my = L.wy + sa * mid;
-                        const mDist = Math.hypot(mx - p.x, my - p.y);
-                        const mGr = getSurfaceRadius(p, Math.atan2(my - p.y, mx - p.x));
-                        if (mDist < mGr) hi = mid;
-                        else lo = mid;
+            if (canHitTerrain) {
+                let prevD = 0;
+                for (let s = 1; s <= marchSteps; s++) {
+                    const d = (s / marchSteps) * L.effRange;
+                    const rx = L.wx + ca * d;
+                    const ry = L.wy + sa * d;
+                    const distP = Math.hypot(rx - p.x, ry - p.y);
+                    const th = Math.atan2(ry - p.y, rx - p.x);
+                    const gR = getSurfaceRadius(p, th);
+                    if (distP < gR) {
+                        let lo = prevD, hi = d;
+                        for (let b = 0; b < 3; b++) {
+                            const mid = (lo + hi) * 0.5;
+                            const mx = L.wx + ca * mid;
+                            const my = L.wy + sa * mid;
+                            const mDist = Math.hypot(mx - p.x, my - p.y);
+                            const mGr = getSurfaceRadius(p, Math.atan2(my - p.y, mx - p.x));
+                            if (mDist < mGr) hi = mid;
+                            else lo = mid;
+                        }
+                        hitD = hi + 2.0;
+                        anyGroundHit = true;
+                        break;
                     }
-                    hitD = hi + 2.0;
-                    anyGroundHit = true;
-                    break;
+                    prevD = d;
                 }
-                prevD = d;
             }
+
+            if (deckSegs) {
+                for (let di = 0; di < deckSegs.length; di++) {
+                    const seg = deckSegs[di];
+                    const denom = ca * seg.sy - sa * seg.sx;
+                    if (Math.abs(denom) < 1e-6) continue;
+                    const dx = seg.x1 - L.wx;
+                    const dy = seg.y1 - L.wy;
+                    const t = (dx * seg.sy - dy * seg.sx) / denom;
+                    if (t <= 2.0 || t >= hitD) continue;
+                    const u = (dx * sa - dy * ca) / denom;
+                    if (u >= 0 && u <= 1) {
+                        hitD = t;
+                        anyGroundHit = true;
+                    }
+                }
+            }
+
             _rayHits[i] = hitD;
         }
         return anyGroundHit;
@@ -1080,11 +1143,11 @@ const LightingEngine = (() => {
      * Dibuja una luminaria o torre de hierro individual en coordenadas locales donde (0, 0) es el suelo
      * y -Y apunta hacia el cenit.
      */
-    function drawFixtureGeometry(targetCtx, preset, lightData, timeSec, nightFactor, isGhost) {
+    function drawFixtureGeometry(targetCtx, preset, lightData, timeSec, nightFactor, isGhost, effectiveEnabled = true) {
         const isTower = preset.kind === 'tower';
         const hScale = isTower ? lightClamp(lightData.heightScale || 1.0, 0.65, 1.55) : 1.0;
         const height = preset.height * hScale;
-        const enabled = isGhost ? true : (lightData.enabled !== false);
+        const enabled = isGhost ? true : (effectiveEnabled && lightData.enabled !== false);
         const aimRad = ((lightData.aimDeg ?? preset.defaultAimDeg) * Math.PI) / 180;
         const rgb = hexToRgbTuple(lightData.colorHex || preset.defaultColor);
 
@@ -1269,7 +1332,7 @@ const LightingEngine = (() => {
                 ctx.save();
                 ctx.translate(pos.baseX, pos.baseY);
                 ctx.rotate(pos.zenithAngle + Math.PI * 0.5);
-                drawFixtureGeometry(ctx, preset, lt, timeSec, localNight, false);
+                drawFixtureGeometry(ctx, preset, lt, timeSec, localNight, false, isSurfaceLightActive(p, lt, timeSec));
                 ctx.restore();
 
                 const isSelected = state.selectedRef && state.selectedRef.kind === 'surface' && state.selectedRef.lightId === lt.id;
@@ -1389,6 +1452,7 @@ const LightingEngine = (() => {
             angle,
             onCeiling: !!opts.onCeiling,
             enabled: true,
+            autoNight: opts.autoNight !== undefined ? !!opts.autoNight : true,
             intensity: opts.intensity ?? preset.defaultIntensity,
             spreadDeg: opts.spreadDeg ?? preset.defaultSpreadDeg,
             aimDeg,
@@ -1651,6 +1715,32 @@ const LightingEngine = (() => {
         }
         if (surfaceActions) surfaceActions.classList.toggle('hidden', !isSurface);
 
+        const scheduleRow = document.getElementById('lightInspScheduleRow');
+        if (scheduleRow) {
+            scheduleRow.classList.toggle('hidden', !isSurface);
+            if (isSurface) {
+                const isAutoNight = resolved.lt.autoNight !== false;
+                const btnNight = document.getElementById('btnLightInspAutoNight');
+                const btnAlways = document.getElementById('btnLightInspAlwaysOn');
+                const statusEl = document.getElementById('lightInspScheduleStatus');
+                const activeCls = 'py-1 px-1.5 rounded-lg border cursor-pointer transition-colors bg-indigo-500/30 text-indigo-100 border-indigo-400/60 font-bold';
+                const idleCls = 'py-1 px-1.5 rounded-lg border cursor-pointer transition-colors bg-white/5 text-stone-400 border-white/10 hover:bg-white/10';
+                if (btnNight) btnNight.className = isAutoNight ? activeCls : idleCls;
+                if (btnAlways) btnAlways.className = !isAutoNight ? 'py-1 px-1.5 rounded-lg border cursor-pointer transition-colors bg-amber-500/25 text-amber-100 border-amber-400/55 font-bold' : idleCls;
+                if (statusEl) {
+                    if (!enabled) {
+                        statusEl.textContent = 'Apagada';
+                    } else if (!isAutoNight) {
+                        statusEl.textContent = 'Activa 24h';
+                    } else {
+                        const p = (typeof getPlanetByKey === 'function') ? getPlanetByKey(resolved.lt.planetKey) : null;
+                        const activeNow = p ? isSurfaceLightActive(p, resolved.lt, _lastTimeSec) : true;
+                        statusEl.textContent = activeNow ? 'Activa (Noche/Ocaso)' : 'En espera (Día)';
+                    }
+                }
+            }
+        }
+
         document.querySelectorAll('.light-insp-swatch').forEach(btn => {
             const c = (btn.getAttribute('data-color') || '').toLowerCase();
             btn.style.outline = (c === colorHex.toLowerCase()) ? '2px solid #38bdf8' : 'none';
@@ -1888,6 +1978,24 @@ const LightingEngine = (() => {
                 if (!res) return;
                 const cur = res.kind === 'surface' ? res.lt.enabled !== false : res.rl.enabled !== false;
                 updateSelectedLightProp({ enabled: !cur });
+            });
+        }
+
+        const btnAutoNight = document.getElementById('btnLightInspAutoNight');
+        if (btnAutoNight) {
+            btnAutoNight.addEventListener('click', () => {
+                const res = resolveActiveLightObj(state.selectedRef);
+                if (!res || res.kind !== 'surface') return;
+                updateSelectedLightProp({ autoNight: true });
+            });
+        }
+
+        const btnAlwaysOn = document.getElementById('btnLightInspAlwaysOn');
+        if (btnAlwaysOn) {
+            btnAlwaysOn.addEventListener('click', () => {
+                const res = resolveActiveLightObj(state.selectedRef);
+                if (!res || res.kind !== 'surface') return;
+                updateSelectedLightProp({ autoNight: false });
             });
         }
 

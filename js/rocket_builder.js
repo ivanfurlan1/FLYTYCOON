@@ -3522,6 +3522,11 @@ class RocketBuilderEngine {
         this.lockAspect = false;
         this.resizeDrag = null;
         this.floatingIds = new Set();
+        this.mobileInspectorOpen = false;
+        this.activePointers = new Map();
+        this.pinchState = null;
+        this.panStart = null;
+        this.paletteDragState = null;
 
         this.canvas = null;
         this.ctx = null;
@@ -3849,12 +3854,17 @@ class RocketBuilderEngine {
     }
 
     setupEventListeners() {
-        window.addEventListener('resize', () => this.resizeCanvas());
+        window.addEventListener('resize', () => {
+            this.resizeCanvas();
+            this.updateToolbarPosition();
+            this.updateInspectorUI();
+        });
 
-        this.canvas.addEventListener('mousedown', (e) => this.onPointerDown(e));
+        this.canvas.addEventListener('pointerdown', (e) => this.onCanvasPointerDown(e));
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        window.addEventListener('mousemove', (e) => this.onPointerMove(e));
-        window.addEventListener('mouseup', (e) => this.onPointerUp(e));
+        window.addEventListener('pointermove', (e) => this.onGlobalPointerMove(e));
+        window.addEventListener('pointerup', (e) => this.onGlobalPointerUp(e));
+        window.addEventListener('pointercancel', (e) => this.onGlobalPointerUp(e));
 
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -3906,6 +3916,14 @@ class RocketBuilderEngine {
         };
 
         bindClick('btnBldClose', () => closeRocketBuilder());
+        bindClick('btnBldCloseDesktop', () => closeRocketBuilder());
+        bindClick('btnBldOpenInspector', () => {
+            if (!this.selectedPartId) return;
+            this.mobileInspectorOpen = true;
+            this.updateToolbarPosition();
+            this.updateInspectorUI();
+            this.playClickSound();
+        });
         bindClick('btnBldLaunch', () => this.launchRocket());
         bindClick('btnBldClear', () => {
             if (confirm('¿Vaciar todo el plano de ensamblaje?')) this.clearBlueprint();
@@ -3996,9 +4014,15 @@ class RocketBuilderEngine {
         const closeBtn = document.getElementById('btnBldInspClose');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                this.selectedPartId = null;
-                this.updateToolbarPosition();
-                this.updateInspectorUI();
+                if (window.innerWidth < 768) {
+                    this.mobileInspectorOpen = false;
+                    this.updateToolbarPosition();
+                    this.updateInspectorUI();
+                } else {
+                    this.selectedPartId = null;
+                    this.updateToolbarPosition();
+                    this.updateInspectorUI();
+                }
             });
         }
 
@@ -4298,6 +4322,12 @@ class RocketBuilderEngine {
         const part = this.placedParts.find(p => p.instanceId === this.selectedPartId);
         const def = part ? ROCKET_PARTS_CATALOG[part.partDefId] : null;
         if (!part || !def) {
+            this.mobileInspectorOpen = false;
+            panel.classList.add('hidden');
+            return;
+        }
+
+        if (window.innerWidth < 768 && !this.mobileInspectorOpen) {
             panel.classList.add('hidden');
             return;
         }
@@ -4698,7 +4728,7 @@ class RocketBuilderEngine {
         if (!this.canvas) return;
         this.camera.panX = this.canvas.width / 2;
         this.camera.panY = this.canvas.height / 2 + 20;
-        this.camera.zoom = 1.25;
+        this.camera.zoom = window.innerWidth < 768 ? 1.0 : 1.25;
         this.updateZoomDisplay();
     }
 
@@ -4744,25 +4774,58 @@ class RocketBuilderEngine {
         };
     }
 
-    onPointerDown(e) {
+    isPointInTrashDock(clientX, clientY) {
+        const dock = document.getElementById('builderPartsDock');
+        if (dock) {
+            const dRect = dock.getBoundingClientRect();
+            if (window.innerWidth < 768) {
+                return clientY >= dRect.top - 10;
+            }
+            return clientX <= dRect.right + 10;
+        }
+        const rect = this.canvas ? this.canvas.getBoundingClientRect() : null;
+        return rect ? (clientX < rect.left - 36 || clientY > rect.bottom + 24) : false;
+    }
+
+    onCanvasPointerDown(e) {
+        if (!this.canvas) return;
         const rect = this.canvas.getBoundingClientRect();
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
         const worldPos = this.screenToWorld(sx, sy);
 
+        this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
         this.lastMouse = { x: sx, y: sy };
+
+        // Gesto multitáctil (2 dedos): pellizco para zoom + paneo
+        if (this.activePointers.size >= 2) {
+            this.draggedPart = null;
+            this.resizeDrag = null;
+            this.selectionBox = null;
+            this.isPanning = false;
+            this.panStart = null;
+            this.snapIndicator = null;
+            const pts = [...this.activePointers.values()];
+            const mx = (pts[0].x + pts[1].x) * 0.5 - rect.left;
+            const my = (pts[0].y + pts[1].y) * 0.5 - rect.top;
+            const dist = Math.max(10, Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y));
+            this.pinchState = { prevMidX: mx, prevMidY: my, prevDist: dist };
+            return;
+        }
 
         if (e.button === 1 || e.button === 2) {
             this.isPanning = true;
             return;
         }
 
-        // 1. Verificar si se hizo clic en una manija de redimensionamiento
+        const isTouch = e.pointerType === 'touch';
+
+        // 1. Verificar si se tocó/hizo clic en una manija de redimensionamiento
         if (this.resizeMode && this.selectedPartId) {
             const selPart = this.placedParts.find(p => p.instanceId === this.selectedPartId);
             if (selPart) {
                 const handles = this.getResizeHandles(selPart);
-                const hitR = 11 / Math.max(0.4, this.camera.zoom);
+                const hitR = (isTouch ? 22 : 11) / Math.max(0.4, this.camera.zoom);
                 for (const h of handles) {
                     if (Math.hypot(worldPos.x - h.x, worldPos.y - h.y) <= hitR) {
                         const def = ROCKET_PARTS_CATALOG[selPart.partDefId];
@@ -4783,7 +4846,7 @@ class RocketBuilderEngine {
             }
         }
 
-        const clickedPart = this.getPartAtWorld(worldPos.x, worldPos.y);
+        const clickedPart = this.getPartAtWorld(worldPos.x, worldPos.y, isTouch ? 8 : 3);
         if (clickedPart) {
             if (e.shiftKey) {
                 if (this.selectedPartIds.has(clickedPart.instanceId)) {
@@ -4808,12 +4871,19 @@ class RocketBuilderEngine {
                 instanceId: clickedPart.instanceId,
                 partDefId: clickedPart.partDefId,
                 fromPalette: false,
+                isTouch,
                 offsetX: worldPos.x - clickedPart.x,
                 offsetY: worldPos.y - clickedPart.y
             };
             this.playClickSound();
         } else {
             this.resizeMode = false;
+            if (isTouch) {
+                // En táctil, arrastrar el fondo mueve la cámara (estilo SFS)
+                this.isPanning = true;
+                this.panStart = { x: e.clientX, y: e.clientY, moved: false };
+                return;
+            }
             const preSelected = e.shiftKey ? new Set(this.selectedPartIds) : new Set();
             if (!e.shiftKey) {
                 this.selectedPartId = null;
@@ -4833,8 +4903,97 @@ class RocketBuilderEngine {
         this.updateStats();
     }
 
-    onPointerMove(e) {
+    onGlobalPointerMove(e) {
+        if (!this.canvas) return;
         const rect = this.canvas.getBoundingClientRect();
+
+        // Manejo de arrastre desde la paleta de piezas (táctil o ratón)
+        if (this.paletteDragState && e.pointerId === this.paletteDragState.pointerId) {
+            const pds = this.paletteDragState;
+            const dx = e.clientX - pds.startX;
+            const dy = e.clientY - pds.startY;
+            if (!pds.active) {
+                const isMobile = window.innerWidth < 768;
+                if (isMobile) {
+                    const dock = document.getElementById('builderPartsDock');
+                    const dockTop = dock ? dock.getBoundingClientRect().top : rect.bottom;
+                    if ((dy < -12 && Math.abs(dy) > Math.abs(dx) * 0.75) || e.clientY < dockTop + 6) {
+                        pds.active = true;
+                        const wPos = this.screenToWorld(e.clientX - rect.left, e.clientY - rect.top - 26);
+                        this.draggedPart = {
+                            partDefId: pds.partDefId,
+                            fromPalette: true,
+                            isTouch: pds.isTouch,
+                            clickMode: false,
+                            offsetX: 0,
+                            offsetY: 0,
+                            currentX: wPos.x,
+                            currentY: wPos.y,
+                            currentFlipped: false
+                        };
+                        this.playClickSound();
+                    } else if (Math.hypot(dx, dy) > 10) {
+                        // Deslizamiento horizontal para scrollear la tira de piezas
+                        this.paletteDragState = null;
+                        return;
+                    }
+                } else if (Math.hypot(dx, dy) > 6) {
+                    pds.active = true;
+                    const wPos = this.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+                    this.draggedPart = {
+                        partDefId: pds.partDefId,
+                        fromPalette: true,
+                        isTouch: pds.isTouch,
+                        clickMode: false,
+                        offsetX: 0,
+                        offsetY: 0,
+                        currentX: wPos.x,
+                        currentY: wPos.y,
+                        currentFlipped: false
+                    };
+                }
+            }
+            if (pds.active && this.draggedPart) {
+                const touchYOffset = pds.isTouch ? -26 : 0;
+                const wPos = this.screenToWorld(e.clientX - rect.left, e.clientY - rect.top + touchYOffset);
+                const snapResult = this.calculateSnap(this.draggedPart.partDefId, wPos.x, wPos.y, [], 0, false, null);
+                this.draggedPart.currentX = snapResult.x;
+                this.draggedPart.currentY = snapResult.y;
+                this.draggedPart.currentFlipped = snapResult.flipped;
+                this.snapIndicator = snapResult.snapped ? snapResult.node : null;
+            }
+            return;
+        }
+
+        // Actualizar punteros activos en el lienzo
+        if (this.activePointers.has(e.pointerId)) {
+            this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, pointerType: e.pointerType });
+        }
+
+        // Pellizco multitáctil (zoom + paneo con 2 dedos)
+        if (this.activePointers.size >= 2 && this.pinchState) {
+            const pts = [...this.activePointers.values()];
+            const mx = (pts[0].x + pts[1].x) * 0.5 - rect.left;
+            const my = (pts[0].y + pts[1].y) * 0.5 - rect.top;
+            const dist = Math.max(10, Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y));
+
+            this.camera.panX += mx - this.pinchState.prevMidX;
+            this.camera.panY += my - this.pinchState.prevMidY;
+
+            const scaleRatio = dist / this.pinchState.prevDist;
+            const newZoom = Math.max(0.35, Math.min(2.8, this.camera.zoom * scaleRatio));
+            this.camera.panX = mx - (mx - this.camera.panX) * (newZoom / this.camera.zoom);
+            this.camera.panY = my - (my - this.camera.panY) * (newZoom / this.camera.zoom);
+            this.camera.zoom = newZoom;
+
+            this.pinchState.prevMidX = mx;
+            this.pinchState.prevMidY = my;
+            this.pinchState.prevDist = dist;
+            this.updateZoomDisplay();
+            this.updateToolbarPosition();
+            return;
+        }
+
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
         const worldPos = this.screenToWorld(sx, sy);
@@ -4843,6 +5002,10 @@ class RocketBuilderEngine {
             this.camera.panX += sx - this.lastMouse.x;
             this.camera.panY += sy - this.lastMouse.y;
             this.lastMouse = { x: sx, y: sy };
+            if (this.panStart && Math.hypot(e.clientX - this.panStart.x, e.clientY - this.panStart.y) > 6) {
+                this.panStart.moved = true;
+            }
+            this.updateToolbarPosition();
             return;
         }
 
@@ -4993,7 +5156,7 @@ class RocketBuilderEngine {
             this.updateToolbarPosition();
             const trashOv = document.getElementById('builderTrashOverlay');
             if (trashOv) {
-                if (!this.draggedPart.fromPalette && e.clientX < rect.left - 36) {
+                if (!this.draggedPart.fromPalette && this.isPointInTrashDock(e.clientX, e.clientY)) {
                     trashOv.classList.remove('hidden');
                 } else {
                     trashOv.classList.add('hidden');
@@ -5005,9 +5168,38 @@ class RocketBuilderEngine {
         }
     }
 
-    onPointerUp(e) {
+    onGlobalPointerUp(e) {
+        if (this.paletteDragState && e.pointerId === this.paletteDragState.pointerId) {
+            const pds = this.paletteDragState;
+            this.paletteDragState = null;
+            if (!pds.active) {
+                const dist = Math.hypot(e.clientX - pds.startX, e.clientY - pds.startY);
+                if (dist <= 10) {
+                    this.smartAddPart(pds.partDefId);
+                    this.playSnapSound();
+                }
+                return;
+            }
+        }
+
+        this.activePointers.delete(e.pointerId);
+        if (this.activePointers.size < 2) {
+            this.pinchState = null;
+        }
+
         if (this.isPanning) {
+            const wasTap = this.panStart && !this.panStart.moved;
             this.isPanning = false;
+            this.panStart = null;
+            if (wasTap) {
+                this.selectedPartId = null;
+                this.selectedPartIds.clear();
+                this.mobileInspectorOpen = false;
+                this.resizeMode = false;
+                this.updateToolbarPosition();
+                this.updateInspectorUI();
+                this.updateStats();
+            }
         }
         if (this.selectionBox) {
             this.selectionBox = null;
@@ -5048,9 +5240,8 @@ class RocketBuilderEngine {
                     this.playSnapSound();
                 }
             } else {
-                // Solo eliminar si se arrastra claramente dentro del panel izquierdo (> 36px)
-                const rect = this.canvas.getBoundingClientRect();
-                if (e.clientX < rect.left - 36) {
+                // Eliminar si se suelta sobre el panel/dock de piezas
+                if (this.isPointInTrashDock(e.clientX, e.clientY)) {
                     this.deleteSelectedPart();
                 } else {
                     this.saveHistory();
@@ -5095,7 +5286,7 @@ class RocketBuilderEngine {
         }
     }
 
-    getPartAtWorld(wx, wy) {
+    getPartAtWorld(wx, wy, pad = 3) {
         // Priorizar piezas internas (no-cofias) para poder seleccionar cargas dentro de cofias transparentes
         let fairingHit = null;
         for (let i = this.placedParts.length - 1; i >= 0; i--) {
@@ -5103,8 +5294,8 @@ class RocketBuilderEngine {
             const def = ROCKET_PARTS_CATALOG[p.partDefId];
             if (!def) continue;
             const b = this.getPartBoundsLocal(def, p.rotation || 0, p);
-            if (wx >= p.x - b.halfW - 3 && wx <= p.x + b.halfW + 3 &&
-                wy >= p.y - b.halfH - 3 && wy <= p.y + b.halfH + 3) {
+            if (wx >= p.x - b.halfW - pad && wx <= p.x + b.halfW + pad &&
+                wy >= p.y - b.halfH - pad && wy <= p.y + b.halfH + pad) {
                 if (def.isFairing) {
                     if (!fairingHit) fairingHit = p;
                 } else {
@@ -5621,14 +5812,20 @@ class RocketBuilderEngine {
         if (!toolbar) return;
         const part = this.placedParts.find(p => p.instanceId === this.selectedPartId);
         const def = part ? ROCKET_PARTS_CATALOG[part.partDefId] : null;
-        if (!part || !def) {
+        const isMobile = window.innerWidth < 768;
+        if (!part || !def || (isMobile && this.mobileInspectorOpen)) {
             toolbar.classList.add('hidden');
             return;
         }
-        const b = this.getPartBoundsLocal(def, part.rotation || 0, part);
-        const screenPos = this.worldToScreen(part.x, part.y - b.halfH - 16);
-        toolbar.style.left = `${screenPos.x}px`;
-        toolbar.style.top = `${screenPos.y}px`;
+        if (isMobile) {
+            toolbar.style.left = '';
+            toolbar.style.top = '';
+        } else {
+            const b = this.getPartBoundsLocal(def, part.rotation || 0, part);
+            const screenPos = this.worldToScreen(part.x, part.y - b.halfH - 16);
+            toolbar.style.left = `${screenPos.x}px`;
+            toolbar.style.top = `${screenPos.y}px`;
+        }
         toolbar.classList.remove('hidden');
 
         const resizeBtn = document.getElementById('btnBldResizePart');
@@ -5665,12 +5862,12 @@ class RocketBuilderEngine {
 
         for (const p of parts) {
             const card = document.createElement('div');
-            card.className = 'p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-400/50 hover:bg-white/[0.06] transition-all flex items-center gap-3 cursor-grab active:cursor-grabbing select-none group';
+            card.className = 'w-24 md:w-full shrink-0 p-1.5 md:p-2.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-400/50 hover:bg-white/[0.06] active:scale-95 transition-all flex flex-col md:flex-row items-center text-center md:text-left gap-1.5 md:gap-3 cursor-grab active:cursor-grabbing select-none group touch-pan-x md:touch-pan-y';
 
             const cvs = document.createElement('canvas');
             cvs.width = 56;
             cvs.height = 56;
-            cvs.className = 'w-14 h-14 shrink-0 rounded-xl bg-black/40 border border-white/10 p-1 block';
+            cvs.className = 'w-11 h-11 md:w-14 md:h-14 shrink-0 rounded-xl bg-black/40 border border-white/10 p-1 block pointer-events-none';
             const miniCtx = cvs.getContext('2d');
             miniCtx.translate(28, 28);
             const maxDim = Math.max(p.width, p.height);
@@ -5680,7 +5877,7 @@ class RocketBuilderEngine {
             card.appendChild(cvs);
 
             const info = document.createElement('div');
-            info.className = 'flex-1 min-w-0';
+            info.className = 'w-full md:flex-1 min-w-0 pointer-events-none';
             let statsBadge = `${p.dryMass}t`;
             if (p.fuelCapacity) statsBadge += ` · ${p.fuelCapacity}L`;
             if (p.thrust) statsBadge += ` · ${p.thrust}kN`;
@@ -5688,27 +5885,22 @@ class RocketBuilderEngine {
             if (p.electricalGen) statsBadge += ` · +${p.electricalGen}W`;
 
             info.innerHTML = `
-                <h4 class="font-display text-xs font-bold text-white group-hover:text-cyan-200 transition-colors truncate">${p.name}</h4>
-                <p class="text-[10px] text-stone-400 truncate leading-snug">${p.tagline}</p>
-                <div class="mt-1"><span class="text-[9px] font-mono-num px-1.5 py-0.5 rounded bg-white/[0.06] text-amber-300/90 border border-white/10">${statsBadge}</span></div>
+                <h4 class="font-display text-[10.5px] md:text-xs font-bold text-white group-hover:text-cyan-200 transition-colors truncate">${p.name}</h4>
+                <p class="hidden md:block text-[10px] text-stone-400 truncate leading-snug">${p.tagline}</p>
+                <div class="mt-0.5 md:mt-1"><span class="text-[8.5px] md:text-[9px] font-mono-num px-1.5 py-0.5 rounded bg-white/[0.06] text-amber-300/90 border border-white/10 inline-block max-w-full truncate">${statsBadge}</span></div>
             `;
             card.appendChild(info);
 
-            card.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                const rect = this.canvas.getBoundingClientRect();
-                const worldPos = this.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-                this.draggedPart = {
+            card.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                this.paletteDragState = {
                     partDefId: p.id,
-                    fromPalette: true,
-                    clickMode: true,
-                    offsetX: 0,
-                    offsetY: 0,
-                    currentX: worldPos.x,
-                    currentY: worldPos.y,
-                    currentFlipped: false
+                    pointerId: e.pointerId,
+                    isTouch: e.pointerType === 'touch',
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    active: false
                 };
-                this.playClickSound();
             });
 
             list.appendChild(card);
@@ -7815,9 +8007,10 @@ function drawCustomRocketInFlight(ctx, s, timeSec, localNight, sScale, thr) {
     const boxW = Math.max(8, fMaxX - fMinX);
     const boxH = Math.max(8, fMaxY - fMinY);
     const camZoom = (typeof camera !== 'undefined' && camera.zoom) ? camera.zoom : 1.0;
-    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1.0;
-    let offScale = Math.max(1.5, Math.min(4.0, camZoom * dpr * 1.25));
-    const maxDim = 2048;
+    const effDpr = (typeof dpr === 'number' && dpr > 0) ? dpr : Math.min((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1.0, 2.0);
+    const isMob = (typeof _isMobileDevice !== 'undefined') ? _isMobileDevice : false;
+    let offScale = Math.max(1.25, Math.min(isMob ? 2.25 : 4.0, camZoom * effDpr * 1.25));
+    const maxDim = isMob ? 768 : 2048;
     if (boxW * offScale > maxDim || boxH * offScale > maxDim) {
         offScale = Math.min(offScale, maxDim / Math.max(boxW, boxH));
     }

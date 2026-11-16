@@ -2375,9 +2375,10 @@ function updatePhysics(dt, skipExpensiveUI = false) {
 
     // Partículas RCS de gas frío a presión en las toberas reales del cohete
     const allowRcsPuffs = !ship.customRocket || hasCustomRcs;
-    if (ship.rcsStrafe && hasFuel && allowRcsPuffs) {
+    if (ship.rcsStrafe && hasFuel) {
         const strafeAngle = ship.angle + ship.rcsStrafe * (Math.PI / 2);
-        const strafeAccel = (hasCustomRcs ? (cr.rcsAuthority || 1.0) * 145 : 95) / Math.max(0.6, (ship.mass || 8) / 8);
+        const massScale = Math.pow(Math.max(0.5, (ship.mass || 8) / 8), 0.55);
+        const strafeAccel = (hasCustomRcs ? (cr.rcsAuthority || 1.0) * 185 : 145) / massScale;
         ship.vx += Math.cos(strafeAngle) * strafeAccel * dt;
         ship.vy += Math.sin(strafeAngle) * strafeAccel * dt;
         if (!ship.infiniteFuel) {
@@ -2414,10 +2415,11 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
     }
-    // Empuje RCS hacia adelante (joystick arriba: potencia RCS sin encender motor principal)
-    if (ship.rcsForward > 0 && hasFuel && allowRcsPuffs) {
+    // Empuje RCS hacia adelante (potencia RCS sin encender motor principal)
+    if (ship.rcsForward > 0 && hasFuel) {
         const rcsFwdPower = clamp(ship.rcsForward, 0, 1);
-        const fwdAccel = ((hasCustomRcs ? (cr.rcsAuthority || 1.0) * 145 : 95) / Math.max(0.6, (ship.mass || 8) / 8)) * rcsFwdPower;
+        const massScale = Math.pow(Math.max(0.5, (ship.mass || 8) / 8), 0.55);
+        const fwdAccel = ((hasCustomRcs ? (cr.rcsAuthority || 1.0) * 185 : 145) / massScale) * rcsFwdPower;
         ship.vx += cosA * fwdAccel * dt;
         ship.vy += sinA * fwdAccel * dt;
         if (!ship.infiniteFuel) {
@@ -2436,7 +2438,7 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             });
         }
     }
-    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && hasFuel && allowRcsPuffs) || !!(ship.rcsForward > 0 && hasFuel && allowRcsPuffs);
+    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && hasFuel) || !!(ship.rcsForward > 0 && hasFuel);
     if (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs && Math.random() < 0.78) {
         if (hasCustomRcs) {
             if (!ship.infiniteFuel) {

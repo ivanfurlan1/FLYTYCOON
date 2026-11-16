@@ -47,6 +47,10 @@ function updateWorldMenuHullInfo() {
 }
 
 function updateHUD(nearestPlanet, altFromSurface, speed) {
+    const _hudNow = performance.now();
+    if (updateHUD._lastRun && (_hudNow - updateHUD._lastRun) < 80) return;
+    updateHUD._lastRun = _hudNow;
+
     const isEva = (typeof astronaut !== 'undefined' && !!astronaut.active);
     const maxF = ship.maxFuel || 100;
     const fuelPct = clamp(Math.round((ship.fuel / maxF) * 100), 0, 100);
@@ -337,7 +341,7 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
             const baseSelector = document.getElementById('evaBaseLevelSelector');
             if (baseSelector) baseSelector.classList.toggle('hidden', Boolean(nearbyBase));
 
-            canUpgradeBase = Boolean(nearbyBase && nearbyBase.level < 3);
+            canUpgradeBase = Boolean(nearbyBase && nearbyBase.level < 4);
             const btnUpgradeBase = document.getElementById('btnEvaUpgradeBase');
             const uiUpgradeBaseLabel = document.getElementById('uiUpgradeBaseLabel');
             const uiUpgradeBaseBar = document.getElementById('uiUpgradeBaseBar');
@@ -356,8 +360,8 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
             if (nearbyBase) {
                 if (uiBuildBaseLabel) uiBuildBaseLabel.textContent = 'Base';
                 if (uiBuildBaseLvlBadge) {
-                    uiBuildBaseLvlBadge.textContent = nearbyBase.level >= 3 ? 'MAX' : `N${nearbyBase.level}`;
-                    uiBuildBaseLvlBadge.className = nearbyBase.level >= 3
+                    uiBuildBaseLvlBadge.textContent = nearbyBase.level >= 4 ? 'MAX' : `N${nearbyBase.level}`;
+                    uiBuildBaseLvlBadge.className = nearbyBase.level >= 4
                         ? 'text-[7px] font-mono-num px-1 rounded bg-emerald-400/25 text-emerald-300 border border-emerald-400/40'
                         : 'text-[7px] font-mono-num px-1 rounded bg-amber-400/25 text-amber-300 border border-amber-400/40';
                 }
@@ -384,7 +388,7 @@ function updateHUD(nearestPlanet, altFromSurface, speed) {
                 uiBuildRocketBar.style.width = isBuildingRocket ? `${Math.round(astronaut.actionProgress * 100)}%` : '0%';
             }
 
-            for (let l = 1; l <= 3; l++) {
+            for (let l = 1; l <= 4; l++) {
                 const btnLvl = document.getElementById(`btnBaseLvl${l}`);
                 if (btnLvl) {
                     const isSelected = (currentSelectedLvl === l);

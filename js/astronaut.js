@@ -40,6 +40,8 @@ const astronaut = {
     onCeiling: false,        // ¿Caminando sobre el techo por gravedad invertida?
     facing: 1,               // 1 = derecha / sentido horario, -1 = izquierda
     isGrounded: true,
+    isSprinting: false,
+    touchSprinting: false,
     walkCycle: 0,            // Fase de animación de piernas y brazos
     jetpackFuel: 100,        // Propargol de gas frío del jetpack (0..100)
     suitO2: 100,             // Soporte vital de oxígeno del traje
@@ -150,6 +152,8 @@ function disembarkShip() {
     astronaut.vRadial = 0;
     astronaut.facing = 1;
     astronaut.isGrounded = false;
+    astronaut.isSprinting = false;
+    astronaut.touchSprinting = false;
     astronaut.walkCycle = 0;
     astronaut.actionProgress = 0;
     astronaut.actionType = null;
@@ -263,6 +267,8 @@ function boardShip() {
     astronaut.active = false;
     astronaut.inCavern = false;
     astronaut.onCeiling = false;
+    astronaut.isSprinting = false;
+    astronaut.touchSprinting = false;
     astronaut.actionProgress = 0;
     astronaut.actionType = null;
     if (typeof LightingEngine !== 'undefined' && LightingEngine.exitPlacementMode) {
@@ -337,13 +343,7 @@ function updateAstronautPhysics(dt) {
     let inputMove = 0;
     if (keys['KeyA'] || keys['ArrowLeft']) inputMove -= 1;
     if (keys['KeyD'] || keys['ArrowRight']) inputMove += 1;
-    const evaJoy = (typeof window !== 'undefined' && window.evaJoystickInput && window.evaJoystickInput.active)
-        ? window.evaJoystickInput
-        : null;
-    if (evaJoy && evaJoy.x !== 0) {
-        inputMove = clamp(inputMove + evaJoy.x, -1, 1);
-    }
-    const isSprinting = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+    const isSprinting = !!(keys['ShiftLeft'] || keys['ShiftRight'] || astronaut.touchSprinting);
     astronaut.isSprinting = isSprinting && inputMove !== 0;
 
     if (inputMove !== 0) {
@@ -356,8 +356,7 @@ function updateAstronautPhysics(dt) {
     let slopeFactor = 1.0;
     if (astronaut.isGrounded && !astronaut.inCavern && !astronaut.onCeiling && inputMove !== 0 && p.radius > 0) {
         const eps = clamp(8 / Math.max(250, p.radius), 0.00015, 0.015);
-        const moveDir = inputMove > 0 ? 1 : -1;
-        const dirSign = astronaut.onCeiling ? -moveDir : moveDir;
+        const dirSign = astronaut.onCeiling ? -inputMove : inputMove;
         const dr = getSurfaceRadius(p, astronaut.angle + dirSign * eps) - getSurfaceRadius(p, astronaut.angle - dirSign * eps);
         const dirSlope = dr / (2 * eps * Math.max(250, surfaceR));
         if (dirSlope > 0.14) {
@@ -373,8 +372,8 @@ function updateAstronautPhysics(dt) {
     astronaut.vTangential = lerp(astronaut.vTangential, targetTangential, dt * accelRate);
 
     const wasGrounded = astronaut.isGrounded;
-    // Salto y Jetpack de gas frío (Espacio / W / Flecha arriba / Joystick arriba)
-    const jumpRequested = keys['Space'] || keys['KeyW'] || keys['ArrowUp'] || !!(evaJoy && evaJoy.y < -0.35);
+    // Salto y Jetpack de gas frío (Espacio / W / Flecha arriba)
+    const jumpRequested = keys['Space'] || keys['KeyW'] || keys['ArrowUp'];
 
     if (jumpRequested) {
         if (astronaut.isGrounded) {
@@ -667,20 +666,20 @@ function handleAstronautInteractions(dt) {
 
     if (isHoldingBuild) {
         const isUpgrade = !!nearbyBase;
-        const targetLevel = isUpgrade ? Math.min(3, nearbyBase.level + 1) : (astronaut.selectedBaseLevel || 1);
+        const targetLevel = isUpgrade ? Math.min(4, nearbyBase.level + 1) : (astronaut.selectedBaseLevel || 1);
 
-        if (isUpgrade && nearbyBase.level >= 3) {
+        if (isUpgrade && nearbyBase.level >= 4) {
             astronaut.actionProgress = 0;
             astronaut.actionType = null;
             if (!astronaut._maxBaseAlertShown) {
                 astronaut._maxBaseAlertShown = true;
-                showHoloCard(p, 'COMPLEJO AL MÁXIMO NIVEL (NV. 3)', 'La Ciudadela Colonial Cuántica ya posee todas las instalaciones avanzadas.');
+                showHoloCard(p, 'COMPLEJO AL MÁXIMO NIVEL (NV. 4)', 'La Megaplataforma Orbital ya posee todas las instalaciones avanzadas.');
                 setTimeout(() => { astronaut._maxBaseAlertShown = false; }, 3200);
             }
         } else {
             astronaut.actionType = 'build_base';
             astronaut.buildTargetBase = nearbyBase;
-            const buildTime = isUpgrade ? (targetLevel === 2 ? 2.5 : 3.5) : (BASE_LEVELS[targetLevel].buildTime || 2.5);
+            const buildTime = isUpgrade ? (targetLevel === 2 ? 2.5 : (targetLevel === 3 ? 3.5 : 4.8)) : (BASE_LEVELS[targetLevel].buildTime || 2.5);
             astronaut.actionProgress += dt / buildTime;
 
             sfx('playBaseBuild', astronaut.actionProgress);
@@ -970,7 +969,7 @@ function calculateBaseGeometry(planet, angle, level) {
     const deckR = maxGroundR + clearance;
 
     // Patas niveladoras telescópicas adaptadas a la topografía local
-    const legCounts = [6, 10, 16];
+    const legCounts = [6, 10, 16, 26];
     const legCount = legCounts[level - 1] || 6;
     const legs = [];
     for (let i = 0; i < legCount; i++) {
@@ -1054,7 +1053,7 @@ function upgradeBase(base) {
     const planet = (typeof getPlanetByKey === 'function') ? getPlanetByKey(base.planetKey) : astronaut.planet;
     if (!planet) return;
 
-    base.level = Math.min(3, base.level + 1);
+    base.level = Math.min(4, base.level + 1);
     const geo = calculateBaseGeometry(planet, base.angle, base.level);
     base.width = geo.width;
     base.halfWidth = geo.halfWidth;
@@ -1302,6 +1301,189 @@ function drawBeacons(timeSec) {
 }
 
 /**
+ * Aplica iluminación dinámica direccional realista sobre las superficies físicas
+ * de la plataforma (cubierta, viga, rampas, patas, cabina/torre) sin halos flotantes.
+ */
+function drawBaseDynamicLighting(ctx, b, bx, by) {
+    if (typeof LightingEngine === 'undefined' || typeof LightingEngine.samplePoint !== 'function') return;
+
+    const rot = b.angle + Math.PI / 2;
+    const tx = Math.cos(rot);
+    const ty = Math.sin(rot);
+    const zenX = Math.cos(b.angle);
+    const zenY = Math.sin(b.angle);
+
+    const sampleAtLocal = (lx, ly, rad) => {
+        const wx = bx + tx * lx - zenX * ly;
+        const wy = by + ty * lx - zenY * ly;
+        const s = LightingEngine.samplePoint(wx, wy, rad);
+        if (!s || s.illum <= 0.015) return null;
+        return {
+            illum: s.illum,
+            r: s.r,
+            g: s.g,
+            b: s.b,
+            localDirX: s.dirX * tx + s.dirY * ty,
+            localDirTop: s.dirX * zenX + s.dirY * zenY
+        };
+    };
+
+    const spanX = b.halfWidth * 0.72;
+    const sL = sampleAtLocal(-spanX, -1, 18);
+    const sC = sampleAtLocal(0, -1, 18);
+    const sR = sampleAtLocal(spanX, -1, 18);
+
+    let sStruct = null;
+    if (b.level === 2) {
+        sStruct = sampleAtLocal(-b.halfWidth + 24, -7, 14);
+    } else if (b.level >= 3) {
+        const isTitan = b.level >= 4;
+        const towerX = -b.halfWidth + (isTitan ? 36 : 28);
+        const midY = isTitan ? -28 : -16;
+        sStruct = sampleAtLocal(towerX, midY, 18);
+    }
+
+    if (!sL && !sC && !sR && !sStruct) return;
+
+    const deckH = 5.2;
+    const rampLen = 8.0;
+    const pickColor = (s) => (s ? `${s.r}, ${s.g}, ${s.b}` : (sC ? `${sC.r}, ${sC.g}, ${sC.b}` : (sL ? `${sL.r}, ${sL.g}, ${sL.b}` : `${sR.r}, ${sR.g}, ${sR.b}`)));
+    const topWeight = (s) => {
+        if (!s) return 0;
+        const lambert = s.localDirTop > 0
+            ? (0.24 + 0.76 * s.localDirTop)
+            : (0.14 * clamp(1 + s.localDirTop, 0, 1));
+        return clamp(s.illum * lambert, 0, 1.15);
+    };
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // 1. Iluminación sobre la cubierta de hierro, bisel superior y viga maestra
+    if (sL || sC || sR) {
+        const wL = topWeight(sL);
+        const wC = topWeight(sC);
+        const wR = topWeight(sR);
+
+        // A. Brillo direccional en el cuerpo de la viga (contenido dentro de la viga)
+        const girderLit = ctx.createLinearGradient(-b.halfWidth, 0, b.halfWidth, 0);
+        girderLit.addColorStop(0.0, `rgba(${pickColor(sL)}, ${(wL * 0.24).toFixed(3)})`);
+        girderLit.addColorStop(0.5, `rgba(${pickColor(sC)}, ${(wC * 0.24).toFixed(3)})`);
+        girderLit.addColorStop(1.0, `rgba(${pickColor(sR)}, ${(wR * 0.24).toFixed(3)})`);
+        ctx.fillStyle = girderLit;
+        ctx.beginPath();
+        safeRoundRect(ctx, -b.halfWidth, 0, b.width, deckH, 1.2);
+        ctx.fill();
+
+        // B. Reflexión especular nítida en el borde superior de la plataforma
+        const rimLit = ctx.createLinearGradient(-b.halfWidth, 0, b.halfWidth, 0);
+        rimLit.addColorStop(0.0, `rgba(${pickColor(sL)}, ${clamp(wL * 0.58, 0, 0.72).toFixed(3)})`);
+        rimLit.addColorStop(0.5, `rgba(${pickColor(sC)}, ${clamp(wC * 0.58, 0, 0.72).toFixed(3)})`);
+        rimLit.addColorStop(1.0, `rgba(${pickColor(sR)}, ${clamp(wR * 0.58, 0, 0.72).toFixed(3)})`);
+        ctx.strokeStyle = rimLit;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-b.halfWidth + 0.5, 0.5);
+        ctx.lineTo(b.halfWidth - 0.5, 0.5);
+        ctx.stroke();
+
+        // C. Rampas laterales inclinadas
+        if (sL && wL > 0.02) {
+            ctx.fillStyle = `rgba(${sL.r}, ${sL.g}, ${sL.b}, ${clamp(wL * 0.28, 0, 0.35).toFixed(3)})`;
+            ctx.beginPath();
+            ctx.moveTo(-b.halfWidth, 0.5);
+            ctx.lineTo(-b.halfWidth - rampLen, deckH);
+            ctx.lineTo(-b.halfWidth, deckH);
+            ctx.closePath();
+            ctx.fill();
+        }
+        if (sR && wR > 0.02) {
+            ctx.fillStyle = `rgba(${sR.r}, ${sR.g}, ${sR.b}, ${clamp(wR * 0.28, 0, 0.35).toFixed(3)})`;
+            ctx.beginPath();
+            ctx.moveTo(b.halfWidth, 0.5);
+            ctx.lineTo(b.halfWidth + rampLen, deckH);
+            ctx.lineTo(b.halfWidth, deckH);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // D. Deflector de chorro (Nivel >= 2)
+        if (b.level >= 2 && sR && sR.illum > 0.03) {
+            const defX = b.halfWidth - 14;
+            ctx.fillStyle = `rgba(${sR.r}, ${sR.g}, ${sR.b}, ${clamp(sR.illum * 0.26, 0, 0.32).toFixed(3)})`;
+            ctx.beginPath();
+            ctx.moveTo(defX - 5.0, 0);
+            ctx.lineTo(defX + 5.0, -7.5);
+            ctx.lineTo(defX + 7.5, -7.5);
+            ctx.lineTo(defX - 1.5, 0);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // E. Patas hidráulicas (iluminadas solo en el flanco que recibe la luz)
+        if (b.legs && b.legs.length > 0) {
+            for (let li = 0; li < b.legs.length; li++) {
+                const leg = b.legs[li];
+                const u = clamp(leg.x / (b.halfWidth || 1), -1, 1);
+                const legS = u < -0.33 ? sL : (u > 0.33 ? sR : sC);
+                if (!legS || legS.illum <= 0.03) continue;
+                const legAlpha = clamp(legS.illum * 0.22, 0, 0.28);
+                const L = Math.max(2.0, leg.length);
+                const sleeveH = Math.min(L * 0.58, L - 1.5);
+                const sideOffset = legS.localDirX >= 0 ? 0.4 : -2.4;
+                ctx.fillStyle = `rgba(${legS.r}, ${legS.g}, ${legS.b}, ${legAlpha.toFixed(3)})`;
+                ctx.fillRect(leg.x + sideOffset, 4.8, 2.0, sleeveH);
+                ctx.fillRect(leg.x + (legS.localDirX >= 0 ? 0.2 : -1.4), 4.8 + sleeveH, 1.2, L - sleeveH);
+            }
+        }
+    }
+
+    // 2. Superestructura (Cabina Nv.2 o Torre de Control Nv.3/4)
+    if (sStruct && sStruct.illum > 0.025) {
+        const sAlpha = clamp(sStruct.illum * 0.26, 0, 0.34);
+        if (b.level === 2) {
+            const cabX = -b.halfWidth + 24;
+            const cabW = 24;
+            const cabH = 13.5;
+            const litSide = sStruct.localDirX >= 0 ? 1 : -1;
+            const cabLit = ctx.createLinearGradient(cabX - cabW * 0.5 * litSide, 0, cabX + cabW * 0.5 * litSide, 0);
+            cabLit.addColorStop(0.0, 'rgba(0, 0, 0, 0)');
+            cabLit.addColorStop(0.55, `rgba(${sStruct.r}, ${sStruct.g}, ${sStruct.b}, ${(sAlpha * 0.45).toFixed(3)})`);
+            cabLit.addColorStop(1.0, `rgba(${sStruct.r}, ${sStruct.g}, ${sStruct.b}, ${sAlpha.toFixed(3)})`);
+            ctx.fillStyle = cabLit;
+            ctx.beginPath();
+            ctx.moveTo(cabX - cabW / 2 + 3.0, -cabH);
+            ctx.lineTo(cabX + cabW / 2 - 2.0, -cabH);
+            ctx.lineTo(cabX + cabW / 2, 0);
+            ctx.lineTo(cabX - cabW / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+        } else if (b.level >= 3) {
+            const isTitan = b.level >= 4;
+            const towerX = -b.halfWidth + (isTitan ? 36 : 28);
+            const baseW = isTitan ? 24 : 16;
+            const topW = isTitan ? 16 : 11;
+            const fusteTopY = isTitan ? -46 : -26;
+            const litSide = sStruct.localDirX >= 0 ? 1 : -1;
+            const tLit = ctx.createLinearGradient(towerX - baseW * 0.5 * litSide, 0, towerX + baseW * 0.5 * litSide, 0);
+            tLit.addColorStop(0.0, 'rgba(0, 0, 0, 0)');
+            tLit.addColorStop(0.5, `rgba(${sStruct.r}, ${sStruct.g}, ${sStruct.b}, ${(sAlpha * 0.4).toFixed(3)})`);
+            tLit.addColorStop(1.0, `rgba(${sStruct.r}, ${sStruct.g}, ${sStruct.b}, ${sAlpha.toFixed(3)})`);
+            ctx.fillStyle = tLit;
+            ctx.beginPath();
+            ctx.moveTo(towerX - baseW / 2, 0);
+            ctx.lineTo(towerX - topW / 2, fusteTopY);
+            ctx.lineTo(towerX + topW / 2, fusteTopY);
+            ctx.lineTo(towerX + baseW / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    ctx.restore();
+}
+
+/**
  * Dibuja todas las bases planetarias construidas en mundos visibles
  */
 function drawBases(timeSec) {
@@ -1323,29 +1505,6 @@ function drawBases(timeSec) {
             ctx.save();
             ctx.translate(bx, by);
             ctx.rotate(b.angle + Math.PI / 2); // Eje +X hacia la derecha tangente al terreno, -Y hacia el cenit
-
-            // ==============================================================
-            // 1. FARO CENITAL DE NAVEGACIÓN ORBITAL (SOLO NIVEL 3)
-            // ==============================================================
-            if (b.level === 3) {
-                const towerBeaconX = -b.halfWidth + 28;
-                const towerTopY = -48;
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                const beamH = 520;
-                const beamW = 16;
-                const beamGrad = ctx.createLinearGradient(towerBeaconX, towerTopY, towerBeaconX, towerTopY - beamH);
-                beamGrad.addColorStop(0, 'rgba(56, 189, 248, 0.55)');
-                beamGrad.addColorStop(0.25, 'rgba(56, 189, 248, 0.22)');
-                beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = beamGrad;
-                ctx.fillRect(towerBeaconX - beamW / 2, towerTopY - beamH, beamW, beamH);
-
-                // Haz estrecho central súper brillante
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-                ctx.fillRect(towerBeaconX - 1.5, towerTopY - beamH, 3, beamH);
-                ctx.restore();
-            }
 
             // ==============================================================
             // 2. PATAS TELESCÓPICAS Y CERCHAS EN X DE HIERRO ESTRUCTURAL
@@ -1540,20 +1699,22 @@ function drawBases(timeSec) {
             let padCenterX = 0;
             let padRadius = 24;
             let grateW = 54;
-            let padCode = 'IRON PAD · LZ-01';
 
             if (b.level === 2) {
                 // En Nivel 2, la cabina está en la izquierda; la pista de aterrizaje va de -10 a +b.halfWidth
                 padCenterX = 26;
                 padRadius = 34;
                 grateW = 96;
-                padCode = 'FLIGHT DECK · 02-BETA';
             } else if (b.level === 3) {
                 // En Nivel 3, la torre está en la izquierda; la inmensa pista continua va de 0 a +b.halfWidth
                 padCenterX = 40;
                 padRadius = 46;
                 grateW = 160;
-                padCode = 'STARPORT LZ · 03-GAMMA';
+            } else if (b.level >= 4) {
+                // En Nivel 4, la gran torre está a la izquierda y deja un enorme espacio liso continuo
+                padCenterX = 55;
+                padRadius = 60;
+                grateW = 240;
             }
 
             // A. Rejilla disipadora de escape térmico (Flame trench / Blast grating)
@@ -1574,54 +1735,19 @@ function drawBases(timeSec) {
                 ctx.stroke();
             }
 
-            // B. Círculo / Octágono de apontaje aeroespacial en pintura cian reflectante
+            // B. Marcas tácticas realistas de alineación de aterrizaje en la cubierta
             ctx.save();
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.9)';
-            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 1.4;
             ctx.beginPath();
-            const octSteps = 12;
-            for (let oi = 0; oi <= octSteps; oi++) {
-                const oAng = (oi / octSteps) * Math.PI * 2;
-                const ox = padCenterX + Math.cos(oAng) * padRadius;
-                const oy = Math.sin(oAng) * (padRadius * 0.32) + 0.5;
-                if (oi === 0) ctx.moveTo(ox, oy);
-                else ctx.lineTo(ox, oy);
-            }
-            ctx.stroke();
-
-            // Círculo concéntrico interior
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            for (let oi = 0; oi <= octSteps; oi++) {
-                const oAng = (oi / octSteps) * Math.PI * 2;
-                const ox = padCenterX + Math.cos(oAng) * (padRadius * 0.55);
-                const oy = Math.sin(oAng) * (padRadius * 0.55 * 0.32) + 0.5;
-                if (oi === 0) ctx.moveTo(ox, oy);
-                else ctx.lineTo(ox, oy);
-            }
-            ctx.stroke();
-
-            // Cruz táctica de aterrizaje en amarillo brillante
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            // Brazo horizontal
             ctx.moveTo(padCenterX - padRadius * 0.72, 0.5);
             ctx.lineTo(padCenterX + padRadius * 0.72, 0.5);
-            // Marcas guía de extremos
-            ctx.moveTo(padCenterX - padRadius * 0.72, -1.8);
-            ctx.lineTo(padCenterX - padRadius * 0.72, 2.8);
-            ctx.moveTo(padCenterX + padRadius * 0.72, -1.8);
-            ctx.lineTo(padCenterX + padRadius * 0.72, 2.8);
+            ctx.moveTo(padCenterX - padRadius * 0.72, -1.6);
+            ctx.lineTo(padCenterX - padRadius * 0.72, 2.6);
+            ctx.moveTo(padCenterX + padRadius * 0.72, -1.6);
+            ctx.lineTo(padCenterX + padRadius * 0.72, 2.6);
             ctx.stroke();
             ctx.restore();
-
-            // C. Rótulo de pista serigrafiado en la cubierta de hierro
-            ctx.fillStyle = 'rgba(241, 245, 249, 0.9)';
-            ctx.font = 'bold 7px JetBrains Mono, monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(padCode, padCenterX, -2.5);
 
             // D. Luces LED secuenciales de aproximación de pista (Nivel 2 y 3)
             if (b.level >= 2) {
@@ -1765,17 +1891,17 @@ function drawBases(timeSec) {
             }
 
             // ==============================================================
-            // 6. TORRE DE CONTROL AEROESPACIAL MASIVA (EXCLUSIVO NIVEL 3)
+            // 6. TORRE DE CONTROL AEROESPACIAL (NIVEL 3 Y NIVEL 4 GIGANTE)
             // ==============================================================
-            if (b.level === 3) {
+            if (b.level >= 3) {
+                const isTitan = b.level >= 4;
                 // Ubicada en el lateral izquierdo, sin invadir la inmensa pista continua
-                const towerX = -b.halfWidth + 28;
-                const towerH = 40;
-                const baseW = 16;
-                const topW = 11;
+                const towerX = -b.halfWidth + (isTitan ? 36 : 28);
+                const baseW = isTitan ? 24 : 16;
+                const topW = isTitan ? 16 : 11;
 
                 // A. Fuste de celosía de vigas de hierro estructural (Truss steel tower)
-                const fusteTopY = -26;
+                const fusteTopY = isTitan ? -46 : -26;
                 ctx.fillStyle = '#1e293b';
                 ctx.strokeStyle = '#334155';
                 ctx.lineWidth = 1.2;
@@ -1793,7 +1919,7 @@ function drawBases(timeSec) {
                 // Celosías en X de hierro en el cuerpo de la torre
                 ctx.strokeStyle = '#475569';
                 ctx.lineWidth = 1.0;
-                const stages = 4;
+                const stages = isTitan ? 6 : 4;
                 for (let si = 0; si < stages; si++) {
                     const y1 = (si / stages) * fusteTopY;
                     const y2 = ((si + 1) / stages) * fusteTopY;
@@ -1833,9 +1959,9 @@ function drawBases(timeSec) {
                 ctx.stroke();
 
                 // C. Puesto de Mando y Control de Vuelo 360° (Flight Ops Deck)
-                const bridgeH = 11.0;
+                const bridgeH = isTitan ? 15.0 : 11.0;
                 const bridgeY = fusteTopY - bridgeH;
-                const bridgeW = 18.0;
+                const bridgeW = isTitan ? 26.0 : 18.0;
 
                 // Base achaflanada de la cabina
                 ctx.fillStyle = '#1e293b';
@@ -1850,20 +1976,21 @@ function drawBases(timeSec) {
                 ctx.fill();
                 ctx.stroke();
 
-                // Ventanales poligonales 360° en cian luminoso
-                const bridgeWinGrad = ctx.createLinearGradient(towerX - bridgeW / 2, bridgeY, towerX + bridgeW / 2, bridgeY + 6.0);
+                // Ventanales poligonales 360° en vidrio polarizado realista
+                const bridgeWinGrad = ctx.createLinearGradient(towerX - bridgeW / 2, bridgeY, towerX + bridgeW / 2, bridgeY + (isTitan ? 8.5 : 6.0));
                 bridgeWinGrad.addColorStop(0, '#38bdf8');
                 bridgeWinGrad.addColorStop(0.5, '#0ea5e9');
                 bridgeWinGrad.addColorStop(1, '#0369a1');
 
+                const winBottom = isTitan ? 8.5 : 6.0;
                 ctx.fillStyle = bridgeWinGrad;
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.lineWidth = 0.8;
                 ctx.beginPath();
-                ctx.moveTo(towerX - bridgeW / 2 + 1.5, bridgeY + 1.0);
-                ctx.lineTo(towerX + bridgeW / 2 - 1.5, bridgeY + 1.0);
-                ctx.lineTo(towerX + bridgeW / 2, bridgeY + 6.0);
-                ctx.lineTo(towerX - bridgeW / 2, bridgeY + 6.0);
+                ctx.moveTo(towerX - bridgeW / 2 + 1.5, bridgeY + 1.2);
+                ctx.lineTo(towerX + bridgeW / 2 - 1.5, bridgeY + 1.2);
+                ctx.lineTo(towerX + bridgeW / 2, bridgeY + winBottom);
+                ctx.lineTo(towerX - bridgeW / 2, bridgeY + winBottom);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
@@ -1872,89 +1999,66 @@ function drawBases(timeSec) {
                 ctx.strokeStyle = '#0f172a';
                 ctx.lineWidth = 0.9;
                 ctx.beginPath();
-                ctx.moveTo(towerX - 4.5, bridgeY + 1.0);
-                ctx.lineTo(towerX - 4.5, bridgeY + 6.0);
-                ctx.moveTo(towerX + 4.5, bridgeY + 1.0);
-                ctx.lineTo(towerX + 4.5, bridgeY + 6.0);
+                const mullionOffsets = isTitan ? [-7.5, -2.5, 2.5, 7.5] : [-4.5, 4.5];
+                for (let mi = 0; mi < mullionOffsets.length; mi++) {
+                    const mx = towerX + mullionOffsets[mi];
+                    ctx.moveTo(mx, bridgeY + 1.2);
+                    ctx.lineTo(mx, bridgeY + winBottom);
+                }
                 ctx.stroke();
 
                 // Techo blindado superior
                 ctx.fillStyle = '#0f172a';
-                ctx.fillRect(towerX - bridgeW / 2 + 1.0, bridgeY - 1.4, bridgeW - 2.0, 1.8);
+                ctx.fillRect(towerX - bridgeW / 2 + 1.0, bridgeY - 1.6, bridgeW - 2.0, 2.0);
 
                 // D. Mástil de comunicaciones, antena de radar y baliza aeronáutica
-                const mastTopY = bridgeY - 10.0;
+                const mastTopY = bridgeY - (isTitan ? 15.0 : 10.0);
                 ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 1.2;
+                ctx.lineWidth = isTitan ? 1.4 : 1.2;
                 ctx.beginPath();
-                ctx.moveTo(towerX, bridgeY - 1.4);
+                ctx.moveTo(towerX, bridgeY - 1.6);
                 ctx.lineTo(towerX, mastTopY);
                 ctx.stroke();
 
                 // Antena de radar giratoria continua
                 const radarRot = timeSec * 3.5;
+                const radarW = isTitan ? 13.0 : 9.0;
                 ctx.save();
-                ctx.translate(towerX, mastTopY + 3.0);
+                ctx.translate(towerX, mastTopY + (isTitan ? 4.5 : 3.0));
                 ctx.rotate(radarRot);
                 ctx.fillStyle = '#f8fafc';
-                ctx.fillRect(-4.5, -1.0, 9.0, 2.0);
+                ctx.fillRect(-radarW / 2, -1.0, radarW, 2.0);
                 ctx.fillStyle = '#38bdf8';
-                ctx.fillRect(2.8, -1.0, 1.6, 2.0);
+                ctx.fillRect(radarW / 2 - 1.8, -1.0, 1.8, 2.0);
                 ctx.restore();
 
                 // Baliza estroboscópica roja aeronáutica en la cima del mástil
                 const redPulse = Math.sin(timeSec * 5) > 0;
                 ctx.fillStyle = redPulse ? '#ef4444' : '#7f1d1d';
                 ctx.beginPath();
-                ctx.arc(towerX, mastTopY, 1.4, 0, Math.PI * 2);
+                ctx.arc(towerX, mastTopY, isTitan ? 1.7 : 1.4, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Proyector halógeno (floodlight) iluminando la pista hacia la derecha
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
-                const floodGrad = ctx.createRadialGradient(towerX + 6, fusteTopY, 2, towerX + 50, fusteTopY + 15, 65);
+                const floodDist = isTitan ? 140 : 90;
+                const floodGrad = ctx.createRadialGradient(towerX + 6, fusteTopY, 2, towerX + (isTitan ? 75 : 50), fusteTopY + 15, isTitan ? 95 : 65);
                 floodGrad.addColorStop(0, 'rgba(254, 240, 138, 0.25)');
                 floodGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.08)');
                 floodGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
                 ctx.fillStyle = floodGrad;
                 ctx.beginPath();
                 ctx.moveTo(towerX + 6, fusteTopY - 2);
-                ctx.lineTo(towerX + 90, 0);
+                ctx.lineTo(towerX + floodDist, 0);
                 ctx.lineTo(towerX + 30, 0);
                 ctx.closePath();
                 ctx.fill();
                 ctx.restore();
             }
 
-            // Iluminación dinámica reflejada sobre la plataforma de hierro y estructura
-            const baseLight = (typeof LightingEngine !== 'undefined') ? LightingEngine.samplePoint(bx, by, b.halfWidth * 0.95) : null;
-            if (baseLight && baseLight.illum > 0.02) {
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                const bRad = b.halfWidth * 1.05;
-                const bGlow = ctx.createRadialGradient(0, -8, 2, 0, -4, bRad);
-                const ba = clamp(baseLight.illum * 0.34, 0, 0.42);
-                bGlow.addColorStop(0.0, `rgba(${baseLight.r}, ${baseLight.g}, ${baseLight.b}, ${ba.toFixed(3)})`);
-                bGlow.addColorStop(0.55, `rgba(${baseLight.r}, ${baseLight.g}, ${baseLight.b}, ${(ba * 0.35).toFixed(3)})`);
-                bGlow.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = bGlow;
-                ctx.beginPath();
-                ctx.ellipse(0, -4, bRad, Math.max(14, bRad * 0.42), 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-            // ==============================================================
-            // 7. RÓTULO HOLOGRÁFICO EN PANTALLA
-            // ==============================================================
-            ctx.save();
-            ctx.rotate(camera.rotation);
-            ctx.fillStyle = '#f8fafc';
-            ctx.font = 'bold 8px JetBrains Mono, monospace';
-            ctx.textAlign = 'center';
-            const lvlBadge = `[NV. ${b.level}] ${b.name || 'PLATAFORMA DE HIERRO'}`;
-            ctx.fillText(lvlBadge, 0, -18 - (b.level === 3 ? 18 : 6));
-            ctx.restore();
+            // Iluminación dinámica direccional sobre las superficies físicas de la plataforma
+            drawBaseDynamicLighting(ctx, b, bx, by);
 
             ctx.restore();
         }
@@ -1970,7 +2074,7 @@ function drawBaseHoloPreview(timeSec) {
 
     const p = astronaut.planet;
     const isUpgrade = !!astronaut.buildTargetBase;
-    const targetLvl = isUpgrade ? Math.min(3, astronaut.buildTargetBase.level + 1) : (astronaut.selectedBaseLevel || 1);
+    const targetLvl = isUpgrade ? Math.min(4, astronaut.buildTargetBase.level + 1) : (astronaut.selectedBaseLevel || 1);
     const lvlInfo = (typeof BASE_LEVELS !== 'undefined' && BASE_LEVELS[targetLvl]) ? BASE_LEVELS[targetLvl] : { width: 96 };
     const baseW = lvlInfo.width;
     const halfW = baseW / 2;
@@ -1991,7 +2095,7 @@ function drawBaseHoloPreview(timeSec) {
 
     // Efecto holográfico aditivo
     ctx.globalCompositeOperation = 'lighter';
-    const holoColor = targetLvl === 1 ? '56, 189, 248' : (targetLvl === 2 ? '251, 191, 36' : '52, 211, 153');
+    const holoColor = targetLvl === 1 ? '56, 189, 248' : (targetLvl === 2 ? '251, 191, 36' : (targetLvl === 3 ? '52, 211, 153' : '168, 85, 247'));
 
     // 1. Silueta alámbrica de la plataforma con animación de escaneo
     const alphaSweep = Math.sin(timeSec * 16) * 0.15 + 0.65;
@@ -2003,7 +2107,7 @@ function drawBaseHoloPreview(timeSec) {
     ctx.strokeRect(-halfW, 0, baseW, 5.2);
 
     // Patas telescópicas
-    const legCount = [6, 10, 16][targetLvl - 1] || 6;
+    const legCount = [6, 10, 16, 26][targetLvl - 1] || 6;
     for (let i = 0; i < legCount; i++) {
         const lx = -halfW * 0.92 + (i / (legCount - 1)) * (halfW * 1.84);
         ctx.beginPath();
@@ -2011,13 +2115,6 @@ function drawBaseHoloPreview(timeSec) {
         ctx.lineTo(lx, 12.0);
         ctx.stroke();
     }
-
-    // Círculo de apontaje central
-    const padCenterX = targetLvl === 1 ? 0 : (targetLvl === 2 ? 26 : 40);
-    const padR = targetLvl === 1 ? 24 : (targetLvl === 2 ? 34 : 46);
-    ctx.beginPath();
-    ctx.ellipse(padCenterX, 0.5, padR, padR * 0.32, 0, 0, Math.PI * 2);
-    ctx.stroke();
 
     // Silueta de cabina de control en Nivel 2
     if (targetLvl === 2) {
@@ -2029,21 +2126,28 @@ function drawBaseHoloPreview(timeSec) {
         ctx.stroke();
     }
 
-    // Silueta de torre de control en Nivel 3
-    if (targetLvl === 3) {
-        const towerX = -halfW + 28;
+    // Silueta de torre de control en Nivel 3 y Nivel 4
+    if (targetLvl >= 3) {
+        const isTitan = targetLvl >= 4;
+        const towerX = -halfW + (isTitan ? 36 : 28);
+        const fusteTopY = isTitan ? -46 : -26;
+        const baseW2 = isTitan ? 12 : 8;
+        const topW2 = isTitan ? 8 : 5.5;
+        const bridgeH = isTitan ? 15 : 11;
+        const bridgeW = isTitan ? 26 : 18;
+        const mastH = isTitan ? 15 : 10;
         ctx.beginPath();
-        ctx.moveTo(towerX - 8, 0);
-        ctx.lineTo(towerX - 5.5, -26);
-        ctx.lineTo(towerX + 5.5, -26);
-        ctx.lineTo(towerX + 8, 0);
+        ctx.moveTo(towerX - baseW2, 0);
+        ctx.lineTo(towerX - topW2, fusteTopY);
+        ctx.lineTo(towerX + topW2, fusteTopY);
+        ctx.lineTo(towerX + baseW2, 0);
         ctx.closePath();
         ctx.stroke();
 
-        ctx.strokeRect(towerX - 9, -37, 18, 11);
+        ctx.strokeRect(towerX - bridgeW / 2, fusteTopY - bridgeH, bridgeW, bridgeH);
         ctx.beginPath();
-        ctx.moveTo(towerX, -37);
-        ctx.lineTo(towerX, -48);
+        ctx.moveTo(towerX, fusteTopY - bridgeH);
+        ctx.lineTo(towerX, fusteTopY - bridgeH - mastH);
         ctx.stroke();
     }
 
@@ -2456,7 +2560,7 @@ function drawInteractionEffects(timeSec) {
         ctx.globalCompositeOperation = 'lighter';
         const prg = astronaut.actionProgress;
         const isUpgrade = !!astronaut.buildTargetBase;
-        const targetLvl = isUpgrade ? Math.min(3, astronaut.buildTargetBase.level + 1) : (astronaut.selectedBaseLevel || 1);
+        const targetLvl = isUpgrade ? Math.min(4, astronaut.buildTargetBase.level + 1) : (astronaut.selectedBaseLevel || 1);
         const holoCol = targetLvl === 1 ? '56, 189, 248' : (targetLvl === 2 ? '251, 191, 36' : '52, 211, 153');
 
         // Posición de la multi-herramienta del astronauta

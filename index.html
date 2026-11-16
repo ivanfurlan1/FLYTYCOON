@@ -411,6 +411,7 @@
                     <button id="btnBaseLvl1" class="px-1.5 py-1 rounded-lg text-[8px] font-mono-num font-semibold text-sky-200 bg-sky-500/30 border border-sky-400/60 cursor-pointer">N1</button>
                     <button id="btnBaseLvl2" class="px-1.5 py-1 rounded-lg text-[8px] font-mono-num font-semibold text-stone-400 hover:text-white cursor-pointer">N2</button>
                     <button id="btnBaseLvl3" class="px-1.5 py-1 rounded-lg text-[8px] font-mono-num font-semibold text-stone-400 hover:text-white cursor-pointer">N3</button>
+                    <button id="btnBaseLvl4" class="px-1.5 py-1 rounded-lg text-[8px] font-mono-num font-semibold text-stone-400 hover:text-white cursor-pointer">N4</button>
                 </div>
             </div>
 
@@ -454,6 +455,14 @@
 
         <!-- Grupo: Clic en Base Planetaria -->
         <div id="worldMenuBaseGroup" class="hidden flex flex-col gap-1.5">
+            <button id="btnBaseMove" class="w-full aero-pill aero-btn px-3 py-2 rounded-xl flex items-center gap-2 text-amber-100 border-amber-400/45 bg-amber-500/15 hover:bg-amber-500/25 cursor-pointer whitespace-nowrap">
+                <span class="text-xs leading-none">↔️</span>
+                <span class="text-[10px] font-mono-num font-bold uppercase tracking-wider">Mover Plataforma</span>
+            </button>
+            <button id="btnBaseRemove" class="w-full aero-pill aero-btn px-3 py-2 rounded-xl flex items-center gap-2 text-rose-100 border-rose-400/50 bg-rose-500/15 hover:bg-rose-500/25 cursor-pointer whitespace-nowrap">
+                <span class="text-xs leading-none">🗑️</span>
+                <span class="text-[10px] font-mono-num font-bold uppercase tracking-wider">Quitar Plataforma</span>
+            </button>
             <button id="btnEvaUpgradeBase" class="hidden w-full aero-pill aero-btn px-3 py-2 rounded-xl flex items-center gap-2 text-amber-100 border-amber-400/55 bg-amber-500/20 hover:brightness-115 cursor-pointer touch-none select-none whitespace-nowrap">
                 <span class="text-xs leading-none">🏗️</span>
                 <div class="flex flex-col text-left flex-1">
@@ -479,6 +488,13 @@
         <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
         <span id="lightPlacementLabel" class="text-[10.5px] font-mono-num font-semibold text-cyan-100 whitespace-nowrap">Modo Colocar · Clic en el terreno</span>
         <button id="btnCancelLightPlacement" class="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[9.5px] font-mono-num font-bold text-white cursor-pointer">Listo</button>
+    </div>
+
+    <!-- 2.62 BANNER ACTIVO DE MODO MOVER PLATAFORMA -->
+    <div id="baseMoveBanner" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-30 aero-pill px-3.5 py-1.5 rounded-full border border-amber-400/55 bg-[#060c1c]/90 flex items-center gap-2.5 shadow-2xl pointer-events-auto">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span class="text-[10.5px] font-mono-num font-semibold text-amber-100 whitespace-nowrap">Mover Plataforma · Haz clic en la nueva posición del planeta</span>
+        <button id="btnCancelBaseMove" class="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[9.5px] font-mono-num font-bold text-white cursor-pointer">Cancelar</button>
     </div>
 
     <!-- 2.65 PANEL DE CONSTRUCCIÓN EVA DE LUCES SIMPLES Y TORRES DE HIERRO -->
@@ -555,6 +571,18 @@
         </div>
 
         <div class="overflow-y-auto p-3 pt-2.5 space-y-2.5">
+        <!-- Modo de encendido (Solo Noche vs Siempre Encendida) -->
+        <div id="lightInspScheduleRow" class="space-y-1 pb-1.5 border-b border-white/10">
+            <div class="flex items-center justify-between text-[9.5px] font-mono-num">
+                <span class="text-indigo-200 uppercase">Encendido</span>
+                <span id="lightInspScheduleStatus" class="text-[8.5px] text-stone-400"></span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 text-[9.5px] font-mono-num">
+                <button id="btnLightInspAutoNight" class="py-1 px-1.5 rounded-lg border cursor-pointer transition-colors">🌙 Solo Noche</button>
+                <button id="btnLightInspAlwaysOn" class="py-1 px-1.5 rounded-lg border cursor-pointer transition-colors">☀️ Siempre</button>
+            </div>
+        </div>
+
         <!-- Intensidad -->
         <div class="space-y-0.5">
             <div class="flex items-center justify-between text-[10px] font-mono-num">
@@ -746,14 +774,14 @@
             </div>
         </div>
 
-        <!-- CENTRO INFERIOR: JOYSTICK CIRCULAR DE ORIENTACIÓN -->
-        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
-            <div id="flightJoystick" class="astral-joystick" role="slider" aria-label="Joystick de orientación" title="Desliza para orientar el cohete">
-                <div class="astral-joystick-ring"></div>
-                <div class="astral-joystick-cross"></div>
-                <div class="astral-joystick-vector"></div>
-                <div class="astral-joystick-knob"></div>
-            </div>
+        <!-- CENTRO INFERIOR: MATRIZ DE 6 BOTONES ESTILO SFS (◀ ▲ ▶ / ◀ ▼ ▶) -->
+        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 grid grid-cols-3 gap-2 pointer-events-auto">
+            <button id="btnSteerLeftTop" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Girar izquierda" title="Girar izquierda (A / ◀)">◀</button>
+            <button id="btnThrustUp" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-amber-200 text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Impulso directo" title="Impulso directo (W / ▲ / Espacio)">▲</button>
+            <button id="btnSteerRightTop" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Girar derecha" title="Girar derecha (D / ▶)">▶</button>
+            <button id="btnSteerLeft" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Traslación RCS izquierda" title="Traslación RCS izquierda">◀</button>
+            <button id="btnBrakeDown" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-stone-200 text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Frenar" title="Frenar / Retro (S / ▼)">▼</button>
+            <button id="btnSteerRight" class="sfs-steer-btn w-[52px] h-12 sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Traslación RCS derecha" title="Traslación RCS derecha">▶</button>
         </div>
 
         <!-- DERECHA: COMBUSTIBLE VERTICAL (ÉTER) -->
@@ -768,15 +796,12 @@
         </div>
     </footer>
 
-    <!-- 3.5 CONTROLES TÁCTILES DE MOVIMIENTO EVA (JOYSTICK CIRCULAR CENTRADO) -->
+    <!-- 3.5 CONTROLES TÁCTILES DE MOVIMIENTO EVA (FILA HORIZONTAL CENTRADA ◀ ▲ ▶) -->
     <div id="evaTouchControls" class="hidden fixed inset-x-0 bottom-3 sm:bottom-5 z-25 px-2.5 sm:px-6 flex justify-end items-end pointer-events-none select-none touch-none">
-        <div class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
-            <div id="evaJoystick" class="astral-joystick astral-joystick-eva" role="slider" aria-label="Joystick de movimiento EVA" title="Desliza izquierda/derecha para caminar, arriba para saltar o usar jetpack">
-                <div class="astral-joystick-ring"></div>
-                <div class="astral-joystick-cross"></div>
-                <div class="astral-joystick-vector"></div>
-                <div class="astral-joystick-knob"></div>
-            </div>
+        <div class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 flex items-center gap-2 pointer-events-auto touch-none">
+            <button id="btnEvaTouchLeft" class="sfs-steer-btn w-[52px] h-[52px] sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg active:scale-95 transition-transform touch-none select-none" aria-label="Caminar izquierda" title="Caminar izquierda (A / ◀) — Doble toque y mantener para correr">◀</button>
+            <button id="btnEvaTouchJump" class="sfs-steer-btn w-[52px] h-[52px] sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-sky-200 text-lg font-mono-num font-bold active:scale-95 transition-transform touch-none select-none border-sky-400/40" aria-label="Saltar o Jetpack" title="Saltar / Jetpack (Espacio / W)">▲</button>
+            <button id="btnEvaTouchRight" class="sfs-steer-btn w-[52px] h-[52px] sm:w-14 sm:h-[52px] rounded-xl flex items-center justify-center text-white text-lg active:scale-95 transition-transform touch-none select-none" aria-label="Caminar derecha" title="Caminar derecha (D / ▶) — Doble toque y mantener para correr">▶</button>
         </div>
         <button id="btnEvaWorldMenuQuick" class="aero-pill aero-btn w-11 h-11 rounded-xl flex items-center justify-center text-base border-white/20 cursor-pointer pointer-events-auto touch-none" title="Opciones del Astronauta (o haz clic sobre el astronauta)">🛠️</button>
     </div>
@@ -1016,75 +1041,78 @@
     <div id="rocketBuilderModal" class="fixed inset-0 z-50 bg-[#03060f]/95 backdrop-blur-2xl flex flex-col hidden select-none overflow-hidden font-ui">
         
         <!-- CABECERA SUPERIOR: TELEMETRÍA, NOMBRE Y ACCIONES -->
-        <header class="h-auto min-h-14 py-2 px-3 sm:px-5 bg-[#070c18]/92 border-b border-white/10 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-lg z-20">
-            <!-- Izquierda: Título y Nombre del Cohete -->
-            <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]">
+        <header class="h-auto py-1.5 px-2.5 sm:py-2 sm:px-5 bg-[#070c18]/92 border-b border-white/10 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 shrink-0 shadow-lg z-20">
+            <!-- Izquierda: Cerrar (móvil), Título y Nombre del Cohete -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 order-1">
+                <button id="btnBldClose" class="aero-pill aero-btn p-1.5 sm:p-2 rounded-full text-stone-300 hover:text-white cursor-pointer shrink-0 md:order-last md:hidden" title="Cerrar Taller (Esc)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <div class="hidden sm:flex w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                     </svg>
                 </div>
                 <div>
-                    <span class="text-[8.5px] font-mono-num uppercase tracking-[0.22em] text-cyan-300/90 block">TALLER DE ENSAMBLAJE VAB</span>
-                    <input id="builderRocketName" type="text" value="Sonda Personalizada Astral" class="bg-black/40 border border-white/15 rounded-lg px-2.5 py-0.5 text-xs font-display font-semibold text-white focus:outline-none focus:border-cyan-400 w-32 sm:w-56 transition-colors">
+                    <span class="hidden sm:block text-[8.5px] font-mono-num uppercase tracking-[0.22em] text-cyan-300/90">TALLER DE ENSAMBLAJE VAB</span>
+                    <input id="builderRocketName" type="text" value="Sonda Personalizada Astral" class="bg-black/40 border border-white/15 rounded-lg px-2 py-1 sm:px-2.5 sm:py-0.5 text-[11px] sm:text-xs font-display font-semibold text-white focus:outline-none focus:border-cyan-400 w-28 sm:w-48 md:w-52 transition-colors">
                 </div>
             </div>
 
-            <!-- Centro: Barra Telemétrica en Vivo (Masa, Empuje, TWR, Éter, Quemado, Tripulación) -->
-            <div class="aero-pill px-3 sm:px-4 py-1.5 rounded-2xl hidden md:flex items-center gap-3 sm:gap-4 border border-white/10">
-                <div class="flex items-baseline gap-1" title="Masa Total (Seca + Combustible)">
-                    <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">MASA</span>
-                    <strong id="bldStatMass" class="font-mono-num text-xs text-white">0.0t</strong>
-                </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-baseline gap-1" title="Empuje Total Combinado">
-                    <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">EMPUJE</span>
-                    <strong id="bldStatThrust" class="font-mono-num text-xs text-amber-300">0 kN</strong>
-                </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-center gap-1" title="Relación Empuje a Peso (TWR)">
+            <!-- Centro (en desktop) / Sub-barra compacta (en móvil): Telemetría en Vivo -->
+            <div id="bldTelemetryBar" class="order-3 md:order-2 w-full md:w-auto aero-pill px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-xl md:rounded-2xl flex items-center gap-2.5 sm:gap-3.5 border border-white/10 overflow-x-auto no-scrollbar whitespace-nowrap">
+                <div class="flex items-center gap-1 shrink-0" title="Relación Empuje a Peso (TWR)">
                     <span id="bldStatTWR" class="font-mono-num text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">TWR 0.0</span>
                 </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-center gap-1" title="Eficiencia Aerodinámica y Estabilidad">
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-baseline gap-1 shrink-0" title="Masa Total (Seca + Combustible)">
+                    <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">MASA</span>
+                    <strong id="bldStatMass" class="font-mono-num text-[11px] sm:text-xs text-white">0.0t</strong>
+                </div>
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-baseline gap-1 shrink-0" title="Empuje Total Combinado">
+                    <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">EMPUJE</span>
+                    <strong id="bldStatThrust" class="font-mono-num text-[11px] sm:text-xs text-amber-300">0 kN</strong>
+                </div>
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-center gap-1 shrink-0" title="Eficiencia Aerodinámica y Estabilidad">
                     <span id="bldStatAero" class="font-mono-num text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 cursor-help">AERO 0%</span>
                 </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-baseline gap-1" title="Capacidad de Éter (Combustible)">
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-baseline gap-1 shrink-0" title="Capacidad de Éter (Combustible)">
                     <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">ÉTER</span>
-                    <strong id="bldStatFuel" class="font-mono-num text-xs text-sky-300">0 L</strong>
+                    <strong id="bldStatFuel" class="font-mono-num text-[11px] sm:text-xs text-sky-300">0 L</strong>
                 </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-baseline gap-1" title="Autonomía de Combustible al 100% THR">
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-baseline gap-1 shrink-0" title="Autonomía de Combustible al 100% THR">
                     <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">QUEMADO</span>
-                    <strong id="bldStatBurn" class="font-mono-num text-xs text-stone-200">0s</strong>
+                    <strong id="bldStatBurn" class="font-mono-num text-[11px] sm:text-xs text-stone-200">0s</strong>
                 </div>
-                <span class="hidden xl:inline-block h-3 w-[1px] bg-white/10"></span>
-                <div class="hidden xl:flex items-baseline gap-1" title="Capacidad de Tripulación">
+                <span class="hidden xl:inline-block h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="hidden xl:flex items-baseline gap-1 shrink-0" title="Capacidad de Tripulación">
                     <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">TRIP.</span>
                     <strong id="bldStatPassengers" class="font-mono-num text-xs text-purple-300">1P</strong>
                 </div>
-                <span class="h-3 w-[1px] bg-white/10"></span>
-                <div class="flex items-baseline gap-1" title="Piezas Conectadas">
+                <span class="h-3 w-[1px] bg-white/10 shrink-0"></span>
+                <div class="flex items-baseline gap-1 shrink-0" title="Piezas Conectadas">
                     <span class="text-[8.5px] font-mono-num text-stone-400 uppercase">PIEZAS</span>
-                    <strong id="bldStatParts" class="font-mono-num text-xs text-amber-200">0</strong>
+                    <strong id="bldStatParts" class="font-mono-num text-[11px] sm:text-xs text-amber-200">0</strong>
                 </div>
-                <div id="bldFloatingWarn" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-300 font-mono-num text-[9.5px] font-bold animate-pulse" title="Hay piezas desconectadas o flotando. Conéctalas al cohete antes de lanzar.">
+                <div id="bldFloatingWarn" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-300 font-mono-num text-[9.5px] font-bold animate-pulse shrink-0" title="Hay piezas desconectadas o flotando. Conéctalas al cohete antes de lanzar.">
                     <span>⚠ <span id="bldFloatingCount">0</span> SIN CONEXIÓN</span>
                 </div>
             </div>
 
             <!-- Derecha: Acciones, Simetría, Presets y Despegue -->
-            <div class="flex flex-wrap items-center gap-1 sm:gap-2 max-w-full">
+            <div class="flex items-center gap-1 sm:gap-1.5 order-2 md:order-3">
                 <!-- Botón Simetría Espejo -->
-                <button id="btnBldSymmetry" class="aero-pill aero-btn px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] font-mono-num font-semibold text-stone-300 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Alternar Simetría Espejo (1x / 2x)">
+                <button id="btnBldSymmetry" class="aero-pill aero-btn px-2 py-1.5 rounded-xl text-[10px] font-mono-num font-semibold text-stone-300 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Alternar Simetría Espejo (1x / 2x)">
                     <span class="hidden sm:inline">Espejo:</span>
                     <span id="bldSymmetryLabel" class="text-stone-400">1x OFF</span>
                 </button>
 
                 <!-- Centrar Cohete en el Plano -->
-                <button id="btnBldAutoCenter" class="aero-pill aero-btn px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] font-mono-num font-semibold text-cyan-200 hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Centrar cohete en el eje y plataforma">
-                    <span>⌖ <span class="hidden sm:inline">Centrar Cohete</span><span class="sm:hidden">Centrar</span></span>
+                <button id="btnBldAutoCenter" class="aero-pill aero-btn p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] font-mono-num font-semibold text-cyan-200 hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Centrar cohete en el eje y plataforma">
+                    <span>⌖</span><span class="hidden sm:inline">Centrar Cohete</span>
                 </button>
 
                 <!-- Deshacer / Rehacer -->
@@ -1096,8 +1124,8 @@
                 </button>
 
                 <!-- Selector de Guardados / Plantillas -->
-                <button id="btnBldPresets" class="aero-pill aero-btn px-2 sm:px-3 py-1.5 rounded-xl text-[10.5px] sm:text-xs font-display font-semibold text-amber-200 border-amber-400/40 hover:border-amber-400 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Abrir Cohetes Guardados y Plantillas">
-                    <span>📂 <span class="hidden sm:inline">Guardados ▾</span><span class="sm:hidden">Cargar</span></span>
+                <button id="btnBldPresets" class="aero-pill aero-btn p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-[10.5px] sm:text-xs font-display font-semibold text-amber-200 border-amber-400/40 hover:border-amber-400 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Abrir Cohetes Guardados y Plantillas">
+                    <span>📂</span><span class="hidden sm:inline">Guardados ▾</span>
                 </button>
 
                 <!-- Vaciar -->
@@ -1106,89 +1134,98 @@
                 </button>
 
                 <!-- ¡DESPEGAR / LANZAR COHETE! -->
-                <button id="btnBldLaunch" class="py-1.5 sm:py-2 px-2.5 sm:px-5 rounded-xl font-display text-[11px] sm:text-sm font-bold uppercase tracking-wider text-stone-950 bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(52,211,153,0.35)] flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                <button id="btnBldLaunch" class="py-1.5 px-2.5 sm:py-2 sm:px-5 rounded-xl font-display text-[11px] sm:text-sm font-bold uppercase tracking-wider text-stone-950 bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(52,211,153,0.35)] flex items-center gap-1 cursor-pointer whitespace-nowrap">
                     <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-stone-950 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     <span>Lanzar</span>
                 </button>
 
-                <!-- Cerrar Taller -->
-                <button id="btnBldClose" class="aero-pill aero-btn p-1.5 sm:p-2 rounded-full text-stone-300 hover:text-white cursor-pointer shrink-0" title="Cerrar Taller (Esc)">
+                <!-- Cerrar Taller (Desktop) -->
+                <button id="btnBldCloseDesktop" class="hidden md:flex aero-pill aero-btn p-2 rounded-full text-stone-300 hover:text-white cursor-pointer shrink-0" title="Cerrar Taller (Esc)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </header>
 
-        <!-- ESPACIO DE TRABAJO PRINCIPAL: SIDEBAR + LIENZO CAD BLUEPRINT (STACK VERTICAL EN MÓVIL) -->
+        <!-- ESPACIO DE TRABAJO PRINCIPAL: SIDEBAR (DESKTOP) / DOCK INFERIOR SFS (MÓVIL VERTICAL) + LIENZO CAD -->
         <div class="flex-1 flex flex-col-reverse md:flex-row overflow-hidden relative">
             
-            <!-- MENÚ LATERAL / INFERIOR DE PIEZAS -->
-            <aside class="relative w-full md:w-72 lg:w-80 h-52 sm:h-60 md:h-auto bg-[#070b16]/90 backdrop-blur-2xl border-t md:border-t-0 md:border-r border-white/10 flex flex-col shrink-0 z-10 shadow-2xl">
-                <!-- Pestañas de Categorías -->
-                <div class="p-2 border-b border-white/10 grid grid-cols-3 gap-1 text-[10px] font-mono-num font-semibold">
-                    <button class="bld-category-tab active px-2 py-1.5 rounded-lg text-center bg-white/10 text-amber-300 border border-amber-400/40 cursor-pointer transition-all truncate" data-cat="capsules">🚀 Cápsulas</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="tanks">🛢️ Tanques</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="engines">🔥 Motores</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="rcs">💨 RCS</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="solar">☀️ Energía</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="lights">💡 Luces</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="structures">🏗️ Estructura</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="aero">📐 Aero</button>
-                    <button class="bld-category-tab px-2 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all truncate" data-cat="fairings">🛡️ Cofias</button>
+            <!-- MENÚ LATERAL (DESKTOP) / DOCK INFERIOR ESTILO SFS (MÓVIL) -->
+            <aside id="builderPartsDock" class="relative w-full md:w-72 lg:w-80 h-auto md:h-auto bg-[#070b16]/95 backdrop-blur-2xl border-t md:border-t-0 md:border-r border-white/10 flex flex-col shrink-0 z-20 shadow-2xl">
+                <!-- Pestañas de Categorías: Scroll horizontal en móvil, grid 3x3 en desktop -->
+                <div class="px-2 py-1.5 md:p-2 border-b border-white/10 flex md:grid md:grid-cols-3 items-center gap-1.5 md:gap-1 overflow-x-auto md:overflow-visible no-scrollbar text-[10.5px] md:text-[10px] font-mono-num font-semibold">
+                    <button class="bld-category-tab active shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center bg-white/10 text-amber-300 border border-amber-400/40 cursor-pointer transition-all md:truncate" data-cat="capsules">🚀 Cápsulas</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="tanks">🛢️ Tanques</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="engines">🔥 Motores</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="rcs">💨 RCS</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="solar">☀️ Energía</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="lights">💡 Luces</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="structures">🏗️ Estructura</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="aero">📐 Aero</button>
+                    <button class="bld-category-tab shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-center text-stone-400 hover:text-white hover:bg-white/5 cursor-pointer transition-all md:truncate" data-cat="fairings">🛡️ Cofias</button>
                 </div>
 
                 <!-- Subtítulo de Ayuda Rápida -->
-                <div class="px-3 py-1.5 bg-black/40 border-b border-white/5 flex items-center justify-between text-[9px] font-mono-num text-stone-400">
-                    <span>CLIC O ARRASTRA AL PLANO</span>
+                <div class="px-3 py-1 md:py-1.5 bg-black/40 border-b border-white/5 flex items-center justify-between text-[8.5px] md:text-[9px] font-mono-num text-stone-400">
+                    <span class="md:hidden">TOCA O ARRASTRA HACIA ARRIBA</span>
+                    <span class="hidden md:inline">CLIC O ARRASTRA AL PLANO</span>
                     <span class="text-cyan-300">ENCAJE MAGNÉTICO</span>
                 </div>
 
-                <!-- Lista Desplazable de Tarjetas de Piezas -->
-                <div id="builderPartsList" class="flex-1 overflow-y-auto p-3 space-y-2 relative">
+                <!-- Lista Desplazable de Tarjetas de Piezas (Horizontal en móvil, vertical en desktop) -->
+                <div id="builderPartsList" class="flex-1 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-y-auto no-scrollbar p-2 md:p-3 gap-2 md:gap-0 md:space-y-2 relative items-stretch">
                     <!-- Se rellena dinámicamente -->
                 </div>
 
                 <!-- Indicador visual cuando se arrastra una pieza para eliminar -->
-                <div id="builderTrashOverlay" class="hidden absolute inset-0 bg-rose-950/85 backdrop-blur-sm border-2 border-dashed border-rose-400/80 z-30 flex flex-col items-center justify-center gap-2 pointer-events-none">
-                    <span class="text-3xl">🗑️</span>
-                    <span class="font-display text-sm font-bold text-rose-200 uppercase tracking-wider">Suelta aquí para eliminar</span>
+                <div id="builderTrashOverlay" class="hidden absolute inset-0 bg-rose-950/90 backdrop-blur-sm border-2 border-dashed border-rose-400/80 z-30 flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+                    <span class="text-2xl md:text-3xl">🗑️</span>
+                    <span class="font-display text-xs md:text-sm font-bold text-rose-200 uppercase tracking-wider">Suelta aquí para eliminar</span>
                 </div>
             </aside>
 
             <!-- LIENZO DE CONSTRUCCIÓN CAD (BLUEPRINT WORKSPACE) -->
             <main class="flex-1 relative overflow-hidden bg-[#050a14]">
-                <canvas id="builderCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                <canvas id="builderCanvas" class="w-full h-full block cursor-crosshair touch-none"></canvas>
 
-                <!-- BARRA FLOTANTE CONTEXTUAL DE PIEZA SELECCIONADA -->
-                <div id="builderPartToolbar" class="absolute hidden -translate-x-1/2 -translate-y-full mb-3 pointer-events-auto z-30 flex items-center gap-1 p-1 rounded-xl bg-[#090e1d]/90 backdrop-blur-xl border border-cyan-400/50 shadow-2xl">
-                    <button id="btnBldRotatePart" class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-colors" title="Rotar 90° (R)">
-                        <svg class="w-3 h-3 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <!-- BARRA CONTEXTUAL DE PIEZA SELECCIONADA (DOCK INFERIOR EN MÓVIL, FLOTANTE EN DESKTOP) -->
+                <div id="builderPartToolbar" class="absolute hidden bottom-2 left-1/2 -translate-x-1/2 md:bottom-auto md:mb-3 md:-translate-y-full max-w-[calc(100%-1rem)] overflow-x-auto no-scrollbar pointer-events-auto z-30 flex items-center gap-1 p-1.5 md:p-1 rounded-2xl md:rounded-xl bg-[#090e1d]/95 backdrop-blur-xl border border-cyan-400/50 shadow-2xl">
+                    <button id="btnBldRotatePart" class="px-2.5 py-1.5 md:px-2 md:py-1 rounded-xl md:rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white text-[10.5px] md:text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Rotar 90° (R)">
+                        <svg class="w-3.5 h-3.5 md:w-3 md:h-3 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         <span>Rotar</span>
                     </button>
-                    <button id="btnBldFlipPart" class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-colors" title="Invertir Horizontal (F)">
-                        <svg class="w-3 h-3 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    <button id="btnBldFlipPart" class="px-2.5 py-1.5 md:px-2 md:py-1 rounded-xl md:rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white text-[10.5px] md:text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Invertir Horizontal (F)">
+                        <svg class="w-3.5 h-3.5 md:w-3 md:h-3 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                         <span>Invertir</span>
                     </button>
-                    <button id="btnBldResizePart" class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-colors" title="Redimensionar Pieza (S)">
-                        <svg class="w-3 h-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                    <button id="btnBldResizePart" class="px-2.5 py-1.5 md:px-2 md:py-1 rounded-xl md:rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white text-[10.5px] md:text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Redimensionar Pieza (S)">
+                        <svg class="w-3.5 h-3.5 md:w-3 md:h-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                         <span>Tamaño</span>
                     </button>
-                    <button id="btnBldDupPart" class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-colors" title="Duplicar Pieza (Ctrl+D)">
-                        <svg class="w-3 h-3 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <button id="btnBldDupPart" class="px-2.5 py-1.5 md:px-2 md:py-1 rounded-xl md:rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white text-[10.5px] md:text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Duplicar Pieza (Ctrl+D)">
+                        <svg class="w-3.5 h-3.5 md:w-3 md:h-3 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                         <span>Clonar</span>
                     </button>
-                    <button id="btnBldDelPart" class="px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-colors" title="Eliminar Pieza (Supr)">
-                        <svg class="w-3 h-3 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <button id="btnBldOpenInspector" class="md:hidden px-2.5 py-1.5 rounded-xl bg-cyan-500/25 hover:bg-cyan-500/35 border border-cyan-400/50 active:scale-95 text-cyan-200 text-[10.5px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Editar color, textura y ajustes">
+                        <span>⚙️</span>
+                        <span>Editar</span>
+                    </button>
+                    <button id="btnBldDelPart" class="px-2.5 py-1.5 md:px-2 md:py-1 rounded-xl md:rounded-lg bg-rose-500/20 hover:bg-rose-500/30 active:scale-95 text-rose-300 border border-rose-400/30 text-[10.5px] md:text-[10px] font-mono-num font-semibold flex items-center gap-1 cursor-pointer transition-all shrink-0" title="Eliminar Pieza (Supr)">
+                        <svg class="w-3.5 h-3.5 md:w-3 md:h-3 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
 
-                <!-- PANEL INSPECTOR DE PIEZA SELECCIONADA (ESTILO SFS: COLOR, TEXTURA, COMBUSTIBLE, MOTOR, PANELES) -->
-                <div id="builderPartInspector" class="hidden absolute top-2 right-2 sm:top-3 sm:right-3 z-30 w-56 sm:w-64 max-h-[calc(100%-1rem)] overflow-y-auto rounded-2xl bg-[#090e1d]/92 backdrop-blur-xl border border-white/15 shadow-2xl p-2.5 sm:p-3 space-y-2.5 text-xs pointer-events-auto">
-                    <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
+                <!-- PANEL INSPECTOR DE PIEZA SELECCIONADA (BOTTOM SHEET EN MÓVIL, PANEL DERECHO EN DESKTOP) -->
+                <div id="builderPartInspector" class="hidden absolute inset-x-0 bottom-0 md:inset-x-auto md:bottom-auto md:top-3 md:right-3 z-40 md:z-30 w-full md:w-64 max-h-[55vh] md:max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-t-3xl md:rounded-2xl bg-[#090e1d]/96 backdrop-blur-2xl border-t md:border border-cyan-400/30 md:border-white/15 shadow-2xl p-3.5 md:p-3 space-y-2.5 text-xs pointer-events-auto">
+                    <div class="w-10 h-1 rounded-full bg-white/20 mx-auto mb-1 md:hidden"></div>
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2 md:pb-1.5">
                         <div class="min-w-0">
                             <span class="text-[8px] font-mono-num uppercase tracking-[0.18em] text-cyan-300 block">INSPECTOR DE PIEZA</span>
-                            <h4 id="bldInspTitle" class="font-display text-xs font-bold text-white truncate">Pieza</h4>
+                            <h4 id="bldInspTitle" class="font-display text-sm md:text-xs font-bold text-white truncate">Pieza</h4>
                         </div>
-                        <button id="btnBldInspClose" class="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 cursor-pointer" title="Cerrar inspector">✕</button>
+                        <button id="btnBldInspClose" class="px-2.5 py-1 md:p-1 rounded-xl md:rounded-lg bg-white/10 md:bg-transparent text-stone-200 md:text-stone-400 hover:text-white hover:bg-white/15 cursor-pointer text-[11px] font-mono-num" title="Cerrar inspector">
+                            <span class="md:hidden">Listo ✕</span>
+                            <span class="hidden md:inline">✕</span>
+                        </button>
                     </div>
 
                     <!-- Color Base -->
@@ -1378,16 +1415,16 @@
                     </div>
                 </div>
 
-                <!-- CONTROLES FLOTANTES DE ZOOM Y ENFOQUE EN ESQUINA INFERIOR DERECHA -->
-                <div class="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#090e1d]/85 backdrop-blur-xl border border-white/10 shadow-xl">
-                    <button id="btnBldCenterView" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono-num text-stone-200 flex items-center gap-1 cursor-pointer" title="Centrar Vista">
+                <!-- CONTROLES FLOTANTES DE ZOOM Y ENFOQUE (ARRIBA DER. EN MÓVIL, ABAJO DER. EN DESKTOP) -->
+                <div class="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-4 z-20 flex items-center gap-1 md:gap-1.5 p-1 md:p-1.5 rounded-xl md:rounded-2xl bg-[#090e1d]/85 backdrop-blur-xl border border-white/10 shadow-xl">
+                    <button id="btnBldCenterView" class="px-2 py-1 md:px-2.5 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 text-[11px] md:text-xs font-mono-num text-stone-200 flex items-center gap-1 cursor-pointer" title="Centrar Vista">
                         <svg class="w-3.5 h-3.5 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v4m0 8v4m-8-8h4m8 0h4"/></svg>
-                        <span>Centrar</span>
+                        <span class="hidden sm:inline">Centrar</span>
                     </button>
                     <span class="h-3 w-[1px] bg-white/10"></span>
-                    <button id="btnBldZoomOut" class="w-7 h-7 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono-num text-stone-200 flex items-center justify-center cursor-pointer" title="Reducir Zoom">-</button>
-                    <span id="bldZoomLevel" class="text-[10px] font-mono-num px-1.5 text-amber-200">100%</span>
-                    <button id="btnBldZoomIn" class="w-7 h-7 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono-num text-stone-200 flex items-center justify-center cursor-pointer" title="Aumentar Zoom">+</button>
+                    <button id="btnBldZoomOut" class="w-6 h-6 md:w-7 md:h-7 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono-num text-stone-200 flex items-center justify-center cursor-pointer" title="Reducir Zoom">-</button>
+                    <span id="bldZoomLevel" class="text-[10px] font-mono-num px-1 md:px-1.5 text-amber-200">100%</span>
+                    <button id="btnBldZoomIn" class="w-6 h-6 md:w-7 md:h-7 rounded-lg md:rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono-num text-stone-200 flex items-center justify-center cursor-pointer" title="Aumentar Zoom">+</button>
                 </div>
 
                 <!-- LEYENDA TÉCNICA EN ESQUINA INFERIOR IZQUIERDA -->

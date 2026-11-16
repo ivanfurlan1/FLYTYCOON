@@ -5339,6 +5339,18 @@ const BASE_LEVELS = {
         refuelRate: 55,
         repairRate: 38,
         features: ['Superpista continua de hierro de gran longitud', 'Torre de control aeroespacial 360° con radar', 'Deflectores de llama pesados y faro orbital', 'Máxima velocidad de servicio']
+    },
+    4: {
+        level: 4,
+        name: 'Megaplataforma Orbital Gigante',
+        shortName: 'Titán Delta',
+        code: 'TITAN-PORT-04',
+        width: 460,
+        buildTime: 6.2,
+        desc: 'Megaplataforma aeroespacial gigante de hierro reforzado con extensa cubierta lisa de aterrizaje y gran torre de control.',
+        refuelRate: 90,
+        repairRate: 65,
+        features: ['Cubierta gigante continua con amplio espacio liso', 'Gran torre de control aeroespacial de alta elevación', 'Múltiples patas telescópicas y deflectores pesados', 'Servicio ultrarrápido de combustible y casco']
     }
 };
 
