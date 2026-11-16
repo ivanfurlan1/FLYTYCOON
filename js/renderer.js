@@ -3,20 +3,19 @@
  */
 
 const canvas = document.getElementById('flightCanvas');
-let ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 const _isMobileDevice = (typeof window !== 'undefined') && (
     (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
     /Mobi|Android|iPhone|iPad|iPod/i.test((typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '')
 );
-let _adaptiveDprScale = 1.0;
+let ctx = canvas.getContext('2d', _isMobileDevice ? { alpha: false } : { alpha: false, desynchronized: true });
 let dpr = 1;
 let screenW = window.innerWidth;
 let screenH = window.innerHeight;
 
 function getEffectiveDpr() {
     const nativeDpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
-    const baseCap = _isMobileDevice ? 1.35 : 2.0;
-    return Math.max(0.85, Math.min(nativeDpr, baseCap) * _adaptiveDprScale);
+    const baseCap = _isMobileDevice ? 1.25 : 2.0;
+    return Math.max(1.0, Math.min(nativeDpr, baseCap));
 }
 
 function resize() {
@@ -927,9 +926,9 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
         const maxScreen = Math.max(screenW, screenH);
 
         if (!drawCelestialSunAndGodRays._rayCache) drawCelestialSunAndGodRays._rayCache = new Map();
-        const qr = (rayColor[0] + 4) >> 3 << 3;
-        const qg = (rayColor[1] + 4) >> 3 << 3;
-        const qb = (rayColor[2] + 4) >> 3 << 3;
+        const qr = Math.min(255, Math.max(0, (Math.round(rayColor[0]) + 4) >> 3 << 3));
+        const qg = Math.min(255, Math.max(0, (Math.round(rayColor[1]) + 4) >> 3 << 3));
+        const qb = Math.min(255, Math.max(0, (Math.round(rayColor[2]) + 4) >> 3 << 3));
         const rayKey = (qr << 16) | (qg << 8) | qb;
         let raySprite = drawCelestialSunAndGodRays._rayCache.get(rayKey);
         if (!raySprite && typeof document !== 'undefined') {
@@ -1009,9 +1008,9 @@ function drawCelestialSunAndGodRays(pNear, solarState, timeSec, atmoBlend = 0) {
             for (const gh of ghosts) {
                 const gx = sunX + dxCenter * gh.t;
                 const gy = sunY + dyCenter * gh.t;
-                const qr = (gh.col[0] + 4) >> 3 << 3;
-                const qg = (gh.col[1] + 4) >> 3 << 3;
-                const qb = (gh.col[2] + 4) >> 3 << 3;
+                const qr = Math.min(255, Math.max(0, (Math.round(gh.col[0]) + 4) >> 3 << 3));
+                const qg = Math.min(255, Math.max(0, (Math.round(gh.col[1]) + 4) >> 3 << 3));
+                const qb = Math.min(255, Math.max(0, (Math.round(gh.col[2]) + 4) >> 3 << 3));
                 const gKey = (qr << 16) | (qg << 8) | qb;
                 let gSprite = drawCelestialSunAndGodRays._ghostCache.get(gKey);
                 if (!gSprite && typeof document !== 'undefined') {
@@ -3713,9 +3712,9 @@ function drawPlanetSurfaceCrust(p, timeSec, colors, arch) {
  */
 function getCloudBandPuffSprite(r, g, b) {
     if (!getCloudBandPuffSprite._cache) getCloudBandPuffSprite._cache = new Map();
-    const qr = (r + 4) >> 3 << 3;
-    const qg = (g + 4) >> 3 << 3;
-    const qb = (b + 4) >> 3 << 3;
+    const qr = Math.min(255, Math.max(0, (Math.round(r) + 4) >> 3 << 3));
+    const qg = Math.min(255, Math.max(0, (Math.round(g) + 4) >> 3 << 3));
+    const qb = Math.min(255, Math.max(0, (Math.round(b) + 4) >> 3 << 3));
     const key = (qr << 16) | (qg << 8) | qb;
     let sp = getCloudBandPuffSprite._cache.get(key);
     if (sp) return sp;

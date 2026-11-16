@@ -1797,44 +1797,11 @@ function selfHealSimulationState(level) {
     } catch (_) {}
 }
 
-let _avgFrameMs = 16.6;
-let _slowFrameStreak = 0;
-let _fastFrameStreak = 0;
-let _lastDprAdjustTime = 0;
-
 function loop(now) {
     requestAnimationFrame(loop);
 
-    const frameDeltaMs = now - lastTime;
-    const rawDt = Math.min(0.04, Math.max(0.001, frameDeltaMs / 1000));
+    const rawDt = Math.min(0.04, Math.max(0.001, (now - lastTime) / 1000));
     lastTime = now;
-
-    if (frameDeltaMs > 0 && frameDeltaMs < 120) {
-        _avgFrameMs = _avgFrameMs * 0.92 + frameDeltaMs * 0.08;
-        if (typeof _adaptiveDprScale === 'number' && typeof resize === 'function') {
-            if (_avgFrameMs > 24.5) {
-                _slowFrameStreak++;
-                _fastFrameStreak = 0;
-                if (_slowFrameStreak > 45 && (now - _lastDprAdjustTime) > 1500 && _adaptiveDprScale > 0.72) {
-                    _adaptiveDprScale = Math.max(0.72, Math.round((_adaptiveDprScale - 0.1) * 100) / 100);
-                    _lastDprAdjustTime = now;
-                    _slowFrameStreak = 0;
-                    resize();
-                }
-            } else if (_avgFrameMs < 17.8 && _adaptiveDprScale < 1.0) {
-                _fastFrameStreak++;
-                _slowFrameStreak = 0;
-                if (_fastFrameStreak > 220 && (now - _lastDprAdjustTime) > 4000) {
-                    _adaptiveDprScale = Math.min(1.0, Math.round((_adaptiveDprScale + 0.08) * 100) / 100);
-                    _lastDprAdjustTime = now;
-                    _fastFrameStreak = 0;
-                    resize();
-                }
-            } else {
-                _slowFrameStreak = Math.max(0, _slowFrameStreak - 1);
-            }
-        }
-    }
 
     try {
         if (typeof canvas !== 'undefined' && (canvas.width <= 0 || canvas.height <= 0) && typeof resize === 'function') {
