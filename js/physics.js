@@ -29,11 +29,13 @@ const ship = {
     thrusting: false,
     warping: false,
     braking: false,      // Retro-frenado / amortiguación de descenso (S / Flecha Abajo)
+    brakeStrength: 1.0,  // Intensidad proporcional de retro-frenado RCS (0..1)
     throttle: 0.0,       // Potencia graduable del motor (0.0 .. 1.0)
     thrustIntensity: 0,
     gearCompression: 0,
     turnVal: 0,
     rcsStrafe: 0,
+    rcsForward: 0,       // Empuje RCS hacia adelante (0..1) sin activar motor principal
     targetAngle: null,
     isGrounded: false,
     contactsCount: 0,
@@ -1309,8 +1311,10 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.thrusting = false;
         ship.warping = false;
         ship.braking = false;
+        ship.brakeStrength = 1.0;
         ship.turnVal = 0;
         ship.rcsStrafe = 0;
+        ship.rcsForward = 0;
         ship.targetAngle = null;
         if (ship.orbitMode !== 'off') disengageOrbitMode(true);
     }
@@ -2234,7 +2238,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         const massBrakeFactor = clamp(Math.pow(refMass / curMass, 0.45), 0.55, 1.75);
         // En crucero interplanetario a alta velocidad, los retro-propulsores aplican mayor impulso para mantener la jugabilidad
         const highSpeedAssist = shipSpeed > 550 ? clamp(1.0 + (shipSpeed - 550) / 1400, 1.0, 2.8) : 1.0;
-        const brakeAcc = 225 * massBrakeFactor * highSpeedAssist;
+        const brakeScale = clamp((ship.brakeStrength !== undefined ? ship.brakeStrength : 1.0), 0.15, 1.0);
+        const brakeAcc = 225 * massBrakeFactor * highSpeedAssist * brakeScale;
         const dv = Math.min(shipSpeed, brakeAcc * dt);
         ship.vx -= (ship.vx / shipSpeed) * dv;
         ship.vy -= (ship.vy / shipSpeed) * dv;
@@ -2331,14 +2336,21 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.sasHoldAngle = null;
         let diff = ship.targetAngle - ship.angle;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        const desiredAv = clamp(diff * 12.0, -maxAv, maxAv);
+        const joyPower = clamp(
+            (ship.targetAngleStrength !== undefined && ship.targetAngleStrength !== null) ? ship.targetAngleStrength : 1.0,
+            0.08,
+            1.0
+        );
+        const effMaxAv = maxAv * joyPower;
         const maxTurnAccel = modelTurnRate * groundFrictionFactor;
-        const appliedAccel = clamp((desiredAv - ship.av) * 16.0, -maxTurnAccel, maxTurnAccel);
+        const effTurnAccel = maxTurnAccel * (0.2 + 0.8 * joyPower);
+        const desiredAv = clamp(diff * 12.0, -effMaxAv, effMaxAv);
+        const appliedAccel = clamp((desiredAv - ship.av) * 16.0, -effTurnAccel, effTurnAccel);
         if (Math.abs(diff) > 0.02) {
             rcsTorque = clamp(appliedAccel / Math.max(0.01, modelTurnRate), -1, 1);
         }
         ship.av += appliedAccel * dt;
-        ship.av = clamp(ship.av, -maxAv, maxAv);
+        ship.av = clamp(ship.av, -effMaxAv, effMaxAv);
     } else if (ship.turnVal !== 0) {
         hasPilotInput = true;
         ship.sasHoldAngle = null;
@@ -2402,7 +2414,29 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
     }
-    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && hasFuel && allowRcsPuffs);
+    // Empuje RCS hacia adelante (joystick arriba: potencia RCS sin encender motor principal)
+    if (ship.rcsForward > 0 && hasFuel && allowRcsPuffs) {
+        const rcsFwdPower = clamp(ship.rcsForward, 0, 1);
+        const fwdAccel = ((hasCustomRcs ? (cr.rcsAuthority || 1.0) * 145 : 95) / Math.max(0.6, (ship.mass || 8) / 8)) * rcsFwdPower;
+        ship.vx += cosA * fwdAccel * dt;
+        ship.vy += sinA * fwdAccel * dt;
+        if (!ship.infiniteFuel) {
+            ship.fuel = Math.max(0, ship.fuel - dt * 0.14 * rcsFwdPower);
+        }
+        if (Math.random() < 0.85 * rcsFwdPower + 0.15) {
+            const exhaustAngle = ship.angle + Math.PI + (Math.random() - 0.5) * 0.18;
+            rcsParticles.push({
+                x: ship.x - cosA * 10 + (Math.random() - 0.5) * 4,
+                y: ship.y - sinA * 10 + (Math.random() - 0.5) * 4,
+                vx: ship.vx * 0.5 + Math.cos(exhaustAngle) * 80,
+                vy: ship.vy * 0.5 + Math.sin(exhaustAngle) * 80,
+                size: 2.0 + Math.random() * 1.1,
+                life: 0.16,
+                maxLife: 0.16
+            });
+        }
+    }
+    const isRcsActive = (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs) || isBrakingRcs || !!(ship.rcsStrafe && hasFuel && allowRcsPuffs) || !!(ship.rcsForward > 0 && hasFuel && allowRcsPuffs);
     if (Math.abs(rcsTorque) > 0.15 && !ship.isGrounded && allowRcsPuffs && Math.random() < 0.78) {
         if (hasCustomRcs) {
             if (!ship.infiniteFuel) {
@@ -3563,7 +3597,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
     }
     const curZ = Math.max(0.001, camera.zoom);
     const tgtZ = Math.max(0.001, camera.targetZoom);
-    camera.zoom = Math.exp(lerp(Math.log(curZ), Math.log(tgtZ), clamp(dt * 4.5, 0, 1)));
+    const zoomLerpRate = (typeof _isPinchingCanvas !== 'undefined' && _isPinchingCanvas) ? 16.0 : 9.5;
+    camera.zoom = Math.exp(lerp(Math.log(curZ), Math.log(tgtZ), clamp(dt * zoomLerpRate, 0, 1)));
 
     if (camera.shake > 0) camera.shake = Math.max(0, camera.shake - dt * 7.5);
     if (ship.invulnTimer > 0) ship.invulnTimer = Math.max(0, ship.invulnTimer - dt);

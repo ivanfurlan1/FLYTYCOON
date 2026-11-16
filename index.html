@@ -704,19 +704,8 @@
         </div>
     </div>
 
-    <!-- 2.8 BARRA INFERIOR IZQUIERDA VERTICAL (ESTILO SFS: ÉTER) -->
+    <!-- 2.8 BARRA INFERIOR IZQUIERDA VERTICAL (EVA: JETPACK Y BODEGA) -->
     <div id="hudBottomLeftBars" class="fixed bottom-3 left-2.5 sm:bottom-5 sm:left-6 z-20 pointer-events-none select-none flex flex-col gap-1">
-        <div id="hudShipVitals" class="hud-text-shadow flex items-end gap-2">
-            <!-- Barra Vertical Éter -->
-            <div class="flex flex-col items-center gap-0.5">
-                <span id="uiFuelVal" class="text-[8.5px] sm:text-[9.5px] font-mono-num text-amber-200 font-semibold leading-none">100%</span>
-                <div class="w-3 sm:w-3.5 h-20 sm:h-24 rounded-sm bg-black/45 border border-white/15 flex flex-col justify-end overflow-hidden">
-                    <div id="uiFuelBar" class="w-full bg-gradient-to-t from-amber-500 to-amber-200 transition-all duration-100" style="height: 100%"></div>
-                </div>
-                <span class="text-[8px] sm:text-[8.5px] font-mono-num text-stone-200/90 leading-none">Éter</span>
-            </div>
-        </div>
-
         <div id="hudEvaVitals" class="hidden hud-text-shadow flex flex-col items-start gap-1.5 pointer-events-auto">
             <button id="btnHudReservePill" class="flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl bg-black/45 border border-white/15 hover:border-amber-400/50 text-[8.5px] sm:text-[9.5px] font-mono-num text-amber-200 cursor-pointer leading-tight min-w-[42px]" title="Abrir Bodega (I)">
                 <span class="flex items-center gap-0.5"><span>⛽</span><span id="uiHudReserveVal" class="font-semibold">30 L</span></span>
@@ -734,19 +723,9 @@
     </div>
 
     <!-- 3. CONSOLA INFERIOR DE VUELO ESTILO SPACEFLIGHT SIMULATOR -->
-    <footer id="flightHudFooter" class="hud-footer fixed inset-x-0 bottom-3 sm:bottom-5 z-20 px-2.5 sm:px-6 flex justify-end items-end pointer-events-none select-none">
+    <footer id="flightHudFooter" class="hud-footer fixed inset-x-0 bottom-3 sm:bottom-5 z-20 px-2.5 sm:px-6 flex justify-between items-end pointer-events-none select-none">
 
-        <!-- CENTRO INFERIOR: JOYSTICK CIRCULAR DE ORIENTACIÓN -->
-        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
-            <div id="flightJoystick" class="astral-joystick" role="slider" aria-label="Joystick de orientación" title="Desliza para orientar el cohete">
-                <div class="astral-joystick-ring"></div>
-                <div class="astral-joystick-cross"></div>
-                <div class="astral-joystick-vector"></div>
-                <div class="astral-joystick-knob"></div>
-            </div>
-        </div>
-
-        <!-- DERECHA: WARP + POTENCIA VERTICAL ESTILO SFS -->
+        <!-- IZQUIERDA: WARP + POTENCIA VERTICAL ESTILO SFS -->
         <div class="flex items-end gap-1.5 sm:gap-2 pointer-events-auto">
             <div id="throttleConsole" class="throttle-console flex flex-col items-center gap-1 touch-none select-none">
                 <button id="btnWarp" class="w-11 py-1 rounded-lg bg-slate-900/75 border border-sky-400/35 text-[8.5px] font-mono-num font-bold text-sky-200 hover:bg-sky-500/15 active:scale-95 transition-all cursor-pointer uppercase flex items-center justify-center gap-0.5 touch-none select-none" title="Hiperimpulso Warp (Shift o clic)">
@@ -764,6 +743,27 @@
                 <button id="btnStageSeparate" class="hidden w-11 py-1 rounded-lg bg-cyan-950/80 border border-cyan-400/50 text-[9.5px] font-mono-num font-bold text-cyan-200 hover:bg-cyan-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1" title="Separar Etapa (X)">
                     <span>⚡</span><span id="uiStageCount">1</span>
                 </button>
+            </div>
+        </div>
+
+        <!-- CENTRO INFERIOR: JOYSTICK CIRCULAR DE ORIENTACIÓN -->
+        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
+            <div id="flightJoystick" class="astral-joystick" role="slider" aria-label="Joystick de orientación" title="Desliza para orientar el cohete">
+                <div class="astral-joystick-ring"></div>
+                <div class="astral-joystick-cross"></div>
+                <div class="astral-joystick-vector"></div>
+                <div class="astral-joystick-knob"></div>
+            </div>
+        </div>
+
+        <!-- DERECHA: COMBUSTIBLE VERTICAL (ÉTER) -->
+        <div id="hudShipVitals" class="hud-text-shadow flex items-end gap-2">
+            <div class="flex flex-col items-center gap-0.5">
+                <span id="uiFuelVal" class="text-[8.5px] sm:text-[9.5px] font-mono-num text-amber-200 font-semibold leading-none">100%</span>
+                <div class="w-3 sm:w-3.5 h-20 sm:h-24 rounded-sm bg-black/45 border border-white/15 flex flex-col justify-end overflow-hidden">
+                    <div id="uiFuelBar" class="w-full bg-gradient-to-t from-amber-500 to-amber-200 transition-all duration-100" style="height: 100%"></div>
+                </div>
+                <span class="text-[8px] sm:text-[8.5px] font-mono-num text-stone-200/90 leading-none">Éter</span>
             </div>
         </div>
     </footer>

@@ -107,7 +107,8 @@ if (_canvasForPinch) {
             );
             if (_pinchLastDist && _pinchLastDist > 6 && d > 6) {
                 if (!camera.userZoomMult) camera.userZoomMult = 1.0;
-                const ratio = clamp(d / _pinchLastDist, 0.82, 1.22);
+                const rawRatio = clamp(d / _pinchLastDist, 0.72, 1.38);
+                const ratio = Math.pow(rawRatio, 1.18);
                 camera.userZoomMult = clamp(camera.userZoomMult * ratio, 0.0025, 2.8);
             }
             _pinchLastDist = d;
@@ -382,30 +383,59 @@ function createCircularJoystick(el, { deadzone = 0.15, onMove, onRelease } = {})
 }
 
 const flightJoystickState = {
-    active: false,
-    hasDirection: false,
-    screenAngle: -Math.PI / 2
+    active: false
 };
 
 const flightJoystickCtrl = createCircularJoystick(document.getElementById('flightJoystick'), {
-    deadzone: 0.15,
-    onMove: ({ angle, inDeadzone }) => {
+    deadzone: 0.14,
+    onMove: ({ nx, ny }) => {
         flightJoystickState.active = true;
-        if (!inDeadzone) {
-            flightJoystickState.hasDirection = true;
-            flightJoystickState.screenAngle = angle;
-            if (typeof ship !== 'undefined' && typeof camera !== 'undefined') {
-                ship.targetAngle = angle - camera.rotation;
+        if (typeof ship === 'undefined') return;
+        ship.targetAngle = null;
+
+        // Eje horizontal: rotación continua (izquierda/derecha) proporcional al deslizamiento
+        const dzX = 0.14;
+        const absX = Math.abs(nx);
+        if (absX > dzX) {
+            const rawX = clamp((absX - dzX) / (1 - dzX), 0, 1);
+            ship.turnVal = Math.sign(nx) * Math.pow(rawX, 1.25);
+        } else {
+            if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
+            else if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
+            else ship.turnVal = 0;
+        }
+
+        // Eje vertical: potencia RCS hacia adelante (arriba) o retro-frenado RCS (abajo)
+        const dzY = 0.16;
+        const absY = Math.abs(ny);
+        if (absY > dzY) {
+            const rawY = clamp((absY - dzY) / (1 - dzY), 0, 1);
+            const powerY = Math.pow(rawY, 1.2);
+            if (ny < 0) {
+                ship.rcsForward = powerY;
+                ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
+                ship.brakeStrength = 1.0;
+            } else {
+                ship.rcsForward = 0;
+                ship.braking = true;
+                ship.brakeStrength = powerY;
             }
         } else {
-            flightJoystickState.hasDirection = false;
-            if (typeof ship !== 'undefined') ship.targetAngle = null;
+            ship.rcsForward = 0;
+            ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
+            ship.brakeStrength = 1.0;
         }
     },
     onRelease: () => {
         flightJoystickState.active = false;
-        flightJoystickState.hasDirection = false;
-        if (typeof ship !== 'undefined') ship.targetAngle = null;
+        if (typeof ship === 'undefined') return;
+        ship.targetAngle = null;
+        ship.rcsForward = 0;
+        ship.braking = !!(keys['KeyS'] || keys['ArrowDown']);
+        ship.brakeStrength = 1.0;
+        if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
+        else if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
+        else ship.turnVal = 0;
     }
 });
 
@@ -1694,9 +1724,6 @@ function loop(now) {
             if (flightJoystickState.active) flightJoystickCtrl.reset();
         } else {
             if (window.evaJoystickInput && window.evaJoystickInput.active) evaJoystickCtrl.reset();
-            if (flightJoystickState.active && flightJoystickState.hasDirection && typeof ship !== 'undefined' && typeof camera !== 'undefined') {
-                ship.targetAngle = flightJoystickState.screenAngle - camera.rotation;
-            }
         }
 
         if (timeScale <= 1) {
