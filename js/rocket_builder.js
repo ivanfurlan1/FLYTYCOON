@@ -162,11 +162,21 @@ function drawFairingPart(ctx, w, h, s, def, opts = {}) {
 }
 
 // --- HELPER DE DESGASTE TÉRMICO Y QUEMADURAS DE REENTRADA POR PIEZA ---
-function drawPartThermalScorch(ctx, w, h, partState, def, tex) {
+let _suppressInlinePartScorch = false;
+let _partScorchCanvas = null;
+let _partScorchCtx = null;
+
+function _scorchHash(seed, salt) {
+    const v = Math.sin((seed * 127.1 + salt * 31.7) * 43758.5453123);
+    return v - Math.floor(v);
+}
+
+function drawPartThermalScorch(ctx, w, h, partState, def, tex, isSourceAtop = false) {
     const sc = partState && partState.scorch;
     if (!sc) return;
     const amt = Math.max(0, Math.min(1, sc.amount || 0));
     const temp = Math.max(0, Math.min(1, sc.temp || 0));
+    const peakTemp = Math.max(temp, Math.min(1, sc.peakTemp || 0));
     if (amt <= 0.005 && temp <= 0.015) return;
 
     const dLen = Math.hypot(sc.dirX || 0, sc.dirY || 0) || 1;
@@ -175,107 +185,250 @@ function drawPartThermalScorch(ctx, w, h, partState, def, tex) {
     const px = -dy;
     const py = dx;
 
-    const rFlow = Math.abs(dx) * w * 0.5 + Math.abs(dy) * h * 0.5 + 1;
-    const rPerp = Math.abs(px) * w * 0.5 + Math.abs(py) * h * 0.5 + 1;
+    const rFlow = Math.abs(dx) * w * 0.5 + Math.abs(dy) * h * 0.5 + 1.5;
+    const rPerp = Math.abs(px) * w * 0.5 + Math.abs(py) * h * 0.5 + 1.5;
     const isShield = !!(def && def.isHeatShield);
+    const isEngine = !!(def && def.thrust && def.thrust > 0);
+    const isSolar = !!(def && def.isSolarPanel);
+    const seedBase = typeof sc.seed === 'number' ? sc.seed : 0.42;
+    const pad = 16;
+    const fillX = -w * 0.5 - pad;
+    const fillY = -h * 0.5 - pad;
+    const fillW = w + pad * 2;
+    const fillH = h + pad * 2;
 
-    // 1. Carbonización y hollín direccional persistente (lado de barlovento -> sotavento)
+    // 1. Velo general de hollín e irregularidad orgánica en toda la pieza (evita zonas "recién pintadas")
     if (amt > 0.005) {
-        const reach = 0.25 + 0.85 * Math.pow(amt, 0.72); // Qué tan lejos llega la quemadura hacia atrás
-        const x0 = dx * rFlow;
-        const y0 = dy * rFlow;
-        const x1 = dx * rFlow * (1 - 2 * reach);
-        const y1 = dy * rFlow * (1 - 2 * reach);
+        const overallPow = Math.pow(amt, 0.76);
+        const veilAlpha = (tex === 'tiles' || tex === 'carbon') ? 0.24 * overallPow
+            : (tex === 'steel') ? 0.34 * overallPow
+            : (isShield) ? 0.54 * overallPow
+            : (isEngine || isSolar || tex === 'foil') ? 0.42 * overallPow
+            : 0.48 * overallPow;
+        ctx.fillStyle = `rgba(18, 14, 12, ${veilAlpha})`;
+        ctx.fillRect(fillX, fillY, fillW, fillH);
 
-        const sootGrad = ctx.createLinearGradient(x0, y0, x1, y1);
-        if (isShield) {
-            // Escudo térmico ablativo: carbonización fenólica profunda y rica
-            sootGrad.addColorStop(0, `rgba(10, 8, 8, ${0.86 * Math.min(1, amt * 1.15)})`);
-            sootGrad.addColorStop(0.45, `rgba(38, 22, 14, ${0.58 * amt})`);
-            sootGrad.addColorStop(0.8, `rgba(24, 18, 15, ${0.24 * amt})`);
-            sootGrad.addColorStop(1, 'rgba(15, 12, 10, 0)');
-        } else if (tex === 'tiles' || tex === 'carbon') {
-            // Losetas térmicas / carbono: polvo de ceniza y óxido sutil para conservar la grilla
-            sootGrad.addColorStop(0, `rgba(12, 10, 10, ${0.55 * amt})`);
-            sootGrad.addColorStop(0.4, `rgba(68, 42, 26, ${0.32 * amt})`);
-            sootGrad.addColorStop(1, 'rgba(20, 16, 14, 0)');
-        } else if (tex === 'steel') {
-            // Acero inoxidable (estilo Starship): temple térmico iridiscente + hollín
-            sootGrad.addColorStop(0, `rgba(14, 12, 14, ${0.78 * amt})`);
-            sootGrad.addColorStop(0.28, `rgba(76, 48, 92, ${0.34 * amt})`);
-            sootGrad.addColorStop(0.55, `rgba(180, 125, 58, ${0.26 * amt})`);
-            sootGrad.addColorStop(1, 'rgba(20, 18, 22, 0)');
-        } else if (tex === 'foil') {
-            // Lámina dorada MLI: chamuscado bronce oscuro
-            sootGrad.addColorStop(0, `rgba(18, 12, 8, ${0.82 * amt})`);
-            sootGrad.addColorStop(0.45, `rgba(92, 52, 18, ${0.46 * amt})`);
-            sootGrad.addColorStop(1, 'rgba(28, 18, 10, 0)');
-        } else {
-            // Pintura aeroespacial (smooth / stripes): hollín marrón-carbón estilo Falcon 9
-            sootGrad.addColorStop(0, `rgba(12, 10, 10, ${0.84 * Math.min(1, amt * 1.1)})`);
-            sootGrad.addColorStop(0.32, `rgba(48, 28, 16, ${0.56 * amt})`);
-            sootGrad.addColorStop(0.68, `rgba(28, 24, 22, ${0.28 * amt})`);
-            sootGrad.addColorStop(1, 'rgba(18, 16, 16, 0)');
-        }
-        ctx.fillStyle = sootGrad;
-        ctx.fillRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
-
-        // 2. Estelas deterministas de hollín barridas por el flujo de plasma
-        const seedBase = typeof sc.seed === 'number' ? sc.seed : 0.42;
-        const streakCount = Math.max(4, Math.min(9, Math.round(rPerp / 3.5) + 3));
-        for (let i = 0; i < streakCount; i++) {
-            // Pseudo-aleatorio determinista por pieza y estela (sin parpadeo)
-            const h1 = Math.sin((seedBase * 127.1 + i * 31.7) * 43758.5453);
-            const r1 = h1 - Math.floor(h1);
-            const h2 = Math.sin((seedBase * 269.5 + i * 73.1) * 19341.123);
-            const r2 = h2 - Math.floor(h2);
-
-            const lat = (r1 * 1.76 - 0.88) * rPerp;
-            const startAdvance = rFlow * (0.78 + r2 * 0.24);
-            const streakLen = rFlow * (0.45 + amt * (0.75 + r2 * 0.65));
-            const sx = dx * startAdvance + px * lat;
-            const sy = dy * startAdvance + py * lat;
-            const ex = sx - dx * streakLen;
-            const ey = sy - dy * streakLen;
-
-            const stGrad = ctx.createLinearGradient(sx, sy, ex, ey);
-            const sAlpha = (tex === 'tiles' || tex === 'carbon' ? 0.34 : 0.56) * amt * (0.55 + r1 * 0.45);
-            stGrad.addColorStop(0, `rgba(10, 8, 8, ${sAlpha})`);
-            stGrad.addColorStop(0.45, `rgba(42, 24, 14, ${sAlpha * 0.55})`);
-            stGrad.addColorStop(1, 'rgba(15, 12, 10, 0)');
-
-            ctx.strokeStyle = stGrad;
-            ctx.lineWidth = Math.max(1.1, (1.4 + r2 * 2.6) * (0.5 + 0.6 * amt));
-            ctx.lineCap = 'round';
+        // Nubes irregulares de tizne repartidas por toda la superficie de la pieza
+        const grimeCount = 6;
+        for (let g = 0; g < grimeCount; g++) {
+            const gx = (_scorchHash(seedBase, 210 + g * 4) - 0.5) * w * 0.92;
+            const gy = (_scorchHash(seedBase, 211 + g * 4) - 0.5) * h * 0.92;
+            const gr = Math.max(5, (0.28 + _scorchHash(seedBase, 212 + g * 4) * 0.42) * Math.max(w, h));
+            const warmTint = _scorchHash(seedBase, 213 + g * 4) > 0.45;
+            const gGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+            const gAlpha = (tex === 'tiles' || tex === 'carbon' ? 0.16 : 0.32) * overallPow;
+            gGrad.addColorStop(0, warmTint ? `rgba(42, 26, 16, ${gAlpha})` : `rgba(10, 9, 9, ${gAlpha})`);
+            gGrad.addColorStop(0.55, `rgba(24, 18, 14, ${gAlpha * 0.45})`);
+            gGrad.addColorStop(1, 'rgba(12, 10, 10, 0)');
+            ctx.fillStyle = gGrad;
             ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(ex, ey);
-            ctx.stroke();
+            ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. Capas direccionales estáticas (no rotan al cambiar de orientación; se superponen nuevas)
+        const burnLayers = (Array.isArray(sc.burns) && sc.burns.length > 0)
+            ? sc.burns
+            : [{ dirX: dx, dirY: dy, amount: amt, peakTemp }];
+
+        for (let li = 0; li < burnLayers.length; li++) {
+            const b = burnLayers[li];
+            const bAmt = Math.max(0, Math.min(1, b.amount || 0));
+            if (bAmt <= 0.005) continue;
+            const bPeak = Math.max(bAmt, Math.min(1, b.peakTemp || 0));
+            const bdLen = Math.hypot(b.dirX || 0, b.dirY || 0) || 1;
+            const bdx = (b.dirX || 0) / bdLen;
+            const bdy = (b.dirY || -1) / bdLen;
+            const bpx = -bdy;
+            const bpy = bdx;
+            const bRFlow = Math.abs(bdx) * w * 0.5 + Math.abs(bdy) * h * 0.5 + 1.5;
+            const bRPerp = Math.abs(bpx) * w * 0.5 + Math.abs(bpy) * h * 0.5 + 1.5;
+            const layerSeed = seedBase + li * 17.31;
+
+            const reach = 0.42 + 0.92 * Math.pow(bAmt, 0.62);
+            const x0 = bdx * bRFlow;
+            const y0 = bdy * bRFlow;
+            const x1 = bdx * bRFlow * (1 - 2 * reach);
+            const y1 = bdy * bRFlow * (1 - 2 * reach);
+
+            const sootGrad = ctx.createLinearGradient(x0, y0, x1, y1);
+            if (isShield) {
+                sootGrad.addColorStop(0, `rgba(8, 6, 6, ${0.90 * Math.min(1, bAmt * 1.18)})`);
+                sootGrad.addColorStop(0.28, `rgba(34, 18, 12, ${0.72 * bAmt})`);
+                sootGrad.addColorStop(0.58, `rgba(78, 36, 18, ${0.42 * bAmt})`);
+                sootGrad.addColorStop(0.84, `rgba(24, 18, 15, ${0.18 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(12, 10, 10, 0)');
+            } else if (tex === 'steel') {
+                const tStr = Math.max(bAmt, bPeak * 0.85);
+                sootGrad.addColorStop(0, `rgba(12, 11, 14, ${0.82 * bAmt})`);
+                sootGrad.addColorStop(0.18, `rgba(48, 30, 22, ${0.52 * bAmt})`);
+                sootGrad.addColorStop(0.34, `rgba(196, 142, 64, ${0.34 * tStr})`);
+                sootGrad.addColorStop(0.52, `rgba(162, 78, 46, ${0.30 * tStr})`);
+                sootGrad.addColorStop(0.70, `rgba(116, 58, 134, ${0.28 * tStr})`);
+                sootGrad.addColorStop(0.86, `rgba(48, 86, 142, ${0.22 * tStr})`);
+                sootGrad.addColorStop(1, 'rgba(20, 18, 24, 0)');
+            } else if (tex === 'tiles' || tex === 'carbon') {
+                sootGrad.addColorStop(0, `rgba(12, 10, 10, ${0.48 * bAmt})`);
+                sootGrad.addColorStop(0.35, `rgba(78, 48, 30, ${0.26 * bAmt})`);
+                sootGrad.addColorStop(0.72, `rgba(38, 32, 30, ${0.12 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(18, 16, 16, 0)');
+            } else if (tex === 'foil') {
+                sootGrad.addColorStop(0, `rgba(16, 10, 6, ${0.85 * bAmt})`);
+                sootGrad.addColorStop(0.40, `rgba(112, 54, 16, ${0.52 * bAmt})`);
+                sootGrad.addColorStop(0.78, `rgba(52, 30, 14, ${0.22 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(24, 16, 10, 0)');
+            } else if (isEngine) {
+                sootGrad.addColorStop(0, `rgba(10, 9, 12, ${0.84 * bAmt})`);
+                sootGrad.addColorStop(0.32, `rgba(56, 44, 82, ${0.44 * bAmt})`);
+                sootGrad.addColorStop(0.66, `rgba(134, 78, 36, ${0.26 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(16, 14, 18, 0)');
+            } else if (isSolar) {
+                sootGrad.addColorStop(0, `rgba(10, 12, 16, ${0.86 * bAmt})`);
+                sootGrad.addColorStop(0.45, `rgba(58, 38, 22, ${0.48 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(14, 16, 20, 0)');
+            } else {
+                sootGrad.addColorStop(0, `rgba(10, 8, 8, ${0.88 * Math.min(1, bAmt * 1.12)})`);
+                sootGrad.addColorStop(0.28, `rgba(58, 30, 16, ${0.58 * bAmt})`);
+                sootGrad.addColorStop(0.62, `rgba(34, 26, 22, ${0.30 * bAmt})`);
+                sootGrad.addColorStop(1, 'rgba(16, 14, 14, 0)');
+            }
+            ctx.fillStyle = sootGrad;
+            ctx.fillRect(fillX, fillY, fillW, fillH);
+
+            // Manchas orgánicas de hollín en el borde de ataque de esta capa
+            const patchCount = Math.max(3, Math.min(6, Math.round(bRPerp / 5) + 2));
+            for (let i = 0; i < patchCount; i++) {
+                const r1 = _scorchHash(layerSeed, i * 3 + 1);
+                const r2 = _scorchHash(layerSeed, i * 3 + 2);
+                const r3 = _scorchHash(layerSeed, i * 3 + 3);
+                const lat = (r1 * 1.65 - 0.825) * bRPerp;
+                const adv = bRFlow * (0.28 + r2 * 0.56);
+                const cx = bdx * adv + bpx * lat;
+                const cy = bdy * adv + bpy * lat;
+                const rad = Math.max(3, (0.22 + r3 * 0.28) * Math.min(bRFlow, bRPerp) * (0.65 + 0.55 * bAmt));
+                const pGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+                const pAlpha = (tex === 'tiles' || tex === 'carbon' ? 0.24 : 0.42) * bAmt;
+                pGrad.addColorStop(0, `rgba(10, 8, 8, ${pAlpha})`);
+                pGrad.addColorStop(0.55, `rgba(44, 24, 14, ${pAlpha * 0.52})`);
+                pGrad.addColorStop(1, 'rgba(12, 10, 10, 0)');
+                ctx.fillStyle = pGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Estelas sinuosas y emplumadas de hollín para esta orientación
+            const streakCount = Math.max(4, Math.min(9, Math.round(bRPerp / 3.4) + 3));
+            for (let i = 0; i < streakCount; i++) {
+                const r1 = _scorchHash(layerSeed, 40 + i * 4 + 0);
+                const r2 = _scorchHash(layerSeed, 40 + i * 4 + 1);
+                const r3 = _scorchHash(layerSeed, 40 + i * 4 + 2);
+                const r4 = _scorchHash(layerSeed, 40 + i * 4 + 3);
+
+                const lat = (r1 * 1.82 - 0.91) * bRPerp;
+                const startAdvance = bRFlow * (0.72 + r2 * 0.28);
+                const streakLen = bRFlow * (0.52 + bAmt * (0.90 + r3 * 0.65));
+                const sx = bdx * startAdvance + bpx * lat;
+                const sy = bdy * startAdvance + bpy * lat;
+                const wiggle = (r4 - 0.5) * Math.min(8, bRPerp * 0.35);
+                const mx = sx - bdx * streakLen * 0.48 + bpx * wiggle;
+                const my = sy - bdy * streakLen * 0.48 + bpy * wiggle;
+                const ex = sx - bdx * streakLen + bpx * (wiggle * 0.6);
+                const ey = sy - bdy * streakLen + bpy * (wiggle * 0.6);
+
+                const stGrad = ctx.createLinearGradient(sx, sy, ex, ey);
+                const sAlpha = (tex === 'tiles' || tex === 'carbon' ? 0.30 : 0.56) * bAmt * (0.55 + r1 * 0.45);
+                stGrad.addColorStop(0, `rgba(8, 7, 7, ${sAlpha})`);
+                stGrad.addColorStop(0.42, `rgba(48, 26, 14, ${sAlpha * 0.58})`);
+                stGrad.addColorStop(0.78, `rgba(28, 22, 20, ${sAlpha * 0.22})`);
+                stGrad.addColorStop(1, 'rgba(15, 12, 10, 0)');
+
+                ctx.strokeStyle = stGrad;
+                ctx.lineWidth = Math.max(1.0, (1.2 + r2 * 2.4) * (0.45 + 0.65 * bAmt));
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.quadraticCurveTo(mx, my, ex, ey);
+                ctx.stroke();
+            }
+
+            // Picaduras y motas de ceniza deterministas en la zona de estancamiento
+            if (bAmt > 0.16) {
+                const speckCount = Math.min(10, Math.round(bAmt * 9) + 2);
+                for (let i = 0; i < speckCount; i++) {
+                    const r1 = _scorchHash(layerSeed, 110 + i * 3);
+                    const r2 = _scorchHash(layerSeed, 111 + i * 3);
+                    const r3 = _scorchHash(layerSeed, 112 + i * 3);
+                    const spAdv = bRFlow * (0.20 + r1 * 0.74);
+                    const spLat = (r2 * 1.6 - 0.8) * bRPerp;
+                    const spX = bdx * spAdv + bpx * spLat;
+                    const spY = bdy * spAdv + bpy * spLat;
+                    ctx.fillStyle = r3 > 0.45
+                        ? `rgba(8, 6, 6, ${0.55 * bAmt})`
+                        : `rgba(92, 54, 30, ${0.38 * bAmt})`;
+                    ctx.beginPath();
+                    ctx.arc(spX, spY, 0.55 + r3 * 0.85, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
     }
 
-    // 3. Incandescencia térmica activa en el borde expuesto durante/después de la reentrada
+    // 5. Incandescencia térmica multibanda (cuerpo rojo cereza + borde de ataque blanco-amarillo + brasas)
     if (temp > 0.015) {
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const gx0 = dx * rFlow * 1.05;
-        const gy0 = dy * rFlow * 1.05;
-        const gx1 = dx * rFlow * (1 - 1.15 * Math.min(1, 0.35 + temp * 0.65));
-        const gy1 = dy * rFlow * (1 - 1.15 * Math.min(1, 0.35 + temp * 0.65));
-        const heatGrad = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+        if (!isSourceAtop) {
+            ctx.globalCompositeOperation = 'lighter';
+        }
 
-        if (temp > 0.65) {
-            heatGrad.addColorStop(0, `rgba(254, 240, 138, ${0.72 * temp})`);
-            heatGrad.addColorStop(0.35, `rgba(249, 115, 22, ${0.58 * temp})`);
-            heatGrad.addColorStop(0.75, `rgba(220, 38, 38, ${0.28 * temp})`);
+        // 5A. Resplandor térmico del cuerpo (rojo profundo -> naranja)
+        const gx0 = dx * rFlow * 1.04;
+        const gy0 = dy * rFlow * 1.04;
+        const gx1 = dx * rFlow * (1 - 1.25 * Math.min(1, 0.35 + temp * 0.65));
+        const gy1 = dy * rFlow * (1 - 1.25 * Math.min(1, 0.35 + temp * 0.65));
+        const heatGrad = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+        if (temp > 0.60) {
+            heatGrad.addColorStop(0, `rgba(255, 232, 130, ${0.78 * temp})`);
+            heatGrad.addColorStop(0.28, `rgba(249, 115, 22, ${0.64 * temp})`);
+            heatGrad.addColorStop(0.65, `rgba(220, 38, 38, ${0.36 * temp})`);
             heatGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         } else {
-            heatGrad.addColorStop(0, `rgba(249, 115, 22, ${0.65 * temp})`);
-            heatGrad.addColorStop(0.45, `rgba(220, 38, 38, ${0.38 * temp})`);
+            heatGrad.addColorStop(0, `rgba(249, 115, 22, ${0.70 * temp})`);
+            heatGrad.addColorStop(0.45, `rgba(220, 38, 38, ${0.42 * temp})`);
             heatGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         }
         ctx.fillStyle = heatGrad;
-        ctx.fillRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
+        ctx.fillRect(fillX, fillY, fillW, fillH);
+
+        // 5B. Filo de estancamiento incandescente (borde de ataque al rojo blanco)
+        if (temp > 0.10) {
+            const rx0 = dx * rFlow * 1.02;
+            const ry0 = dy * rFlow * 1.02;
+            const rx1 = dx * rFlow * (0.58 - 0.25 * temp);
+            const ry1 = dy * rFlow * (0.58 - 0.25 * temp);
+            const rimGrad = ctx.createLinearGradient(rx0, ry0, rx1, ry1);
+            rimGrad.addColorStop(0, `rgba(255, 252, 232, ${Math.min(0.95, 0.92 * temp)})`);
+            rimGrad.addColorStop(0.32, `rgba(253, 224, 71, ${0.75 * temp})`);
+            rimGrad.addColorStop(0.70, `rgba(249, 115, 22, ${0.38 * temp})`);
+            rimGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = rimGrad;
+            ctx.fillRect(fillX, fillY, fillW, fillH);
+        }
+
+        // 5C. Juntas de losetas incandescentes / brasas de ablación en bordes carbonizados
+        if ((isShield || amt > 0.35) && temp > 0.22) {
+            const emberCount = 5;
+            for (let i = 0; i < emberCount; i++) {
+                const r1 = _scorchHash(seedBase, 170 + i * 2);
+                const r2 = _scorchHash(seedBase, 171 + i * 2);
+                const ex = dx * rFlow * (0.55 + r1 * 0.38) + px * ((r2 - 0.5) * rPerp * 1.4);
+                const ey = dy * rFlow * (0.55 + r1 * 0.38) + py * ((r2 - 0.5) * rPerp * 1.4);
+                ctx.fillStyle = `rgba(254, 240, 138, ${0.72 * temp})`;
+                ctx.beginPath();
+                ctx.arc(ex, ey, 0.7 + r1 * 0.9, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         ctx.restore();
     }
 }
@@ -383,8 +536,8 @@ function applyPartBodyFinish(ctx, w, h, partState, def, drawPathFn, opts = {}) {
     }
 
     // Desgaste térmico y quemaduras direccionales de reentrada atmosférica
-    if (partState && partState.scorch) {
-        drawPartThermalScorch(ctx, w, h, partState, def, tex);
+    if (!_suppressInlinePartScorch && partState && partState.scorch) {
+        drawPartThermalScorch(ctx, w, h, partState, def, tex, false);
     }
 
     ctx.restore();
@@ -7517,6 +7670,7 @@ let _customRocketNightCanvas = null;
 let _customRocketNightCtx = null;
 
 function _renderCustomRocketParts(targetCtx, sortedParts, com, scale) {
+    const canOffscreen = typeof document !== 'undefined';
     for (const p of sortedParts) {
         const def = ROCKET_PARTS_CATALOG[p.partDefId];
         if (!def) continue;
@@ -7524,6 +7678,8 @@ function _renderCustomRocketParts(targetCtx, sortedParts, com, scale) {
         const sz = getPartSize(p, def);
         const fx = -(p.y - com.y) * scale;
         const fy = (p.x - com.x) * scale;
+        const sc = p.scorch;
+        const hasScorch = canOffscreen && sc && (sc.amount > 0.005 || sc.temp > 0.015);
 
         targetCtx.save();
         targetCtx.translate(fx, fy);
@@ -7531,7 +7687,72 @@ function _renderCustomRocketParts(targetCtx, sortedParts, com, scale) {
         targetCtx.rotate(Math.PI / 2 + ((p.rotation || 0) * Math.PI) / 180);
         if (p.flipped) targetCtx.scale(-1, 1);
 
-        def.draw(targetCtx, sz.width, sz.height, p);
+        if (hasScorch) {
+            const pad = 16;
+            const bufW = Math.max(16, Math.ceil(sz.width + pad * 2));
+            const bufH = Math.max(16, Math.ceil(sz.height + pad * 2));
+            const res = Math.max(sz.width, sz.height) > 120 ? 2.0 : 2.5;
+            const pxW = Math.ceil(bufW * res);
+            const pxH = Math.ceil(bufH * res);
+
+            if (!_partScorchCanvas) {
+                _partScorchCanvas = document.createElement('canvas');
+                _partScorchCtx = _partScorchCanvas.getContext('2d');
+            }
+            if (_partScorchCanvas.width < pxW) _partScorchCanvas.width = pxW;
+            if (_partScorchCanvas.height < pxH) _partScorchCanvas.height = pxH;
+
+            _partScorchCtx.setTransform(1, 0, 0, 1, 0, 0);
+            _partScorchCtx.globalCompositeOperation = 'source-over';
+            _partScorchCtx.clearRect(0, 0, pxW, pxH);
+            _partScorchCtx.save();
+            _partScorchCtx.scale(res, res);
+            _partScorchCtx.translate(bufW * 0.5, bufH * 0.5);
+
+            _suppressInlinePartScorch = true;
+            try {
+                def.draw(_partScorchCtx, sz.width, sz.height, p);
+            } finally {
+                _suppressInlinePartScorch = false;
+            }
+
+            _partScorchCtx.globalCompositeOperation = 'source-atop';
+            const tex = p.texture || def.defaultTexture || 'smooth';
+            drawPartThermalScorch(_partScorchCtx, sz.width, sz.height, p, def, tex, true);
+            _partScorchCtx.restore();
+
+            targetCtx.drawImage(
+                _partScorchCanvas,
+                0, 0, pxW, pxH,
+                -bufW * 0.5, -bufH * 0.5, bufW, bufH
+            );
+
+            // Aura radiante térmica externa alrededor del borde incandescente de la pieza
+            const temp = Math.max(0, Math.min(1, sc.temp || 0));
+            if (temp > 0.06) {
+                const dLen = Math.hypot(sc.dirX || 0, sc.dirY || 0) || 1;
+                const dx = (sc.dirX || 0) / dLen;
+                const dy = (sc.dirY || -1) / dLen;
+                const rFlow = Math.abs(dx) * sz.width * 0.5 + Math.abs(dy) * sz.height * 0.5;
+                const bloomR = Math.max(8, Math.min(34, Math.max(sz.width, sz.height) * 0.45)) * (0.65 + 0.55 * temp);
+                const bx = dx * rFlow * 0.82;
+                const by = dy * rFlow * 0.82;
+
+                targetCtx.save();
+                targetCtx.globalCompositeOperation = 'lighter';
+                const bGrad = targetCtx.createRadialGradient(bx, by, 0, bx, by, bloomR);
+                bGrad.addColorStop(0, temp > 0.55 ? `rgba(254, 240, 138, ${0.34 * temp})` : `rgba(249, 115, 22, ${0.28 * temp})`);
+                bGrad.addColorStop(0.45, `rgba(234, 88, 12, ${0.16 * temp})`);
+                bGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                targetCtx.fillStyle = bGrad;
+                targetCtx.beginPath();
+                targetCtx.arc(bx, by, bloomR, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.restore();
+            }
+        } else {
+            def.draw(targetCtx, sz.width, sz.height, p);
+        }
         targetCtx.restore();
     }
 

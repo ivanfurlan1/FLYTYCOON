@@ -5442,12 +5442,23 @@ function drawReentryWakeParticles() {
         const tailX = rp.x - Math.cos(ang) * stretch;
         const tailY = rp.y - Math.sin(ang) * stretch;
         const grad = ctx.createLinearGradient(rp.x, rp.y, tailX, tailY);
-        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${t * 0.78})`);
+        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${t * 0.85})`);
+        grad.addColorStop(0.55, `rgba(${r}, ${Math.round(g * 0.65)}, ${Math.min(255, b + 35)}, ${t * 0.38})`);
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
+        // Halo suave de plasma alrededor de la partícula
         ctx.strokeStyle = grad;
-        ctx.lineWidth = rp.size * (1.15 - t * 0.3);
+        ctx.lineWidth = rp.size * (1.85 - t * 0.35);
         ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.28;
+        ctx.beginPath();
+        ctx.moveTo(rp.x, rp.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+
+        // Núcleo luminoso de la estela
+        ctx.globalAlpha = 1.0;
+        ctx.lineWidth = rp.size * (1.05 - t * 0.25);
         ctx.beginPath();
         ctx.moveTo(rp.x, rp.y);
         ctx.lineTo(tailX, tailY);
@@ -7465,13 +7476,19 @@ function drawPresetRocketScorch(s, mKey, sScale) {
     if (!sc) return;
     const amt = clamp(sc.amount || 0, 0, 1);
     const temp = clamp(sc.temp || 0, 0, 1);
+    const peakTemp = Math.max(temp, clamp(sc.peakTemp || 0, 0, 1));
     if (amt <= 0.005 && temp <= 0.015) return;
 
     const hl = 17.5 * sScale;
     const hw = 7.4 * sScale;
-    const dx = sc.dirX || 1;
-    const dy = sc.dirY || 0;
+    const dLen = Math.hypot(sc.dirX || 1, sc.dirY || 0) || 1;
+    const dx = (sc.dirX || 1) / dLen;
+    const dy = (sc.dirY || 0) / dLen;
+    const px = -dy;
+    const py = dx;
     const rFlow = Math.abs(dx) * hl + Math.abs(dy) * hw;
+    const rPerp = Math.abs(px) * hl + Math.abs(py) * hw;
+    const isStarship = mKey === 'starship';
 
     ctx.save();
     ctx.beginPath();
@@ -7484,23 +7501,107 @@ function drawPresetRocketScorch(s, mKey, sScale) {
     ctx.clip();
 
     if (amt > 0.005) {
-        const reach = 0.25 + 0.8 * Math.pow(amt, 0.72);
-        const g = ctx.createLinearGradient(dx * rFlow, dy * rFlow, dx * rFlow * (1 - 2 * reach), dy * rFlow * (1 - 2 * reach));
-        g.addColorStop(0, `rgba(12, 10, 10, ${0.78 * amt})`);
-        g.addColorStop(0.38, `rgba(48, 28, 16, ${0.46 * amt})`);
-        g.addColorStop(1, 'rgba(15, 12, 10, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(-hl * 1.2, -hw * 1.3, hl * 2.4, hw * 2.6);
+        // Velo general irregular de hollín para que el cohete no quede blanco como nuevo
+        const overallPow = Math.pow(amt, 0.76);
+        ctx.fillStyle = `rgba(18, 14, 12, ${(isStarship ? 0.34 : 0.46) * overallPow})`;
+        ctx.fillRect(-hl * 1.25, -hw * 1.35, hl * 2.5, hw * 2.7);
+        for (let g = 0; g < 5; g++) {
+            const h1 = Math.sin((g * 43.1 + 11.7) * 43758.5453);
+            const r1 = h1 - Math.floor(h1);
+            const h2 = Math.sin((g * 91.3 + 5.2) * 19341.123);
+            const r2 = h2 - Math.floor(h2);
+            const gx = (r1 - 0.5) * hl * 1.75;
+            const gy = (r2 - 0.5) * hw * 1.65;
+            const gr = Math.max(4, (0.35 + r1 * 0.4) * hw * 1.6);
+            const gg = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+            gg.addColorStop(0, `rgba(${r2 > 0.5 ? '42, 26, 16' : '10, 9, 9'}, ${0.30 * overallPow})`);
+            gg.addColorStop(1, 'rgba(12, 10, 10, 0)');
+            ctx.fillStyle = gg;
+            ctx.beginPath();
+            ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const burnLayers = (Array.isArray(sc.burns) && sc.burns.length > 0)
+            ? sc.burns
+            : [{ dirX: dx, dirY: dy, amount: amt, peakTemp }];
+
+        for (let li = 0; li < burnLayers.length; li++) {
+            const b = burnLayers[li];
+            const bAmt = clamp(b.amount || 0, 0, 1);
+            if (bAmt <= 0.005) continue;
+            const bPeak = Math.max(bAmt, clamp(b.peakTemp || 0, 0, 1));
+            const bdLen = Math.hypot(b.dirX || 1, b.dirY || 0) || 1;
+            const bdx = (b.dirX || 1) / bdLen;
+            const bdy = (b.dirY || 0) / bdLen;
+            const bpx = -bdy;
+            const bpy = bdx;
+            const bRFlow = Math.abs(bdx) * hl + Math.abs(bdy) * hw;
+            const bRPerp = Math.abs(bpx) * hl + Math.abs(bpy) * hw;
+
+            const reach = 0.42 + 0.90 * Math.pow(bAmt, 0.62);
+            const g = ctx.createLinearGradient(bdx * bRFlow, bdy * bRFlow, bdx * bRFlow * (1 - 2 * reach), bdy * bRFlow * (1 - 2 * reach));
+            if (isStarship) {
+                const tStr = Math.max(bAmt, bPeak * 0.85);
+                g.addColorStop(0, `rgba(12, 11, 14, ${0.82 * bAmt})`);
+                g.addColorStop(0.25, `rgba(186, 132, 58, ${0.34 * tStr})`);
+                g.addColorStop(0.55, `rgba(118, 58, 134, ${0.30 * tStr})`);
+                g.addColorStop(0.80, `rgba(48, 86, 142, ${0.22 * tStr})`);
+                g.addColorStop(1, 'rgba(18, 16, 22, 0)');
+            } else {
+                g.addColorStop(0, `rgba(10, 8, 8, ${0.86 * Math.min(1, bAmt * 1.1)})`);
+                g.addColorStop(0.30, `rgba(58, 30, 16, ${0.56 * bAmt})`);
+                g.addColorStop(0.65, `rgba(32, 24, 20, ${0.28 * bAmt})`);
+                g.addColorStop(1, 'rgba(15, 12, 10, 0)');
+            }
+            ctx.fillStyle = g;
+            ctx.fillRect(-hl * 1.25, -hw * 1.35, hl * 2.5, hw * 2.7);
+
+            // Estelas sinuosas deterministas de hollín para esta capa
+            for (let i = 0; i < 6; i++) {
+                const h1 = Math.sin(((i + li * 11) * 31.7 + 7.3) * 43758.5453);
+                const r1 = h1 - Math.floor(h1);
+                const h2 = Math.sin(((i + li * 11) * 73.1 + 19.4) * 19341.123);
+                const r2 = h2 - Math.floor(h2);
+                const lat = (r1 * 1.7 - 0.85) * bRPerp;
+                const adv = bRFlow * (0.72 + r2 * 0.25);
+                const len = bRFlow * (0.52 + bAmt * (0.80 + r2 * 0.5));
+                const sx = bdx * adv + bpx * lat;
+                const sy = bdy * adv + bpy * lat;
+                const ex = sx - bdx * len;
+                const ey = sy - bdy * len;
+                const sg = ctx.createLinearGradient(sx, sy, ex, ey);
+                sg.addColorStop(0, `rgba(8, 7, 7, ${0.54 * bAmt})`);
+                sg.addColorStop(0.5, `rgba(48, 26, 14, ${0.30 * bAmt})`);
+                sg.addColorStop(1, 'rgba(15, 12, 10, 0)');
+                ctx.strokeStyle = sg;
+                ctx.lineWidth = (1.1 + r2 * 1.8) * sScale * 0.65;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.quadraticCurveTo((sx + ex) * 0.5 + bpx * (r2 - 0.5) * 3, (sy + ey) * 0.5 + bpy * (r2 - 0.5) * 3, ex, ey);
+                ctx.stroke();
+            }
+        }
     }
 
     if (temp > 0.015) {
         ctx.globalCompositeOperation = 'lighter';
-        const hg = ctx.createLinearGradient(dx * rFlow * 1.05, dy * rFlow * 1.05, -dx * rFlow * 0.4, -dy * rFlow * 0.4);
-        hg.addColorStop(0, temp > 0.65 ? `rgba(254, 240, 138, ${0.65 * temp})` : `rgba(249, 115, 22, ${0.58 * temp})`);
-        hg.addColorStop(0.45, `rgba(220, 38, 38, ${0.32 * temp})`);
+        const hg = ctx.createLinearGradient(dx * rFlow * 1.05, dy * rFlow * 1.05, -dx * rFlow * 0.45, -dy * rFlow * 0.45);
+        hg.addColorStop(0, temp > 0.60 ? `rgba(255, 232, 130, ${0.72 * temp})` : `rgba(249, 115, 22, ${0.64 * temp})`);
+        hg.addColorStop(0.42, `rgba(220, 38, 38, ${0.36 * temp})`);
         hg.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = hg;
-        ctx.fillRect(-hl * 1.2, -hw * 1.3, hl * 2.4, hw * 2.6);
+        ctx.fillRect(-hl * 1.25, -hw * 1.35, hl * 2.5, hw * 2.7);
+
+        if (temp > 0.10) {
+            const rg = ctx.createLinearGradient(dx * rFlow * 1.02, dy * rFlow * 1.02, dx * rFlow * 0.45, dy * rFlow * 0.45);
+            rg.addColorStop(0, `rgba(255, 252, 232, ${0.88 * temp})`);
+            rg.addColorStop(0.40, `rgba(253, 224, 71, ${0.62 * temp})`);
+            rg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = rg;
+            ctx.fillRect(-hl * 1.25, -hw * 1.35, hl * 2.5, hw * 2.7);
+        }
     }
     ctx.restore();
 }
@@ -7543,19 +7644,34 @@ function drawReentryPlasmaSheath(reI, timeSec) {
         sx[i] = shockFrontX[i] + standoff * (1.0 - 0.35 * edgeFrac * edgeFrac);
     }
 
-    // 1. Corona Exterior Ionizada (Violeta / Magenta / Naranja Profundo) centrada en el frente de choque
-    const coronaR = Math.max(spanY * 0.95, 24) + intensity * 14;
-    const coronaCX = profile.maxFrontX - Math.min(bodyDepth * 0.28, 22);
-    const outerGlow = ctx.createRadialGradient(coronaCX, midY, 2, coronaCX - 6, midY, coronaR);
-    outerGlow.addColorStop(0, `rgba(255, 247, 220, ${0.38 * intensity})`);
-    outerGlow.addColorStop(0.32, `rgba(249, 115, 22, ${0.32 * intensity})`);
-    outerGlow.addColorStop(0.68, `rgba(225, 29, 72, ${0.18 * intensity})`);
-    outerGlow.addColorStop(0.92, `rgba(168, 85, 247, ${0.07 * intensity})`);
+    // 1. Corona Exterior Ionizada (Nitrógeno/Oxígeno: blanco -> naranja -> carmesí -> violeta-magenta)
+    const coronaR = Math.max(spanY * 1.05, 26) + intensity * 18;
+    const coronaCX = profile.maxFrontX - Math.min(bodyDepth * 0.25, 22);
+    const outerGlow = ctx.createRadialGradient(coronaCX, midY, 2, coronaCX - 8, midY, coronaR);
+    outerGlow.addColorStop(0, `rgba(255, 250, 230, ${0.42 * intensity})`);
+    outerGlow.addColorStop(0.28, `rgba(249, 115, 22, ${0.35 * intensity})`);
+    outerGlow.addColorStop(0.58, `rgba(225, 29, 72, ${0.22 * intensity})`);
+    outerGlow.addColorStop(0.84, `rgba(168, 85, 247, ${0.11 * intensity})`);
     outerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = outerGlow;
     ctx.beginPath();
     ctx.arc(coronaCX - 4, midY, coronaR, 0, Math.PI * 2);
     ctx.fill();
+
+    // 1B. Halo hipersónico de aire ionizado (destello azul-violeta en el frente de choque a alta intensidad)
+    if (intensity > 0.42) {
+        const ionAlpha = (intensity - 0.42) / 0.83;
+        const ionR = Math.max(spanY * 0.72, 18) + intensity * 10;
+        const ionGrad = ctx.createRadialGradient(profile.maxFrontX + standoff * 0.5, midY, 1, profile.maxFrontX - 4, midY, ionR);
+        ionGrad.addColorStop(0, `rgba(224, 242, 254, ${0.32 * ionAlpha})`);
+        ionGrad.addColorStop(0.45, `rgba(147, 197, 253, ${0.16 * ionAlpha})`);
+        ionGrad.addColorStop(0.8, `rgba(192, 132, 252, ${0.09 * ionAlpha})`);
+        ionGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = ionGrad;
+        ctx.beginPath();
+        ctx.arc(profile.maxFrontX, midY, ionR, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
     // 2. Manto de Plasma y Onda de Choque Desprendida (abrazando el contorno real del cohete)
     const wakeTailX = profile.minBackX - wakeLen;
@@ -7598,7 +7714,7 @@ function drawReentryPlasmaSheath(reI, timeSec) {
     ctx.closePath();
     ctx.fill();
 
-    // 3. Arco Luminoso de Compresión en los Puntos de Estancamiento (ponderado por incidencia)
+    // 3. Arco Luminoso de Compresión en los Puntos de Estancamiento (doble pasada: halo térmico + núcleo de choque)
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (let i = 0; i < N - 1; i++) {
@@ -7610,10 +7726,19 @@ function drawReentryPlasmaSheath(reI, timeSec) {
         const localHeat = clamp(Math.pow(normalDotFlow, 0.85) * intensity, 0, 1);
         if (localHeat < 0.08) continue;
 
+        // Halo ancho naranja-dorado de compresión
+        ctx.strokeStyle = `rgba(251, 146, 60, ${0.42 * localHeat})`;
+        ctx.lineWidth = (4.2 + 3.4 * localHeat) * clamp(intensity, 0.5, 1.15);
+        ctx.beginPath();
+        ctx.moveTo(sx[i], ys[i]);
+        ctx.lineTo(sx[i + 1], ys[i + 1]);
+        ctx.stroke();
+
+        // Núcleo incandescente blanco-azulado / blanco-oro de la onda de choque
         ctx.strokeStyle = intensity > 0.72
-            ? `rgba(235, 248, 255, ${0.88 * localHeat})`
-            : `rgba(255, 248, 220, ${0.85 * localHeat})`;
-        ctx.lineWidth = (1.6 + 1.8 * localHeat) * clamp(intensity, 0.5, 1.15);
+            ? `rgba(235, 248, 255, ${0.92 * localHeat})`
+            : `rgba(255, 250, 224, ${0.88 * localHeat})`;
+        ctx.lineWidth = (1.5 + 1.8 * localHeat) * clamp(intensity, 0.5, 1.15);
         ctx.beginPath();
         ctx.moveTo(sx[i], ys[i]);
         ctx.lineTo(sx[i + 1], ys[i + 1]);
@@ -7623,10 +7748,12 @@ function drawReentryPlasmaSheath(reI, timeSec) {
     // 4. Filamentos de Plasma Turbulento desprendiéndose desde los hombros reales de la silueta
     const ribbonIndices = [
         0,
-        Math.floor(N * 0.16),
-        Math.floor(N * 0.36),
-        Math.floor(N * 0.64),
-        Math.floor(N * 0.84),
+        Math.floor(N * 0.14),
+        Math.floor(N * 0.28),
+        Math.floor(N * 0.44),
+        Math.floor(N * 0.56),
+        Math.floor(N * 0.72),
+        Math.floor(N * 0.86),
         N - 1
     ];
     for (let k = 0; k < ribbonIndices.length; k++) {
@@ -7635,22 +7762,23 @@ function drawReentryPlasmaSheath(reI, timeSec) {
         const startY = ys[idx];
         const sideDir = startY >= midY ? 1 : -1;
         const edgeRatio = Math.abs(startY - midY) / (spanY * 0.5 || 1);
-        const waveY = Math.sin(timeSec * 42 + k * 1.85) * (2.2 + edgeRatio * 2.5);
-        const endX = startX - wakeLen * (0.55 + 0.35 * edgeRatio);
-        const endY = startY + sideDir * wakeFlare * (0.35 + 0.65 * edgeRatio) + waveY;
+        const waveY = Math.sin(timeSec * 44 + k * 1.95) * (2.4 + edgeRatio * 2.8);
+        const endX = startX - wakeLen * (0.58 + 0.38 * edgeRatio);
+        const endY = startY + sideDir * wakeFlare * (0.35 + 0.70 * edgeRatio) + waveY;
 
         const fGrad = ctx.createLinearGradient(startX, startY, endX, endY);
-        fGrad.addColorStop(0, `rgba(254, 240, 138, ${0.72 * intensity})`);
-        fGrad.addColorStop(0.45, `rgba(249, 115, 22, ${0.42 * intensity})`);
-        fGrad.addColorStop(1, 'rgba(225, 29, 72, 0)');
+        fGrad.addColorStop(0, `rgba(255, 248, 196, ${0.78 * intensity})`);
+        fGrad.addColorStop(0.32, `rgba(249, 115, 22, ${0.50 * intensity})`);
+        fGrad.addColorStop(0.68, `rgba(225, 29, 72, ${0.26 * intensity})`);
+        fGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
 
         ctx.strokeStyle = fGrad;
-        ctx.lineWidth = 1.3 + 0.6 * intensity;
+        ctx.lineWidth = 1.4 + 0.7 * intensity;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.quadraticCurveTo(
             (startX + endX) * 0.5,
-            startY + sideDir * wakeFlare * 0.25 + waveY * 0.4,
+            startY + sideDir * wakeFlare * 0.25 + waveY * 0.45,
             endX,
             endY
         );

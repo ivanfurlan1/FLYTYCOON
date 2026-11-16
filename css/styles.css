@@ -30,6 +30,7 @@
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
@@ -194,6 +195,11 @@ canvas {
     border-color: rgba(125, 211, 252, 0.95);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 12px rgba(56, 189, 248, 0.7);
 }
+.throttle-console.is-dragging .throttle-set-fill,
+.throttle-console.is-dragging .throttle-live-fill,
+.throttle-console.is-dragging .throttle-thumb {
+    transition: none !important;
+}
 
 /* Barras de telemetría zen */
 .telemetry-track {
@@ -314,6 +320,24 @@ canvas {
     }
 }
 
+/* Bloqueo estricto de menú contextual / selección / vibración por pulsación larga en controles táctiles */
+.sfs-steer-btn,
+.throttle-console,
+.throttle-track,
+#sfsSteeringCluster,
+#hudBottomLeftBars,
+#flightHudFooter,
+#evaTouchControls,
+#btnWarp,
+#btnStageSeparate,
+#btnEvaWorldMenuQuick,
+#btnHudReservePill {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 @media (max-width: 639px) and (orientation: portrait) {
     .hud-header {
         padding-top: max(0.5rem, env(safe-area-inset-top)) !important;
@@ -321,9 +345,18 @@ canvas {
         padding-right: 0.5rem !important;
     }
     .hud-footer {
-        bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
         padding-left: 0.55rem !important;
         padding-right: 0.55rem !important;
+    }
+}
+
+@media (max-width: 639px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait) {
+    .hud-footer,
+    #hudBottomLeftBars,
+    #sfsSteeringCluster,
+    #evaTouchControls,
+    #evaTouchControls > div {
+        bottom: calc(1.45rem + env(safe-area-inset-bottom, 0px)) !important;
     }
 }
 

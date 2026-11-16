@@ -268,16 +268,35 @@ if (flightCanvasEl) {
     });
 
     flightCanvasEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
         if (typeof LightingEngine !== 'undefined' && LightingEngine.isPlacementMode()) {
-            e.preventDefault();
             LightingEngine.exitPlacementMode();
         }
         if (typeof ColonyBuildings !== 'undefined' && ColonyBuildings.placementMode) {
-            e.preventDefault();
             ColonyBuildings.exitPlacementMode();
         }
     });
+    flightCanvasEl.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
 }
+
+// Bloquear menú contextual, selección de texto y arrastre nativo del navegador en pulsaciones largas
+document.addEventListener('contextmenu', (e) => {
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+});
+document.addEventListener('selectstart', (e) => {
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+});
+document.addEventListener('dragstart', (e) => {
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+});
 
 // Cruz Direccional estilo Spaceflight Simulator (▲ / ◀ ▼ ▶)
 const btnSteerLeftTop = document.getElementById('btnSteerLeftTop');
@@ -311,6 +330,9 @@ function bindFlightPadButton(btn, onPress, onRelease) {
     btn.addEventListener('pointercancel', release);
     btn.addEventListener('lostpointercapture', release);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    btn.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
 }
 
 bindFlightPadButton(
@@ -352,33 +374,39 @@ bindFlightPadButton(
     () => { keys['ArrowDown'] = false; if (!keys['KeyS']) ship.braking = false; }
 );
 
-// Barra Graduable de Potencia de Motores (0% - 100%, compatible multitáctil)
+// Barra Graduable de Potencia de Motores (0% - 100%, deslizamiento relativo estilo SFS, compatible multitáctil)
 const throttleTrack = document.getElementById('throttleTrack');
+const throttleConsoleEl = document.getElementById('throttleConsole');
 let throttlePointerId = null;
-function setThrottleFromPointer(clientY) {
-    if (!throttleTrack) return;
-    const rect = throttleTrack.getBoundingClientRect();
-    const raw = (rect.bottom - clientY) / Math.max(1, rect.height);
-    const snapped = Math.round(clamp(raw, 0, 1) * 100) / 100;
-    ship.throttle = snapped;
-}
+let throttleLastY = 0;
+let throttleAccum = 0;
 if (throttleTrack) {
+    throttleTrack.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
     throttleTrack.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dismissIntro();
         throttlePointerId = e.pointerId;
+        throttleLastY = e.clientY;
+        throttleAccum = clamp(ship.throttle !== undefined ? ship.throttle : 0, 0, 1);
+        if (throttleConsoleEl) throttleConsoleEl.classList.add('is-dragging');
         try { throttleTrack.setPointerCapture(e.pointerId); } catch (_) {}
-        setThrottleFromPointer(e.clientY);
     });
     throttleTrack.addEventListener('pointermove', (e) => {
         if (e.pointerId === throttlePointerId) {
-            setThrottleFromPointer(e.clientY);
+            const dy = throttleLastY - e.clientY;
+            throttleLastY = e.clientY;
+            const trackH = Math.max(1, throttleTrack.getBoundingClientRect().height);
+            throttleAccum = clamp(throttleAccum + dy / trackH, 0, 1);
+            ship.throttle = Math.round(throttleAccum * 100) / 100;
         }
     });
     const releaseThrottle = (e) => {
         if (e.pointerId === throttlePointerId) {
             throttlePointerId = null;
+            if (throttleConsoleEl) throttleConsoleEl.classList.remove('is-dragging');
         }
     };
     throttleTrack.addEventListener('pointerup', releaseThrottle);
@@ -447,6 +475,9 @@ if (btnWarp) {
     btnWarp.addEventListener('pointercancel', releaseWarp);
     btnWarp.addEventListener('lostpointercapture', releaseWarp);
     btnWarp.addEventListener('contextmenu', (e) => e.preventDefault());
+    btnWarp.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
 }
 
 const btnOrbit = document.getElementById('btnOrbit');
@@ -779,6 +810,9 @@ function bindEvaTouchHold(btnId, keyCode) {
     btn.addEventListener('pointercancel', release);
     btn.addEventListener('lostpointercapture', release);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    btn.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
 }
 bindEvaTouchHold('btnEvaTouchLeft', 'KeyA');
 bindEvaTouchHold('btnEvaTouchRight', 'KeyD');

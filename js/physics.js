@@ -2191,8 +2191,8 @@ function updatePhysics(dt, skipExpensiveUI = false) {
             }
         }
 
-        // Chispas de ablación térmica desprendiéndose del escudo térmico expuesto
-        if (reI > 0.32 && Math.random() < reI * 0.85) {
+        // Chispas de ablación térmica y pavesas incandescentes desprendiéndose del borde expuesto
+        if (reI > 0.25 && Math.random() < Math.min(0.95, reI * 0.92)) {
             const sideSign = Math.random() < 0.5 ? 1 : -1;
             let spkX, spkY;
             if (profile && profile.count > 2) {
@@ -2203,12 +2203,13 @@ function updatePhysics(dt, skipExpensiveUI = false) {
                 spkX = stagnationX + cosPerpWorld * (sideSign * effectiveSpan * Math.random());
                 spkY = stagnationY + sinPerpWorld * (sideSign * effectiveSpan * Math.random());
             }
+            const isHotEmber = Math.random() < 0.42;
             createSparks(
-                spkX, spkY, 2,
-                wakeWorldAngle + sideSign * 0.25, 0.45,
-                120, 290,
-                [255, 205, 120],
-                0.36
+                spkX, spkY, isHotEmber ? 1 : 2,
+                wakeWorldAngle + sideSign * (0.18 + Math.random() * 0.22), 0.48,
+                isHotEmber ? 95 : 135, isHotEmber ? 220 : 320,
+                isHotEmber ? [255, 118, 38] : [255, 224, 145],
+                isHotEmber ? 0.48 : 0.34
             );
         }
 
@@ -3992,6 +3993,46 @@ function _hashPartSeed(str) {
     return (h >>> 0) / 4294967295;
 }
 
+function _accumulateBurnLayer(sc, fx, fy, charDelta, currentTemp, maxLayers = 4) {
+    if (!Array.isArray(sc.burns)) sc.burns = [];
+    const fLen = Math.hypot(fx, fy) || 1;
+    const nx = fx / fLen;
+    const ny = fy / fLen;
+
+    let bestIdx = -1;
+    let bestDot = -2;
+    for (let i = 0; i < sc.burns.length; i++) {
+        const b = sc.burns[i];
+        const dot = b.dirX * nx + b.dirY * ny;
+        if (dot > bestDot) {
+            bestDot = dot;
+            bestIdx = i;
+        }
+    }
+
+    // Misma dirección (~32°) o ya alcanzamos el límite de capas: acumular sin rotar manchas viejas
+    if (bestIdx >= 0 && (bestDot >= 0.848 || sc.burns.length >= maxLayers)) {
+        const target = sc.burns[bestIdx];
+        // Solo ajustar dirección levemente si la mancha recién empieza y el ángulo es cercano
+        if (bestDot >= 0.848 && target.amount < 0.08) {
+            const bx = lerp(target.dirX, nx, 0.25);
+            const by = lerp(target.dirY, ny, 0.25);
+            const bl = Math.hypot(bx, by) || 1;
+            target.dirX = bx / bl;
+            target.dirY = by / bl;
+        }
+        target.amount = clamp(target.amount + charDelta, 0, 1);
+        target.peakTemp = Math.max(target.peakTemp || 0, currentTemp);
+    } else if (charDelta > 0.0005 || currentTemp > 0.08) {
+        sc.burns.push({
+            dirX: nx,
+            dirY: ny,
+            amount: clamp(charDelta, 0, 1),
+            peakTemp: currentTemp
+        });
+    }
+}
+
 function updateShipReentryScorch(s, dt) {
     if (!s) return;
     const reI = clamp(s.reentryIntensity || 0, 0, 1.25);
@@ -4001,7 +4042,7 @@ function updateShipReentryScorch(s, dt) {
     const activeHeating = reI > 0.04;
 
     // 1. Estado térmico global del casco (para cohetes predefinidos y referencia general)
-    if (!s.scorch) s.scorch = { amount: 0, dirX: 1, dirY: 0, temp: 0 };
+    if (!s.scorch) s.scorch = { amount: 0, dirX: 1, dirY: 0, temp: 0, peakTemp: 0, burns: [] };
     if (activeHeating) {
         const blend = clamp(dt * 4.5 * reI, 0, 1);
         const nx = lerp(s.scorch.dirX, flowX, blend);
@@ -4009,9 +4050,12 @@ function updateShipReentryScorch(s, dt) {
         const nl = Math.hypot(nx, ny) || 1;
         s.scorch.dirX = nx / nl;
         s.scorch.dirY = ny / nl;
-        const rate = Math.pow(reI, 1.35) * 0.055;
-        s.scorch.amount = clamp(s.scorch.amount + rate * dt, 0, 1);
+        const rate = Math.pow(reI, 1.35) * 0.064;
+        const delta = rate * dt;
+        s.scorch.amount = clamp(s.scorch.amount + delta, 0, 1);
         s.scorch.temp = clamp(lerp(s.scorch.temp, clamp(reI * 1.05, 0, 1), dt * 3.8), 0, 1);
+        s.scorch.peakTemp = Math.max(s.scorch.peakTemp || 0, s.scorch.temp);
+        _accumulateBurnLayer(s.scorch, flowX, flowY, delta, s.scorch.temp, 4);
     } else if (s.scorch.temp > 0.001) {
         s.scorch.temp = Math.max(0, s.scorch.temp - dt * (0.28 * s.scorch.temp + 0.06));
     }
@@ -4101,7 +4145,7 @@ function updateShipReentryScorch(s, dt) {
                 if (effShield > shielding) shielding = effShield;
             }
 
-            const exposure = clamp(1.0 - shielding, 0.14, 1.0);
+            const exposure = clamp(1.0 - shielding, 0.24, 1.0);
 
             // Vector del flujo incidente en coordenadas LOCALES de la pieza
             let lx = flowX * pi.cR + flowY * pi.sR;
@@ -4115,34 +4159,50 @@ function updateShipReentryScorch(s, dt) {
                     dirY: ly,
                     exposure,
                     temp: 0,
-                    seed: _hashPartSeed(p.instanceId || (p.partDefId + '_' + i))
+                    peakTemp: 0,
+                    edgeHeat: 0,
+                    seed: _hashPartSeed(p.instanceId || (p.partDefId + '_' + i)),
+                    burns: []
                 };
             }
 
             const sc = p.scorch;
             sc.exposure = exposure;
 
-            // Orientar la dirección de quemadura suavemente según el flujo ponderado por intensidad
-            const dirBlend = clamp(dt * (3.2 + reI * 3.0) * exposure, 0, 1);
+            // Dirección viva del flujo actual (solo para incandescencia activa en tiempo real)
+            const dirBlend = clamp(dt * (4.2 + reI * 3.5), 0, 1);
             const ndx = lerp(sc.dirX, lx, dirBlend);
             const ndy = lerp(sc.dirY, ly, dirBlend);
             const ndLen = Math.hypot(ndx, ndy) || 1;
             sc.dirX = ndx / ndLen;
             sc.dirY = ndy / ndLen;
 
-            // Tasa de carbonización adaptada al material de la pieza
+            // Tasa de carbonización adaptada al material y tipo de pieza
             const tex = p.texture || def.defaultTexture || 'smooth';
             let matRate = 1.0;
-            if (def.isHeatShield) matRate = 1.45;
-            else if (tex === 'tiles' || tex === 'carbon') matRate = 0.62;
-            else if (tex === 'steel') matRate = 0.85;
-            else if (tex === 'foil') matRate = 1.15;
+            if (def.isHeatShield) matRate = 1.48;
+            else if (tex === 'tiles' || tex === 'carbon') matRate = 0.58;
+            else if (tex === 'steel') matRate = 0.88;
+            else if (tex === 'foil') matRate = 1.22;
+            else if (def.isSolarPanel) matRate = 1.18;
+            else if (def.thrust && def.thrust > 0) matRate = 0.96;
+            else if (def.category === 'aero') matRate = 1.06;
 
-            const charDelta = Math.pow(reI, 1.35) * 0.068 * exposure * matRate * dt;
+            // Retropropulsión supersónica: el encendido de motores hacia el flujo empuja la onda de choque
+            const retroShield = (s.thrustIntensity > 0.15 && flowX < -0.55)
+                ? (1 - 0.22 * clamp(s.thrustIntensity, 0, 1) * (-flowX - 0.55) / 0.45)
+                : 1.0;
+
+            const charDelta = Math.pow(reI, 1.35) * 0.082 * exposure * matRate * dt;
             sc.amount = clamp(sc.amount + charDelta, 0, 1);
 
-            const targetTemp = clamp(reI * (0.45 + 0.65 * exposure), 0, 1);
-            sc.temp = clamp(lerp(sc.temp, targetTemp, dt * (targetTemp > sc.temp ? 4.2 : 1.8)), 0, 1);
+            const targetTemp = clamp(reI * (0.44 + 0.68 * exposure) * retroShield, 0, 1);
+            sc.temp = clamp(lerp(sc.temp, targetTemp, dt * (targetTemp > sc.temp ? 4.4 : 1.8)), 0, 1);
+            sc.peakTemp = Math.max(sc.peakTemp || 0, sc.temp);
+            sc.edgeHeat = clamp(reI * Math.pow(exposure, 0.78) * retroShield, 0, 1);
+
+            // Fijar la quemadura en capas direccionales estáticas (no rotan al girar el cohete)
+            _accumulateBurnLayer(sc, lx, ly, charDelta, sc.temp, 4);
         }
     }
 }
