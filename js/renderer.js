@@ -629,18 +629,6 @@ function render(timeSec) {
     // 24. Radar Perimetral Orbital en Pantalla
     drawPerimeterRadar(nearby);
 
-    // 25. Grano Fílmico Sutil Anti-Banding (suaviza degradados de cielo y atmósfera)
-    if (typeof VisualTextures !== 'undefined') {
-        const filmPat = VisualTextures.getPattern(ctx, 'film');
-        if (filmPat) {
-            ctx.save();
-            ctx.globalAlpha = 0.55;
-            ctx.fillStyle = filmPat;
-            ctx.fillRect(0, 0, screenW, screenH);
-            ctx.restore();
-        }
-    }
-
     ctx.restore();
 }
 
