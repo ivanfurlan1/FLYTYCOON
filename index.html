@@ -332,6 +332,10 @@
                 <span class="text-xs leading-none">🛠️</span>
                 <span class="font-mono-num text-[10px] uppercase tracking-wider font-semibold">Taller VAB</span>
             </button>
+            <button id="btnWorldCleanRocket" class="w-full aero-pill aero-btn px-3 py-2 rounded-xl flex items-center gap-2 text-sky-100 border-sky-400/35 hover:bg-sky-500/15 cursor-pointer whitespace-nowrap" title="Limpiar hollín y quemaduras de reentrada">
+                <span class="text-xs leading-none">✨</span>
+                <span class="font-mono-num text-[10px] uppercase tracking-wider font-semibold">Limpiar</span>
+            </button>
         </div>
 
         <!-- Grupo: Clic en Cohete durante EVA -->
@@ -732,14 +736,14 @@
     <!-- 3. CONSOLA INFERIOR DE VUELO ESTILO SPACEFLIGHT SIMULATOR -->
     <footer id="flightHudFooter" class="hud-footer fixed inset-x-0 bottom-3 sm:bottom-5 z-20 px-2.5 sm:px-6 flex justify-end items-end pointer-events-none select-none">
 
-        <!-- CENTRO INFERIOR: MATRIZ DE 6 BOTONES ESTILO SFS (◀ ▲ ▶ / ◀ ▼ ▶) -->
-        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 grid grid-cols-3 gap-1.5 pointer-events-auto">
-            <button id="btnSteerLeftTop" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Girar izquierda" title="Girar izquierda (A / ◀)">◀</button>
-            <button id="btnThrustUp" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-amber-200 text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Impulso directo" title="Impulso directo (W / ▲ / Espacio)">▲</button>
-            <button id="btnSteerRightTop" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Girar derecha" title="Girar derecha (D / ▶)">▶</button>
-            <button id="btnSteerLeft" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Traslación RCS izquierda" title="Traslación RCS izquierda">◀</button>
-            <button id="btnBrakeDown" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-stone-200 text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Frenar" title="Frenar / Retro (S / ▼)">▼</button>
-            <button id="btnSteerRight" class="sfs-steer-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base cursor-pointer touch-none select-none active:scale-95 transition-transform" aria-label="Traslación RCS derecha" title="Traslación RCS derecha">▶</button>
+        <!-- CENTRO INFERIOR: JOYSTICK CIRCULAR DE ORIENTACIÓN -->
+        <div id="sfsSteeringCluster" class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
+            <div id="flightJoystick" class="astral-joystick" role="slider" aria-label="Joystick de orientación" title="Desliza para orientar el cohete">
+                <div class="astral-joystick-ring"></div>
+                <div class="astral-joystick-cross"></div>
+                <div class="astral-joystick-vector"></div>
+                <div class="astral-joystick-knob"></div>
+            </div>
         </div>
 
         <!-- DERECHA: WARP + POTENCIA VERTICAL ESTILO SFS -->
@@ -764,12 +768,15 @@
         </div>
     </footer>
 
-    <!-- 3.5 CONTROLES TÁCTILES DE MOVIMIENTO EVA (FILA HORIZONTAL CENTRADA ◀ ▲ ▶) -->
+    <!-- 3.5 CONTROLES TÁCTILES DE MOVIMIENTO EVA (JOYSTICK CIRCULAR CENTRADO) -->
     <div id="evaTouchControls" class="hidden fixed inset-x-0 bottom-3 sm:bottom-5 z-25 px-2.5 sm:px-6 flex justify-end items-end pointer-events-none select-none touch-none">
-        <div class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 flex items-center gap-1.5 pointer-events-auto touch-none">
-            <button id="btnEvaTouchLeft" class="sfs-steer-btn w-11 h-11 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base active:scale-95 transition-transform touch-none select-none" aria-label="Caminar izquierda" title="Caminar izquierda (A / ◀)">◀</button>
-            <button id="btnEvaTouchJump" class="sfs-steer-btn w-11 h-11 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-sky-200 text-base font-mono-num font-bold active:scale-95 transition-transform touch-none select-none border-sky-400/40" aria-label="Saltar o Jetpack" title="Saltar / Jetpack (Espacio / W)">▲</button>
-            <button id="btnEvaTouchRight" class="sfs-steer-btn w-11 h-11 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-white text-base active:scale-95 transition-transform touch-none select-none" aria-label="Caminar derecha" title="Caminar derecha (D / ▶)">▶</button>
+        <div class="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-25 pointer-events-auto touch-none select-none">
+            <div id="evaJoystick" class="astral-joystick astral-joystick-eva" role="slider" aria-label="Joystick de movimiento EVA" title="Desliza izquierda/derecha para caminar, arriba para saltar o usar jetpack">
+                <div class="astral-joystick-ring"></div>
+                <div class="astral-joystick-cross"></div>
+                <div class="astral-joystick-vector"></div>
+                <div class="astral-joystick-knob"></div>
+            </div>
         </div>
         <button id="btnEvaWorldMenuQuick" class="aero-pill aero-btn w-11 h-11 rounded-xl flex items-center justify-center text-base border-white/20 cursor-pointer pointer-events-auto touch-none" title="Opciones del Astronauta (o haz clic sobre el astronauta)">🛠️</button>
     </div>

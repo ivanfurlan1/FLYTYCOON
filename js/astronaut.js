@@ -337,6 +337,12 @@ function updateAstronautPhysics(dt) {
     let inputMove = 0;
     if (keys['KeyA'] || keys['ArrowLeft']) inputMove -= 1;
     if (keys['KeyD'] || keys['ArrowRight']) inputMove += 1;
+    const evaJoy = (typeof window !== 'undefined' && window.evaJoystickInput && window.evaJoystickInput.active)
+        ? window.evaJoystickInput
+        : null;
+    if (evaJoy && evaJoy.x !== 0) {
+        inputMove = clamp(inputMove + evaJoy.x, -1, 1);
+    }
     const isSprinting = !!(keys['ShiftLeft'] || keys['ShiftRight']);
     astronaut.isSprinting = isSprinting && inputMove !== 0;
 
@@ -350,7 +356,8 @@ function updateAstronautPhysics(dt) {
     let slopeFactor = 1.0;
     if (astronaut.isGrounded && !astronaut.inCavern && !astronaut.onCeiling && inputMove !== 0 && p.radius > 0) {
         const eps = clamp(8 / Math.max(250, p.radius), 0.00015, 0.015);
-        const dirSign = astronaut.onCeiling ? -inputMove : inputMove;
+        const moveDir = inputMove > 0 ? 1 : -1;
+        const dirSign = astronaut.onCeiling ? -moveDir : moveDir;
         const dr = getSurfaceRadius(p, astronaut.angle + dirSign * eps) - getSurfaceRadius(p, astronaut.angle - dirSign * eps);
         const dirSlope = dr / (2 * eps * Math.max(250, surfaceR));
         if (dirSlope > 0.14) {
@@ -366,8 +373,8 @@ function updateAstronautPhysics(dt) {
     astronaut.vTangential = lerp(astronaut.vTangential, targetTangential, dt * accelRate);
 
     const wasGrounded = astronaut.isGrounded;
-    // Salto y Jetpack de gas frío (Espacio / W / Flecha arriba)
-    const jumpRequested = keys['Space'] || keys['KeyW'] || keys['ArrowUp'];
+    // Salto y Jetpack de gas frío (Espacio / W / Flecha arriba / Joystick arriba)
+    const jumpRequested = keys['Space'] || keys['KeyW'] || keys['ArrowUp'] || !!(evaJoy && evaJoy.y < -0.35);
 
     if (jumpRequested) {
         if (astronaut.isGrounded) {

@@ -298,81 +298,116 @@ document.addEventListener('dragstart', (e) => {
     e.preventDefault();
 });
 
-// Cruz Direccional estilo Spaceflight Simulator (▲ / ◀ ▼ ▶)
-const btnSteerLeftTop = document.getElementById('btnSteerLeftTop');
-const btnSteerRightTop = document.getElementById('btnSteerRightTop');
-const btnSteerLeft = document.getElementById('btnSteerLeft');
-const btnSteerRight = document.getElementById('btnSteerRight');
-const btnThrustUp = document.getElementById('btnThrustUp');
-const btnBrakeDown = document.getElementById('btnBrakeDown');
-
-function bindFlightPadButton(btn, onPress, onRelease) {
-    if (!btn) return;
+// Joystick Circular Translúcido (Vuelo y EVA, compatible multitáctil por pointerId)
+function createCircularJoystick(el, { deadzone = 0.15, onMove, onRelease } = {}) {
+    if (!el) return { reset: () => {} };
+    const knob = el.querySelector('.astral-joystick-knob');
+    const vector = el.querySelector('.astral-joystick-vector');
     let activePtrId = null;
-    btn.addEventListener('pointerdown', (e) => {
+
+    const updateFromPointer = (clientX, clientY) => {
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width * 0.5;
+        const cy = rect.top + rect.height * 0.5;
+        const knobRadius = knob ? knob.offsetWidth * 0.5 : 22;
+        const maxR = Math.max(12, rect.width * 0.5 - knobRadius * 0.72);
+        let dx = clientX - cx;
+        let dy = clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxR && dist > 0) {
+            const scale = maxR / dist;
+            dx *= scale;
+            dy *= scale;
+        }
+        const clampedDist = Math.min(dist, maxR);
+        const mag = clamp(clampedDist / maxR, 0, 1);
+        const nx = dx / maxR;
+        const ny = dy / maxR;
+        const angle = Math.atan2(dy, dx);
+
+        if (knob) {
+            knob.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
+        }
+        if (vector) {
+            vector.style.width = `${clampedDist.toFixed(1)}px`;
+            vector.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+            vector.style.opacity = mag >= deadzone ? '1' : '0.25';
+        }
+        if (onMove) {
+            onMove({ dx, dy, nx, ny, mag, angle, inDeadzone: mag < deadzone });
+        }
+    };
+
+    const reset = () => {
+        activePtrId = null;
+        el.classList.remove('is-active');
+        if (knob) knob.style.transform = 'translate3d(0px, 0px, 0)';
+        if (vector) {
+            vector.style.width = '0px';
+            vector.style.opacity = '0';
+        }
+        if (onRelease) onRelease();
+    };
+
+    el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dismissIntro();
         audio.init();
         activePtrId = e.pointerId;
-        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
-        onPress();
-        btn.classList.add('is-active');
+        el.classList.add('is-active');
+        try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        updateFromPointer(e.clientX, e.clientY);
     });
-    const release = (e) => {
+    el.addEventListener('pointermove', (e) => {
+        if (e.pointerId === activePtrId) {
+            e.preventDefault();
+            updateFromPointer(e.clientX, e.clientY);
+        }
+    });
+    const handleUp = (e) => {
         if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
-            activePtrId = null;
-            onRelease();
-            btn.classList.remove('is-active');
+            reset();
         }
     };
-    btn.addEventListener('pointerup', release);
-    btn.addEventListener('pointercancel', release);
-    btn.addEventListener('lostpointercapture', release);
-    btn.addEventListener('contextmenu', (e) => e.preventDefault());
-    btn.addEventListener('touchstart', (e) => {
+    el.addEventListener('pointerup', handleUp);
+    el.addEventListener('pointercancel', handleUp);
+    el.addEventListener('lostpointercapture', handleUp);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('touchstart', (e) => {
         if (e.cancelable) e.preventDefault();
     }, { passive: false });
+
+    return { reset };
 }
 
-bindFlightPadButton(
-    btnSteerLeftTop,
-    () => { keys['ArrowLeft'] = true; ship.turnVal = -1; },
-    () => {
-        keys['ArrowLeft'] = false;
-        if (keys['KeyD'] || keys['ArrowRight']) ship.turnVal = 1;
-        else if (!keys['KeyA']) ship.turnVal = 0;
+const flightJoystickState = {
+    active: false,
+    hasDirection: false,
+    screenAngle: -Math.PI / 2
+};
+
+const flightJoystickCtrl = createCircularJoystick(document.getElementById('flightJoystick'), {
+    deadzone: 0.15,
+    onMove: ({ angle, inDeadzone }) => {
+        flightJoystickState.active = true;
+        if (!inDeadzone) {
+            flightJoystickState.hasDirection = true;
+            flightJoystickState.screenAngle = angle;
+            if (typeof ship !== 'undefined' && typeof camera !== 'undefined') {
+                ship.targetAngle = angle - camera.rotation;
+            }
+        } else {
+            flightJoystickState.hasDirection = false;
+            if (typeof ship !== 'undefined') ship.targetAngle = null;
+        }
+    },
+    onRelease: () => {
+        flightJoystickState.active = false;
+        flightJoystickState.hasDirection = false;
+        if (typeof ship !== 'undefined') ship.targetAngle = null;
     }
-);
-bindFlightPadButton(
-    btnSteerRightTop,
-    () => { keys['ArrowRight'] = true; ship.turnVal = 1; },
-    () => {
-        keys['ArrowRight'] = false;
-        if (keys['KeyA'] || keys['ArrowLeft']) ship.turnVal = -1;
-        else if (!keys['KeyD']) ship.turnVal = 0;
-    }
-);
-bindFlightPadButton(
-    btnSteerLeft,
-    () => { ship.rcsStrafe = -1; },
-    () => { if (ship.rcsStrafe === -1) ship.rcsStrafe = 0; }
-);
-bindFlightPadButton(
-    btnSteerRight,
-    () => { ship.rcsStrafe = 1; },
-    () => { if (ship.rcsStrafe === 1) ship.rcsStrafe = 0; }
-);
-bindFlightPadButton(
-    btnThrustUp,
-    () => { keys['ArrowUp'] = true; ship.thrusting = true; },
-    () => { keys['ArrowUp'] = false; if (!keys['KeyW'] && !keys['Space']) ship.thrusting = false; }
-);
-bindFlightPadButton(
-    btnBrakeDown,
-    () => { keys['ArrowDown'] = true; ship.braking = true; },
-    () => { keys['ArrowDown'] = false; if (!keys['KeyS']) ship.braking = false; }
-);
+});
 
 // Barra Graduable de Potencia de Motores (0% - 100%, deslizamiento relativo estilo SFS, compatible multitáctil)
 const throttleTrack = document.getElementById('throttleTrack');
@@ -718,8 +753,14 @@ window.addEventListener('keydown', (e) => {
             disengageOrbitMode(false, 'Hiperimpulso activado. Órbita liberada.');
         }
     }
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft') ship.turnVal = -1;
-    if (e.code === 'KeyD' || e.code === 'ArrowRight') ship.turnVal = 1;
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+        ship.turnVal = -1;
+        if (!flightJoystickState.active) ship.targetAngle = null;
+    }
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+        ship.turnVal = 1;
+        if (!flightJoystickState.active) ship.targetAngle = null;
+    }
     if (e.code === 'KeyO') {
         e.preventDefault();
         if (typeof toggleOrbitMode === 'function') toggleOrbitMode();
@@ -785,38 +826,29 @@ if (btnEvaInspectExtractor) {
     });
 }
 
-// Controles táctiles de movimiento en superficie EVA (Móvil / Tablet, multitáctil por pointerId)
-function bindEvaTouchHold(btnId, keyCode) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    let activePtrId = null;
-    btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        activePtrId = e.pointerId;
-        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
-        keys[keyCode] = true;
-        btn.classList.add('is-active');
-        audio.init();
-    });
-    const release = (e) => {
-        if (activePtrId !== null && (e.pointerId === undefined || e.pointerId === activePtrId)) {
-            activePtrId = null;
-            keys[keyCode] = false;
-            btn.classList.remove('is-active');
-        }
-    };
-    btn.addEventListener('pointerup', release);
-    btn.addEventListener('pointercancel', release);
-    btn.addEventListener('lostpointercapture', release);
-    btn.addEventListener('contextmenu', (e) => e.preventDefault());
-    btn.addEventListener('touchstart', (e) => {
-        if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-}
-bindEvaTouchHold('btnEvaTouchLeft', 'KeyA');
-bindEvaTouchHold('btnEvaTouchRight', 'KeyD');
-bindEvaTouchHold('btnEvaTouchJump', 'Space');
+// Joystick circular de movimiento en superficie EVA (caminar derecha/izquierda y salto/jetpack hacia arriba)
+window.evaJoystickInput = { active: false, x: 0, y: 0 };
+const evaJoystickCtrl = createCircularJoystick(document.getElementById('evaJoystick'), {
+    deadzone: 0.14,
+    onMove: ({ nx, ny }) => {
+        const dzX = 0.16;
+        const absX = Math.abs(nx);
+        const mappedX = absX < dzX ? 0 : Math.sign(nx) * clamp((absX - dzX) / (1 - dzX), 0, 1);
+        window.evaJoystickInput.active = true;
+        window.evaJoystickInput.x = mappedX;
+        window.evaJoystickInput.y = ny;
+    },
+    onRelease: () => {
+        window.evaJoystickInput.active = false;
+        window.evaJoystickInput.x = 0;
+        window.evaJoystickInput.y = 0;
+    }
+});
+
+window.addEventListener('blur', () => {
+    flightJoystickCtrl.reset();
+    evaJoystickCtrl.reset();
+});
 
 // Botón táctil / ratón sostenido para "Enderezar Nave"
 const btnEvaRightShip = document.getElementById('btnEvaRightShip');
@@ -1568,13 +1600,28 @@ if (btnEvaWorldMenuQuick) {
     });
 }
 
-['btnWorldResources', 'btnWorldOpenVab', 'btnBaseOpenHangar', 'btnBaseOpenVab'].forEach(id => {
+function cleanRocketScorch(s) {
+    if (!s) return;
+    s.scorch = { amount: 0, dirX: 1, dirY: 0, temp: 0, peakTemp: 0, burns: [] };
+    if (s.customRocket && Array.isArray(s.customRocket.customParts)) {
+        for (let i = 0; i < s.customRocket.customParts.length; i++) {
+            delete s.customRocket.customParts[i].scorch;
+        }
+    }
+    if (typeof audio !== 'undefined' && audio.init && audio.playChime) {
+        audio.init();
+        audio.playChime();
+    }
+}
+
+['btnWorldResources', 'btnWorldOpenVab', 'btnWorldCleanRocket', 'btnBaseOpenHangar', 'btnBaseOpenVab'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', () => {
         closeWorldObjectMenu();
         if (id === 'btnWorldResources' && typeof toggleResourceInventoryModal === 'function') toggleResourceInventoryModal();
         if ((id === 'btnWorldOpenVab' || id === 'btnBaseOpenVab') && typeof openRocketBuilder === 'function') openRocketBuilder();
+        if (id === 'btnWorldCleanRocket' && typeof ship !== 'undefined') cleanRocketScorch(ship);
         if (id === 'btnBaseOpenHangar' && typeof openRocketHangarModal === 'function') openRocketHangarModal();
     });
 });
@@ -1641,6 +1688,15 @@ function loop(now) {
             camera.rotation = 0;
             camera.targetRotation = 0;
             camera.userZoomMult = 1.0;
+        }
+
+        if (typeof astronaut !== 'undefined' && astronaut.active) {
+            if (flightJoystickState.active) flightJoystickCtrl.reset();
+        } else {
+            if (window.evaJoystickInput && window.evaJoystickInput.active) evaJoystickCtrl.reset();
+            if (flightJoystickState.active && flightJoystickState.hasDirection && typeof ship !== 'undefined' && typeof camera !== 'undefined') {
+                ship.targetAngle = flightJoystickState.screenAngle - camera.rotation;
+            }
         }
 
         if (timeScale <= 1) {

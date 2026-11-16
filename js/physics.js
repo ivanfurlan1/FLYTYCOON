@@ -2331,8 +2331,14 @@ function updatePhysics(dt, skipExpensiveUI = false) {
         ship.sasHoldAngle = null;
         let diff = ship.targetAngle - ship.angle;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        if (Math.abs(diff) > 0.03) rcsTorque = clamp(diff * 2.5, -1, 1);
-        ship.av += (diff * (ship.isGrounded ? 3.2 : 8.5) - ship.av * 3.2) * turnResponseScale * dt;
+        const desiredAv = clamp(diff * 12.0, -maxAv, maxAv);
+        const maxTurnAccel = modelTurnRate * groundFrictionFactor;
+        const appliedAccel = clamp((desiredAv - ship.av) * 16.0, -maxTurnAccel, maxTurnAccel);
+        if (Math.abs(diff) > 0.02) {
+            rcsTorque = clamp(appliedAccel / Math.max(0.01, modelTurnRate), -1, 1);
+        }
+        ship.av += appliedAccel * dt;
+        ship.av = clamp(ship.av, -maxAv, maxAv);
     } else if (ship.turnVal !== 0) {
         hasPilotInput = true;
         ship.sasHoldAngle = null;
