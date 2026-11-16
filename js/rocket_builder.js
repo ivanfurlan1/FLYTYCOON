@@ -3526,6 +3526,7 @@ class RocketBuilderEngine {
         this.activePointers = new Map();
         this.pinchState = null;
         this.panStart = null;
+        this.touchHoldTimer = null;
         this.paletteDragState = null;
 
         this.canvas = null;
@@ -4787,6 +4788,13 @@ class RocketBuilderEngine {
         return rect ? (clientX < rect.left - 36 || clientY > rect.bottom + 24) : false;
     }
 
+    clearTouchHold() {
+        if (this.touchHoldTimer) {
+            clearTimeout(this.touchHoldTimer);
+            this.touchHoldTimer = null;
+        }
+    }
+
     onCanvasPointerDown(e) {
         if (!this.canvas) return;
         const rect = this.canvas.getBoundingClientRect();
@@ -4799,6 +4807,7 @@ class RocketBuilderEngine {
 
         // Gesto multitáctil (2 dedos): pellizco para zoom + paneo
         if (this.activePointers.size >= 2) {
+            this.clearTouchHold();
             this.draggedPart = null;
             this.resizeDrag = null;
             this.selectionBox = null;
@@ -4879,9 +4888,34 @@ class RocketBuilderEngine {
         } else {
             this.resizeMode = false;
             if (isTouch) {
-                // En táctil, arrastrar el fondo mueve la cámara (estilo SFS)
+                // En táctil: deslizar rápido mueve la cámara; mantener apretado activa el cuadro de selección
+                this.clearTouchHold();
                 this.isPanning = true;
                 this.panStart = { x: e.clientX, y: e.clientY, moved: false };
+                const holdWorldX = worldPos.x;
+                const holdWorldY = worldPos.y;
+                this.touchHoldTimer = setTimeout(() => {
+                    this.touchHoldTimer = null;
+                    if (!this.isPanning || !this.panStart || this.panStart.moved || this.activePointers.size !== 1) return;
+                    this.isPanning = false;
+                    this.panStart = null;
+                    this.selectedPartId = null;
+                    this.selectedPartIds.clear();
+                    this.selectionBox = {
+                        startX: holdWorldX,
+                        startY: holdWorldY,
+                        currentX: holdWorldX,
+                        currentY: holdWorldY,
+                        preSelected: new Set()
+                    };
+                    this.playClickSound();
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(18); } catch (_) {}
+                    }
+                    this.updateToolbarPosition();
+                    this.updateInspectorUI();
+                    this.updateStats();
+                }, 320);
                 return;
             }
             const preSelected = e.shiftKey ? new Set(this.selectedPartIds) : new Set();
@@ -4999,12 +5033,19 @@ class RocketBuilderEngine {
         const worldPos = this.screenToWorld(sx, sy);
 
         if (this.isPanning) {
+            if (this.panStart && !this.panStart.moved) {
+                if (Math.hypot(e.clientX - this.panStart.x, e.clientY - this.panStart.y) > 8) {
+                    this.panStart.moved = true;
+                    this.clearTouchHold();
+                } else if (this.touchHoldTimer) {
+                    // Mientras espera el toque largo dentro del umbral de tolerancia, no mover la cámara todavía
+                    this.lastMouse = { x: sx, y: sy };
+                    return;
+                }
+            }
             this.camera.panX += sx - this.lastMouse.x;
             this.camera.panY += sy - this.lastMouse.y;
             this.lastMouse = { x: sx, y: sy };
-            if (this.panStart && Math.hypot(e.clientX - this.panStart.x, e.clientY - this.panStart.y) > 6) {
-                this.panStart.moved = true;
-            }
             this.updateToolbarPosition();
             return;
         }
@@ -5182,6 +5223,7 @@ class RocketBuilderEngine {
             }
         }
 
+        this.clearTouchHold();
         this.activePointers.delete(e.pointerId);
         if (this.activePointers.size < 2) {
             this.pinchState = null;
@@ -6124,6 +6166,17 @@ class RocketBuilderEngine {
                 ctx.setLineDash([5 / this.camera.zoom, 3 / this.camera.zoom]);
                 ctx.fillRect(bx, by, bw, bh);
                 ctx.strokeRect(bx, by, bw, bh);
+                ctx.restore();
+            } else {
+                // Indicador visual al activar selección por toque largo antes de arrastrar
+                ctx.save();
+                ctx.strokeStyle = '#38bdf8';
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+                ctx.lineWidth = 2 / this.camera.zoom;
+                ctx.beginPath();
+                ctx.arc(this.selectionBox.startX, this.selectionBox.startY, 12 / this.camera.zoom, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
                 ctx.restore();
             }
         }
